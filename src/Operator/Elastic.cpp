@@ -770,13 +770,16 @@ Elastic<T>::averageDownCoeffsSameAmrLevel (int amrlev)
 						cdata(I,J,K) = fdata(i,j,k);
 					else if ((J == lo.y || J == hi.y) &&
 						 (K == lo.z || K == hi.z)) // X edge
-						cdata(I,J,K) = fdata(i-1,j,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i+1,j,k)*0.25;
+						Util::Abort(INFO);
+						//cdata(I,J,K) = fdata(i-1,j,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i+1,j,k)*0.25;
 					else if ((K == lo.z || K == hi.z) &&
 					 	 (I == lo.x || I == hi.x)) // Y edge
-					 	cdata(I,J,K) = fdata(i,j-1,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j+1,k)*0.25;
+						Util::Abort(INFO);
+					 	//cdata(I,J,K) = fdata(i,j-1,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j+1,k)*0.25;
 					else if ((I == lo.x || I == hi.x) &&
 					 	 (J == lo.y || J == hi.y)) // Z edge
-					 	cdata(I,J,K) = fdata(i,j,k-1)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j,k+1)*0.25;
+						Util::Abort(INFO);
+					 	//cdata(I,J,K) = fdata(i,j,k-1)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j,k+1)*0.25;
 					else if (I == lo.x || I == hi.x) // X face
 					 	cdata(I,J,K) =
 					 		(  fdata(i,j-1,k-1)     + fdata(i,j,k-1)*2.0 + fdata(i,j+1,k-1)

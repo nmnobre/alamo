@@ -134,7 +134,11 @@ obj/obj-$(POSTFIX)/%.cpp.o:
 	@printf '%9s' "($(CTR)/$(NUM)) " 
 	@printf "$(RESET)$<\n"
 	@mkdir -p $(dir $@)
-	@$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} 
+
+	./colornvcc -ccbin=mpicxx -Xcompiler=' -Werror=return-type -g -O3  -pthread  --std=c++14' --std=c++14 -Wno-deprecated-gpu-targets -m64 -arch=compute_60 -code=sm_60 -maxrregcount=255 -lineinfo --ptxas-options=-O3 --ptxas-options=-v --use_fast_math  -dc -x cu --expt-relaxed-constexpr --expt-extended-lambda -DNDEBUG -DBL_USE_MPI -DAMREX_USE_MPI -DAMREX_GIT_VERSION=\"19.11\" -DBL_GCC_VERSION=7.4.0 -DBL_GCC_MAJOR_VERSION=7 -DBL_GCC_MINOR_VERSION=4 -DAMREX_NVCC_VERSION=10.1 -DAMREX_NVCC_MAJOR_VERSION=10 -DAMREX_NVCC_MINOR_VERSION=1 -DAMREX_USE_CUDA -DAMREX_LAUNCH="" -DAMREX_DEVICE="" -DAMREX_CUDA_FORT_GLOBAL="" -DAMREX_CUDA_FORT_DEVICE="" -DAMREX_CUDA_FORT_HOST="" -DAMREX_CUDA_FORT_HOST_DEVICE="" -DAMREX_USE_GPU -DBL_COALESCE_FABS -DBL_SPACEDIM=2 -DAMREX_SPACEDIM=2 -DBL_FORT_USE_UNDERSCORE -DAMREX_FORT_USE_UNDERSCORE -DBL_Linux -DAMREX_Linux -DAMREX_PARTICLES -DAMREX_GPU_MAX_THREADS=256 -DBL_USE_F_INTERFACES -I. -I/usr/local/cuda/include -I/home/brunnels/Research/alamo/amrex/Src/Base -I/home/brunnels/Research/alamo/amrex/Src/AmrCore -I/home/brunnels/Research/alamo/amrex/Src/Amr -I/home/brunnels/Research/alamo/amrex/Src/Boundary -I/home/brunnels/Research/alamo/amrex/Src/Particle -I/home/brunnels/Research/alamo/amrex/Src/F_Interfaces/Particle -I/home/brunnels/Research/alamo/amrex/Src/F_Interfaces/Base -I/home/brunnels/Research/alamo/amrex/Src/F_Interfaces/Octree -I/home/brunnels/Research/alamo/amrex/Src/F_Interfaces/AmrCore -I/home/brunnels/Research/alamo/amrex/Src/LinearSolvers/MLMG -I/home/brunnels/Research/alamo/amrex/Src/LinearSolvers/Projections -I/home/brunnels/Research/alamo/amrex/Src/F_Interfaces/LinearSolvers $(INCLUDE) -c $< -o $@
+
+
+	#$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} 
 
 obj/obj-$(POSTFIX)/%.cpp.d: src/%.cpp  ${AMREX_TARGET}
 	$(eval CTR_DEP=$(shell echo $$(($(CTR_DEP)+1))))

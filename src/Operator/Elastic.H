@@ -104,10 +104,9 @@ public:
 
 	void SetTesting(bool a_testing) {m_testing = a_testing;}
 	void SetUniform(bool a_uniform) {m_uniform = a_uniform;}
-protected:
 
+public:
 	virtual void Diagonal (int amrlev, int mglev, amrex::MultiFab& diag) override;
-
 	virtual void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const override final;
 	//virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rsh) const final;
 	virtual void FFlux (int amrlev, const MFIter& mfi,
@@ -128,7 +127,7 @@ protected:
 		Operator<Grid::Node>::prepareForSolve();
 	};
 
-private:
+public:
 	/// Simple arrays storing boundary conditions for each component and each face.
 	std::array<std::array<BC,AMREX_SPACEDIM>, AMREX_SPACEDIM> m_bc_lo; // m_bc_lo[face][dimension]
 	std::array<std::array<BC,AMREX_SPACEDIM>, AMREX_SPACEDIM> m_bc_hi; // m_bc_hi[face][dimension]

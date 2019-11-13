@@ -65,6 +65,7 @@ parser.add_argument('--python',dest='python',nargs='?',const=python_version,help
 parser.add_argument('--docs',dest='docs',action='store_true',help='Check installation of packages for building documentation')
 parser.add_argument('--diff',dest='diff',action='store_true',help='Use diff2html to generate git diff reports')
 parser.add_argument('--profile',dest='profile',action='store_true',default=False,help="Enable tiny profiling in AMReX")
+parser.add_argument('--cuda',dest='cuda',action='store_true',default=False,help="Compile for NVidia GPU")
 parser.set_defaults(debug=False)
 args=parser.parse_args()
 
@@ -81,6 +82,7 @@ postfix += str(args.dim)+"d"
 if args.debug: postfix += "-debug"
 if fpic: postfix += "-fpic"
 if args.profile: postfix += "-profile"
+if args.cuda: postfix += "-cuda"
 postfix += "-" + args.comp
 f.write("POSTFIX = " + postfix + '\n')
 
@@ -127,6 +129,7 @@ if (args.buildamrex == True):
     if args.debug: amrex_configure += ' --debug=yes'
     if fpic: amrex_configure += ' --enable-pic=yes'
     if args.profile: amrex_configure += ' --enable-tiny-profile=yes'
+    if args.cuda: amrex_configure += ' --with-cuda=yes'
     args.amrex = "amrex/"+postfix
     f.write("AMREX = amrex/" + postfix + "/\n")
     f.write("AMREX_TARGET = amrex/" + postfix + "\n")
