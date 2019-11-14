@@ -25,9 +25,9 @@ namespace LinearElastic
 class Laplacian : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	Laplacian() {} ;
-	Laplacian(Set::Scalar _alpha) : alpha(_alpha)  {} ;
-	~Laplacian() {} ;
+	__host__ __device__ Laplacian() {} ;
+	__host__ __device__ Laplacian(Set::Scalar _alpha) : alpha(_alpha)  {} ;
+	//__host__ __device__ ~Laplacian() {} ;
 	AMREX_FORCE_INLINE
 	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &gradu,bool =true) const
 	{

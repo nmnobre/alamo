@@ -64,6 +64,7 @@ class Matrix4<3,Sym::Full>
 public:
     Matrix4() {};
     AMREX_FORCE_INLINE
+    __host__ __device__
     Scalar & operator () (const int i, const int j, const int k, const int l)
     {
         int uid = i + 3*j + 9*k + 27*l;
@@ -159,6 +160,7 @@ class Matrix4<2,Sym::Full>
 public:
     Matrix4() {};
     AMREX_FORCE_INLINE
+    __host__ __device__
     Scalar & operator () (const int i, const int j, const int k, const int l)
     {
         int uid = i + 2*j + 4*k + 8*l;
@@ -229,12 +231,13 @@ public:
         zero.mu = 0.0;
         return zero;
     }
-    void operator += (Matrix4<3,Sym::Isotropic> a) {lambda += a.lambda; mu += a.mu;}
-    void operator -= (Matrix4<3,Sym::Isotropic> a) {lambda -= a.lambda; mu -= a.mu;}
-    void operator *= (Matrix4<3,Sym::Isotropic> a) {lambda *= a.lambda; mu *= a.mu;}
-    void operator /= (Matrix4<3,Sym::Isotropic> a) {lambda /= a.lambda; mu /= a.mu;}
-    void operator *= (Set::Scalar alpha) {lambda *= alpha; mu *= alpha;}
-    void operator /= (Set::Scalar alpha) {lambda /= alpha; mu /= alpha;}
+    __host__ __device__ void operator =  (Matrix4<3,Sym::Isotropic> a) {lambda =  a.lambda; mu =  a.mu;}
+    __host__ __device__ void operator += (Matrix4<3,Sym::Isotropic> a) {lambda += a.lambda; mu += a.mu;}
+    __host__ __device__ void operator -= (Matrix4<3,Sym::Isotropic> a) {lambda -= a.lambda; mu -= a.mu;}
+    __host__ __device__ void operator *= (Matrix4<3,Sym::Isotropic> a) {lambda *= a.lambda; mu *= a.mu;}
+    __host__ __device__ void operator /= (Matrix4<3,Sym::Isotropic> a) {lambda /= a.lambda; mu /= a.mu;}
+    __host__ __device__ void operator *= (Set::Scalar alpha) {lambda *= alpha; mu *= alpha;}
+    __host__ __device__ void operator /= (Set::Scalar alpha) {lambda /= alpha; mu /= alpha;}
 };
 
 
@@ -338,12 +341,13 @@ public:
             }
         }
     }
-    void operator += (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] += a.data[i];}
-    void operator -= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] -= a.data[i];}
-    void operator *= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] *= a.data[i];}
-    void operator /= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] /= a.data[i];}
-    void operator *= (Set::Scalar alpha) {for (int i = 0; i < 21; i++) data[i] *= alpha;}
-    void operator /= (Set::Scalar alpha) {for (int i = 0; i < 21; i++) data[i] /= alpha;}
+    __host__ __device__ void operator  =  (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] = a.data[i];}
+    __host__ __device__ void operator += (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] += a.data[i];}
+    __host__ __device__ void operator -= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] -= a.data[i];}
+    __host__ __device__ void operator *= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] *= a.data[i];}
+    __host__ __device__ void operator /= (Matrix4<3,Sym::MajorMinor> a) {for (int i = 0; i < 21; i++) data[i] /= a.data[i];}
+    __host__ __device__ void operator *= (Set::Scalar alpha) {for (int i = 0; i < 21; i++) data[i] *= alpha;}
+    __host__ __device__ void operator /= (Set::Scalar alpha) {for (int i = 0; i < 21; i++) data[i] /= alpha;}
 
     static Matrix4<3,Sym::MajorMinor> Increment()
     {
@@ -364,10 +368,10 @@ public:
         return ret;
      }
 };
-Eigen::Matrix<amrex::Real,3,3> operator * (Matrix4<3,Sym::MajorMinor> a, Eigen::Matrix<amrex::Real,3,3> b);
-Eigen::Matrix<amrex::Real,2,2> operator * (Matrix4<3,Sym::MajorMinor> a, Eigen::Matrix<amrex::Real,2,2> b);
-Eigen::Matrix<amrex::Real,3,1> operator * (Matrix4<3,Sym::MajorMinor> a, std::array<Eigen::Matrix<amrex::Real,3,3>,3> b);
-Eigen::Matrix<amrex::Real,2,1> operator * (Matrix4<3,Sym::MajorMinor> a, std::array<Eigen::Matrix<amrex::Real,2,2>,2> b);
+__host__ __device__ Eigen::Matrix<amrex::Real,3,3> operator * (Matrix4<3,Sym::MajorMinor> a, Eigen::Matrix<amrex::Real,3,3> b);
+__host__ __device__ Eigen::Matrix<amrex::Real,2,2> operator * (Matrix4<3,Sym::MajorMinor> a, Eigen::Matrix<amrex::Real,2,2> b);
+__host__ __device__ Eigen::Matrix<amrex::Real,3,1> operator * (Matrix4<3,Sym::MajorMinor> a, std::array<Eigen::Matrix<amrex::Real,3,3>,3> b);
+__host__ __device__ Eigen::Matrix<amrex::Real,2,1> operator * (Matrix4<3,Sym::MajorMinor> a, std::array<Eigen::Matrix<amrex::Real,2,2>,2> b);
  
 namespace Constant
 {

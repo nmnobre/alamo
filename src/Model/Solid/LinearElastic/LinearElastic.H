@@ -21,8 +21,8 @@ template<Set::Sym sym>
 class LinearElastic : public Solid
 {
 public:
-	LinearElastic() {};
-	virtual ~LinearElastic() {};
+	__host__ __device__ LinearElastic() {};
+	//__host__ __device__ virtual ~LinearElastic() {};
 	///
 	/// Returns
 	/// \f[\mathbb{C}_{ijkl}u_{k,l}\f]

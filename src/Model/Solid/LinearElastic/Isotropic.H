@@ -22,22 +22,20 @@ namespace LinearElastic
 class Isotropic : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	Isotropic() {} ;
-	Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda) {} ;
-	~Isotropic() {} ;
+	__host__ __device__ Isotropic() {} ;
+	__host__ __device__ Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda) {} ;
+	//__host__ __device__ ~Isotropic() {} ;
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	AMREX_FORCE_INLINE
-#endif
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
+	__host__ __device__ 
+	virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
 	{
 		return mu*(eps + eps.transpose()) + lambda*Set::Matrix::Identity()*eps.trace();
 	};
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
 	AMREX_FORCE_INLINE
-#endif
-	__host__ __device__ virtual Set::Vector operator () (std::array<Set::Matrix,AMREX_SPACEDIM> &gradeps,bool =true)
+	__host__ __device__ 
+	virtual Set::Vector operator () (std::array<Set::Matrix,AMREX_SPACEDIM> &gradeps,bool =true)
 	{
 		Set::Vector f = Set::Vector::Zero();
 		for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -58,24 +56,31 @@ public:
 			" lambda = " << lambda << std::endl;
 	}
 
+	__host__ __device__ 
 	Isotropic operator + (const Isotropic &rhs) const
 	{return Isotropic(mu+rhs.mu, lambda+rhs.lambda);}
 
+	__host__ __device__ 
 	void operator += (const Isotropic &rhs)
 	{mu+=rhs.mu; lambda+=rhs.lambda;}
 
+	__host__ __device__ 
 	Isotropic operator - (const Isotropic &rhs) const
 	{return Isotropic(mu-rhs.mu, lambda-rhs.lambda);}
 
+	__host__ __device__ 
 	Isotropic operator * (const Isotropic &rhs) const
 	{return Isotropic(mu*rhs.mu, lambda*rhs.lambda);}
 
+	__host__ __device__ 
 	Isotropic operator / (const Isotropic &rhs) const
 	{return Isotropic(mu/rhs.mu, lambda/rhs.lambda);}
 
+	__host__ __device__ 
 	virtual Isotropic operator / (const Set::Scalar alpha) const
 	{return Isotropic(mu/alpha, lambda/alpha);}
 
+	__host__ __device__ 
 	virtual Isotropic operator * (const Set::Scalar alpha) const
 	{return Isotropic(mu*alpha, lambda*alpha);}
 

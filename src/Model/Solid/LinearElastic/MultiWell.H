@@ -62,27 +62,27 @@ public:
 			" lambda = " << lambda << std::endl;
 	}
 
-	Multiwell operator + (const Multiwell &rhs) const
+	__host__ __device__ Multiwell operator + (const Multiwell &rhs) const
 	{
 		Multiwell ret(mu+rhs.mu, lambda+rhs.lambda,Fgb + rhs.Fgb);
 		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] + rhs.gradFgb[i];
 		return ret;
 	}
 
-	Multiwell & operator = (const Multiwell &rhs)
+	__host__ __device__ Multiwell & operator = (const Multiwell &rhs)
 	{
 		mu=rhs.mu; lambda=rhs.lambda; Fgb = rhs.Fgb;
 		for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] = rhs.gradFgb[i];
 		return *this;
 	}
 
-	void operator += (const Multiwell &rhs)
+	__host__ __device__ void operator += (const Multiwell &rhs)
 	{
 		mu+=rhs.mu; lambda+=rhs.lambda; Fgb += rhs.Fgb;
 		for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] += rhs.gradFgb[i];
 	}
 
-	Multiwell operator - (const Multiwell &rhs) const
+	__host__ __device__ Multiwell operator - (const Multiwell &rhs) const
 	{
 		Multiwell ret(mu-rhs.mu, lambda-rhs.lambda,Fgb-rhs.Fgb);
 		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] - rhs.gradFgb[i];
@@ -95,14 +95,14 @@ public:
 	//Multiwell operator / (const Multiwell &rhs) const
 	//{return Multiwell(mu/rhs.mu, lambda/rhs.lambda);}
 
-	virtual Multiwell operator / (const Set::Scalar alpha) const
+	__host__ __device__ virtual Multiwell operator / (const Set::Scalar alpha) const
 	{
 		Multiwell ret(mu/alpha, lambda/alpha,Fgb/alpha);
 		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]/alpha;
 		return ret;
 	}
 
-	virtual Multiwell operator * (const Set::Scalar alpha) const
+	__host__ __device__ virtual Multiwell operator * (const Set::Scalar alpha) const
 	{
 		Multiwell ret(mu*alpha, lambda*alpha,Fgb*alpha);
 		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]*alpha;

@@ -10,26 +10,31 @@ namespace Numeric
 {
 
 enum StencilType {Lo, Hi, Central};
-static std::array<StencilType,AMREX_SPACEDIM>
-DefaultType = {AMREX_D_DECL(StencilType::Central, StencilType::Central, StencilType::Central)};
 
-static
-AMREX_FORCE_INLINE
-std::array<StencilType,AMREX_SPACEDIM>
-__device__ GetStencil(const int i, const int j, const int k, const amrex::Box domain)
+struct Stencils
 {
-	(void)i; (void)j; (void)k; // Suppress "unused variable" warnings.
-	std::array<StencilType,AMREX_SPACEDIM> sten;
-	const amrex::Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
-	AMREX_D_TERM(sten[0] = (i == lo.x ? Numeric::StencilType::Hi :
-				i == hi.x ? Numeric::StencilType::Lo :
-				Numeric::StencilType::Central);,
-		     sten[1] = (j == lo.y ? Numeric::StencilType::Hi :
-				j == hi.y ? Numeric::StencilType::Lo :
-				Numeric::StencilType::Central);,
-		     sten[2] = (k == lo.z ? Numeric::StencilType::Hi :
-				k == hi.z ? Numeric::StencilType::Lo :
-				Numeric::StencilType::Central););
+	StencilType x=StencilType::Central, y=StencilType::Central, z=StencilType::Central;
+};
+
+Stencils DefaultType;
+
+//
+static
+AMREX_FORCE_INLINE 
+__host__ __device__ 
+Stencils 
+GetStencil(const int i, const int j, const int k, const amrex::Box domain)
+{
+	Stencils sten;
+//	(void)i; (void)j; (void)k; // Suppress "unused variable" warnings.
+//	StencilType sten[AMREX_SPACEDIM];
+//	const amrex::Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
+//	AMREX_D_TERM(sten[0] = (i == lo.x ? Numeric::StencilType::Hi :
+//							i == hi.x ? Numeric::StencilType::Lo : Numeric::StencilType::Central);,
+//		     	 sten[1] = (j == lo.y ? Numeric::StencilType::Hi :
+//							j == hi.y ? Numeric::StencilType::Lo : Numeric::StencilType::Central);,
+//		     	 sten[2] = (k == lo.z ? Numeric::StencilType::Hi :
+//							k == hi.z ? Numeric::StencilType::Lo : Numeric::StencilType::Central););
 	return sten;
 }
 
@@ -45,16 +50,15 @@ template<class T>
 struct Stencil<T,1,0,0>
 {
 	AMREX_FORCE_INLINE
-	__device__ static T D(const amrex::Array4<const T> &f,
+	__device__ 
+	static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
 		   const Set::Scalar dx[AMREX_SPACEDIM],
-		   std::array<StencilType,AMREX_SPACEDIM> stencil = DefaultType)
+		   Stencils stencil = DefaultType)
 	{
-		if (stencil[0] == StencilType::Lo)
-			//return (f(i,j,k,m) - f(i-1,j,k,m)) / dx[0];
+		if (stencil.x == StencilType::Lo)
 			return (f(i,j,k,m)*(1.5) + f(i-1,j,k,m)*(-2.0) + f(i-2,j,k,m)*(0.5)) / dx[0]; // 2nd order stencil
-		else if (stencil[0] == StencilType::Hi)
-			//return (f(i+1,j,k,m) - f(i,j,k,m)) / dx[0]; // 1st order stencil
+		else if (stencil.x == StencilType::Hi)
 			return (f(i,j,k,m)*(-1.5) + f(i+1,j,k,m)*(2.0) + f(i+2,j,k,m)*(-0.5)) / dx[0]; // 2nd order stencil
 		else
 			return (f(i+1,j,k,m) - f(i-1,j,k,m))*0.5 / dx[0];
@@ -68,12 +72,12 @@ struct Stencil<T,0,1,0>
 	__device__ static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
 		   const Set::Scalar dx[AMREX_SPACEDIM],
-		   std::array<StencilType,AMREX_SPACEDIM> stencil = DefaultType)
+		   	Stencils stencil = DefaultType)
 	{
-		if (stencil[1] == StencilType::Lo)
+		if (stencil.y == StencilType::Lo)
 			//return (f(i,j,k,m) - f(i,j-1,k,m)) / dx[1];
 			return (f(i,j,k,m)*( 1.5) + f(i,j-1,k,m)*(-2.0) + f(i,j-2,k,m)*(0.5)) / dx[1]; // 2nd order stencil
-		else if (stencil[1] == StencilType::Hi)
+		else if (stencil.y == StencilType::Hi)
 			//return (f(i,j+1,k,m) - f(i,j,k,m)) / dx[1];
 			return (f(i,j,k,m)*(-1.5) + f(i,j+1,k,m)*(2.0) + f(i,j+2,k,m)*(-0.5)) / dx[1]; // 2nd order stencil
 		else
@@ -88,12 +92,12 @@ struct Stencil<T,0,0,1>
 	__device__ static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
 		   const Set::Scalar dx[AMREX_SPACEDIM],
-		   std::array<StencilType,AMREX_SPACEDIM> stencil = DefaultType)
+		   Stencils stencil = DefaultType)
 	{
-		if (stencil[2] == StencilType::Lo)
+		if (stencil.z == StencilType::Lo)
 			//return (f(i,j,k,m) - f(i,j,k-1,m)) / dx[2];
 			return (f(i,j,k,m)*( 1.5) + f(i,j,k-1,m)*(-2.0) + f(i,j,k-2,m)*(0.5)) / dx[2]; // 2nd order stencil
-		else if (stencil[2] == StencilType::Hi)
+		else if (stencil.z == StencilType::Hi)
 			//return (f(i,j,k+1,m) - f(i,j,k,m)) / dx[2];
 			return (f(i,j,k,m)*(-1.5) + f(i,j,k+1,m)*( 2.0) + f(i,j,k+2,m)*(-0.5)) / dx[2]; // 2nd order stencil
 		else

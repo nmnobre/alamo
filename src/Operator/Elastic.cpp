@@ -180,7 +180,7 @@ Elastic<T>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u) c
 					 AMREX_D_DECL(xmax = (i == hi.x), ymax = (j==hi.y), zmax = (k==hi.z));
 
 				// Determine if a special stencil will be necessary for first derivatives
-				std::array<Numeric::StencilType,AMREX_SPACEDIM>
+				Numeric::Stencils
 					sten = Numeric::GetStencil(i,j,k,domain);
 
 				// The displacement gradient tensor
@@ -286,7 +286,7 @@ Elastic<T>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 				bool    AMREX_D_DECL(xmin = (i == lo.x), ymin = (j==lo.y), zmin = (k==lo.z)),
 					    AMREX_D_DECL(xmax = (i == hi.x), ymax = (j==hi.y), zmax = (k==hi.z));
 
-				std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
+				Numeric::Stencils sten
 					= Numeric::GetStencil(i,j,k,domain);
 
 
@@ -341,7 +341,7 @@ Elastic<T>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 
 						diag(i,j,k,p) += f(p);
 					}
-					if (std::isnan(diag(i,j,k,p))) Util::Abort(INFO,"diagonal is nan at (", i, ",", j , ",",k,"), amrlev=",amrlev,", mglev=",mglev);
+					if (std::isnan(diag(i,j,k,p))) assert(-1); // Util::Loop::Abort(INFO);
 
 				}
 			});
@@ -416,15 +416,14 @@ Elastic<T>::Strain  (int amrlev,
 				    {
 					    Set::Matrix gradu;
 
-					    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
-						    = Numeric::GetStencil(i,j,k,domain);
+						Numeric::Stencils sten = Numeric::GetStencil(i,j,k,domain);
 
 					    // Fill gradu
 					    for (int p = 0; p < AMREX_SPACEDIM; p++)
 					    {
 						    AMREX_D_TERM(gradu(p,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(u, i,j,k,p, DX, sten));,
-						    		 gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(u, i,j,k,p, DX, sten));,
-						     		 gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(u, i,j,k,p, DX, sten)););
+						    			 gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(u, i,j,k,p, DX, sten));,
+						     			 gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(u, i,j,k,p, DX, sten)););
 					    }
 
 					    Set::Matrix eps = 0.5 * (gradu + gradu.transpose());
@@ -478,7 +477,7 @@ Elastic<T>::Stress (int amrlev,
 				    {
 					    Set::Matrix gradu;
 
-					    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
+					    Numeric::Stencils sten
 						    = Numeric::GetStencil(i,j,k,domain);
 
 					    // Fill gradu
@@ -540,7 +539,7 @@ Elastic<T>::Energy (int amrlev,
 				    {
 					    Set::Matrix gradu;
 
-					    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
+					    Numeric::Stencils sten
 						    = Numeric::GetStencil(i,j,k,domain);
 
 					    // Fill gradu
@@ -593,7 +592,7 @@ Elastic<T>::Energy (int amrlev, amrex::MultiFab& a_energies, const amrex::MultiF
 		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k)
 	    {
 		    Set::Matrix gradu;
-		    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
+		    Numeric::Stencils sten
 			    		= Numeric::GetStencil(i,j,k,domain);
 		    // Fill gradu
 		    for (int p = 0; p < AMREX_SPACEDIM; p++)
@@ -770,16 +769,16 @@ Elastic<T>::averageDownCoeffsSameAmrLevel (int amrlev)
 						cdata(I,J,K) = fdata(i,j,k);
 					else if ((J == lo.y || J == hi.y) &&
 						 (K == lo.z || K == hi.z)) // X edge
-						Util::Abort(INFO);
-						//cdata(I,J,K) = fdata(i-1,j,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i+1,j,k)*0.25;
+						//assert(-1); //Util::Abort(INFO);
+						cdata(I,J,K) = fdata(i-1,j,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i+1,j,k)*0.25;
 					else if ((K == lo.z || K == hi.z) &&
 					 	 (I == lo.x || I == hi.x)) // Y edge
-						Util::Abort(INFO);
-					 	//cdata(I,J,K) = fdata(i,j-1,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j+1,k)*0.25;
+						//assert(-1); //Util::Abort(INFO);
+					 	cdata(I,J,K) = fdata(i,j-1,k)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j+1,k)*0.25;
 					else if ((I == lo.x || I == hi.x) &&
 					 	 (J == lo.y || J == hi.y)) // Z edge
-						Util::Abort(INFO);
-					 	//cdata(I,J,K) = fdata(i,j,k-1)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j,k+1)*0.25;
+						//assert(-1); //Util::Abort(INFO);
+					 	cdata(I,J,K) = fdata(i,j,k-1)*0.25 + fdata(i,j,k)*0.5 + fdata(i,j,k+1)*0.25;
 					else if (I == lo.x || I == hi.x) // X face
 					 	cdata(I,J,K) =
 					 		(  fdata(i,j-1,k-1)     + fdata(i,j,k-1)*2.0 + fdata(i,j+1,k-1)
@@ -835,10 +834,10 @@ Elastic<T>::FillBoundaryCoeff (MultiTab& sigma, const Geometry& geom)
 }
 
 template class Elastic<Model::Solid::LinearElastic::Isotropic>;
-template class Elastic<Model::Solid::LinearElastic::Cubic>;
-template class Elastic<Model::Solid::LinearElastic::Multiwell>;
-template class Elastic<Model::Solid::LinearElastic::Laplacian>;
-template class Elastic<Model::Solid::LinearElastic::Degradable::Isotropic>;
-template class Elastic<Model::Solid::Viscoelastic::Isotropic>;
+//template class Elastic<Model::Solid::LinearElastic::Cubic>;
+//template class Elastic<Model::Solid::LinearElastic::Multiwell>;
+//template class Elastic<Model::Solid::LinearElastic::Laplacian>;
+//template class Elastic<Model::Solid::LinearElastic::Degradable::Isotropic>;
+//template class Elastic<Model::Solid::Viscoelastic::Isotropic>;
 }
 

@@ -104,6 +104,7 @@ public:
 
 
  	AMREX_FORCE_INLINE
+	__host__ __device__
  	Set::Vector operator () (const Set::Vector &u,
  				 const Set::Matrix &gradu,
  				 const Set::Matrix &sigma,
@@ -112,7 +113,7 @@ public:
  	{
 		(void)i; (void)j; (void)k; // Suppress "unused variable" warnings
 		Set::Vector f;
-
+ 
 		// const amrex::Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
 		
 		amrex::IntVect m(AMREX_D_DECL(i,j,k));
@@ -131,7 +132,7 @@ public:
 					else if (m_bc_lo[q][p] == Type::Periodic)
 						continue;
 					else
-						Util::Abort(INFO, "Invalid BC");
+						Util::Loop::Abort(INFO);
 				}
 				if (m[q] == domain.hiVect()[q])
 				{
@@ -143,7 +144,7 @@ public:
 						f(p) = +gradu(p,q);
 					else if (m_bc_hi[q][p] == Type::Periodic)
 						continue;
-					else Util::Abort(INFO, "Invalid BC");
+					else Util::Loop::Abort(INFO);
 				}
 			}
 		}

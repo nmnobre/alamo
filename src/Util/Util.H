@@ -50,7 +50,7 @@ void Terminate(const char * msg, int signal, bool backtrace);
 void Abort (const char * msg);
 
 template<typename... Args>
-void Abort (std::string file, std::string func, int line, Args const &... args)
+__host__ void Abort (std::string file, std::string func, int line, Args const &... args)
 {
 
 	std::ostringstream infostream;
@@ -71,7 +71,7 @@ void Abort (std::string file, std::string func, int line, Args const &... args)
 }
 
 template<typename... Args>
-void Message (std::string file, std::string func, int line, Args const &... args)
+__host__ void Message (std::string file, std::string func, int line, Args const &... args)
 {
 	if (amrex::ParallelDescriptor::IOProcessor())
 	{
@@ -93,7 +93,7 @@ void Message (std::string file, std::string func, int line, Args const &... args
 }
 
 template<typename... Args>
-void Warning (std::string file, std::string func, int line, Args const &... args)
+__host__ void Warning (std::string file, std::string func, int line, Args const &... args)
 {
 	if (amrex::ParallelDescriptor::IOProcessor())
 	{
@@ -113,6 +113,27 @@ void Warning (std::string file, std::string func, int line, Args const &... args
 		std::cout << info << message << std::endl;
 	}
 }
+
+namespace Loop
+{
+__device__ void Abort (std::string file, std::string func, int line)
+{
+	assert(-1);
+	// DO NOTHING
+}
+template<typename... Args>
+__device__ void Message (std::string file, std::string func, int line)
+{
+	// DO NOTHING
+}
+template<typename... Args>
+__device__ void Warning (std::string file, std::string func, int line)
+{
+	// DO NOTHING
+}
+}
+
+
 
 void CreateCleanDirectory (const std::string &path, bool callbarrier = true);
 
