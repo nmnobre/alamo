@@ -32,7 +32,7 @@ public:
 	/// Returns
 	/// \f[\mathbb{C}_{ijkl}u_{k,lj}\f]
 	///
-	__host__ __device__ virtual Set::Vector operator () (std::array<Set::Matrix,AMREX_SPACEDIM> &gradeps, bool a_homogeneous=true) = 0;
+	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradeps, bool a_homogeneous=true) = 0;
 	
 protected:
 };

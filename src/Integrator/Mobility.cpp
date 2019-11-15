@@ -172,8 +172,8 @@ Mobility::TimeStepBegin(amrex::Real /*time*/, int iter)
 			bx = mfi.tilebox();
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) 
 			{
-				model(i,j,k).gradFgb[0](1,0) = ((model(i+1,j,k).Fgb - model(i-1,j,k).Fgb)/2./DX[0])(0,1);
-				model(i,j,k).gradFgb[0](1,1) = ((model(i,j+1,k).Fgb - model(i,j-1,k).Fgb)/2./DX[1])(0,1);
+				model(i,j,k).gradFgb(0,1,0) = ((model(i+1,j,k).Fgb - model(i-1,j,k).Fgb)/2./DX[0])(0,1);
+				model(i,j,k).gradFgb(0,1,1) = ((model(i,j+1,k).Fgb - model(i,j-1,k).Fgb)/2./DX[1])(0,1);
 			});
 		}
 	}

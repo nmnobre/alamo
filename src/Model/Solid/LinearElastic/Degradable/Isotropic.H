@@ -22,17 +22,17 @@ class Isotropic : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Is
 public:
 	Isotropic() { } ;
 	Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda), mu0(_mu), lambda0(_lambda) {} ;
-	~Isotropic() {} ;
+	//~Isotropic() {} ;
 	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
 	{
 		return mu*(eps + eps.transpose()) + lambda*Set::Matrix::Identity()*eps.trace();
 	};
-	__host__ __device__ virtual Set::Vector operator () (std::array<Set::Matrix,AMREX_SPACEDIM> &gradeps,bool =true)
+	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true)
 	{
 		Set::Vector f = Set::Vector::Zero();
 		for (int i = 0; i < AMREX_SPACEDIM; i++)
 			for (int j=0; j < AMREX_SPACEDIM; j++)
-				f(i) += mu*(gradeps[i](j,j) + gradeps[j](i,j))  + lambda*gradeps[j](j,i);
+				f(i) += mu*(gradeps(i,j,j) + gradeps(j,i,j))  + lambda*gradeps(j,j,i);
 		return f;
 	}
 
@@ -70,6 +70,7 @@ public:
 	virtual Isotropic operator * (const Set::Scalar alpha) const
 	{return Isotropic(mu*alpha, lambda*alpha);}
 
+	__host__ __device__
 	void DegradeModulus(const Set::Scalar eta)
 	{
 		if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);

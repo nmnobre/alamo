@@ -48,56 +48,27 @@ public:
 			amrex::Box bx = mfi.tilebox();
 		    bx.grow(a_field[lev]->nGrow());
 			amrex::Array4<Set::Scalar> const& field = a_field[lev]->array(mfi);
+            Util::Abort(INFO,"Out of order"); // TODO
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
-				Set::Vector x;
-                // NODE
-                if (a_field[0]->ixType() == amrex::IndexType::TheNodeType())
-                {
-				    AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * geom[lev].CellSize()[0];,
-				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * geom[lev].CellSize()[1];,
-				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * geom[lev].CellSize()[2];);
-                }
-                else if (a_field[0]->ixType() == amrex::IndexType::TheCellType())
-                {
-				    AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
-				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
-				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
-                }
-
-
-                Set::Scalar norm = (A*(x-x0)).lpNorm<2>();
-                field(i,j,k) = 0.5 - 0.5*std::erf(((x-x0).transpose() * A * (x-x0) - 1.0) / eps / norm);
-
-//                if (moll == Mollifier::Dirac)
+//				Set::Vector x;
+//                // NODE
+//                if (a_field[0]->ixType() == amrex::IndexType::TheNodeType())
 //                {
-//                    if ((x-x0).transpose() * A * (x-x0) < 1.0) field(i,j,k) += 1.0;
+//				    AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * geom[lev].CellSize()[0];,
+//				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * geom[lev].CellSize()[1];,
+//				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * geom[lev].CellSize()[2];);
 //                }
-//                else if (moll == Mollifier::Gaussian)
+//                else if (a_field[0]->ixType() == amrex::IndexType::TheCellType())
 //                {
-//                    Set::Scalar conv = 0.0;
-//                    Set::Vector _x;
-//                    AMREX_D_TERM(for (_x(0) = x(0) - window; _x(0) <= x(0) + window; _x(0) += DX(0)),
-//                                 for (_x(1) = x(1) - window; _x(1) <= x(1) + window; _x(1) += DX(1)),
-//                                 for (_x(2) = x(2) - window; _x(2) <= x(2) + window; _x(2) += DX(2)))
-//                        {
-//#if AMREX_SPACEDIM==2
-//                            if ((_x-x0).transpose() * A * (_x-x0) < 1.0)
-//                            {
-//                                Set::Scalar mollifier = std::exp( - (_x - x).squaredNorm() / eps_sq) / (eps_sq * Set::Constant::Pi);
-//                                conv += mollifier * DX(0) * DX(1);
-//                            }
-//#elif AMREX_SPACEDIM==3
-//                            if ((_x-x0).transpose() * A * (_x-x0) < 1.0)
-//                            {
-//                                Set::Scalar mollifier = std::exp( - (_x - x).squaredNorm() / eps_sq) / pow(eps_sq * Set::Constant::Pi,1.5);
-//                                conv += mollifier * DX(0) * DX(1) * DX(2);
-//                            }
-//#endif
-//                        }
-//                    field(i,j,k) += conv;
+//				    AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
+//				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
+//				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
 //                }
-
+//
+//
+//                Set::Scalar norm = (A*(x-x0)).lpNorm<2>();
+//                field(i,j,k) = 0.5 - 0.5*std::erf(((x-x0).transpose() * A * (x-x0) - 1.0) / eps / norm);
 			});
 		}
         a_field[lev]->FillBoundary();

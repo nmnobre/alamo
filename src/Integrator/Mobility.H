@@ -42,7 +42,7 @@ public:
   Mobility();
   ~Mobility();
 
-protected:
+public:
 
   /// \brief Use the #ic object to initialize #Temp
   void Initialize (int lev) override;

@@ -17,9 +17,9 @@ class GB
 {
 	public:
 	GB() {};
-	virtual amrex::Real W(amrex::Real theta) = 0;
-	virtual amrex::Real DW(amrex::Real theta) = 0;
-	virtual amrex::Real DDW(amrex::Real theta) = 0;
+	__host__ __device__ virtual amrex::Real W(amrex::Real theta) = 0;
+	__host__ __device__ virtual amrex::Real DW(amrex::Real theta) = 0;
+	__host__ __device__ virtual amrex::Real DDW(amrex::Real theta) = 0;
 
 	void ExportToFile(std::string filename, amrex::Real dTheta)
 	{

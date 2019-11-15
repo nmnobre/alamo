@@ -55,38 +55,38 @@ public:
 		sigma0 = Util::Random();
 		sigma1 = Util::Random();
 	};
-	amrex::Real W(const Set::Scalar a_theta, const Set::Scalar a_phi) const
+	__host__ __device__ amrex::Real W(const Set::Scalar a_theta, const Set::Scalar a_phi) const
 	{
 		return sigma0 + sigma1*(1.0 - (cos(2*(a_phi))*cos(2*(a_phi)) * sin(2*(a_theta))*sin(2*(a_theta))));
 	};
-	std::array<Set::Scalar,2> DW(const Set::Scalar a_theta, const Set::Scalar a_phi) const
+	__host__ __device__ std::array<Set::Scalar,2> DW(const Set::Scalar a_theta, const Set::Scalar a_phi) const
 	{
 		return {- sigma1 * 4.0 * cos(2*a_phi) * cos(2*a_phi) * sin(2*a_theta) * cos(2*a_theta),
 				+ sigma1 * 4.0 * sin(2*a_phi) * cos(2*a_phi) * sin(2*a_theta) * sin(2*a_theta)} ;
 	};
 
-	Set::Scalar W(const Set::Vector a_n) const
+	__host__ __device__ Set::Scalar W(const Set::Vector a_n) const
 	{
 		Set::Vector n = a_n / a_n.lpNorm<2>();
 		Set::Scalar theta = std::acos(n(0));
 		Set::Scalar phi   = std::atan2(n(2),n(1));
 		return W(theta,phi);
 	};
-	Set::Scalar DW(const Set::Vector a_n, const Set::Vector t_n) const
+	__host__ __device__ Set::Scalar DW(const Set::Vector a_n, const Set::Vector t_n) const
 	{
 		const Set::Scalar alpha = 1E-4;
 		return (W(a_n + alpha*t_n) - W(a_n - alpha*t_n)) / 2.0 / alpha;
 	};
-	Set::Scalar DDW(const Set::Vector a_n, const Set::Vector t_n) const
+	__host__ __device__ Set::Scalar DDW(const Set::Vector a_n, const Set::Vector t_n) const
 	{
 		const Set::Scalar alpha = 1E-4;
 		return (W(a_n + alpha*t_n) - 2.0*W(a_n) + W(a_n - alpha*t_n)) / alpha / alpha;
 	};
 
 
-	amrex::Real W(amrex::Real )   {return NAN;};
-	amrex::Real DW(amrex::Real )  {return NAN;};
-	amrex::Real DDW(amrex::Real ) {return NAN;};
+	__host__ __device__ amrex::Real W(amrex::Real )   {return NAN;};
+	__host__ __device__ amrex::Real DW(amrex::Real )  {return NAN;};
+	__host__ __device__ amrex::Real DDW(amrex::Real ) {return NAN;};
   
 private:
 	amrex::Real theta0 = NAN, phi0 = NAN, sigma0 = NAN, sigma1 = NAN;

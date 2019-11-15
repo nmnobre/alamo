@@ -523,9 +523,6 @@ PolymerDegradation::Advance (int lev, amrex::Real time, amrex::Real dt)
 	if(water.on) std::swap(*water_conc_old[lev],*water_conc[lev]);
 	if(thermal.on) std::swap(*Temp_old[lev], *Temp[lev]);
 
-	static amrex::IntVect AMREX_D_DECL(	dx(AMREX_D_DECL(1,0,0)),
-						dy(AMREX_D_DECL(0,1,0)),
-						dz(AMREX_D_DECL(0,0,1)));
 	const amrex::Real* DX = geom[lev].CellSize();
 
 	if(water.on)
@@ -538,11 +535,11 @@ PolymerDegradation::Advance (int lev, amrex::Real time, amrex::Real dt)
 			amrex::Array4<amrex::Real> const& water_box = (*water_conc[lev]).array(mfi);
 
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
-				if(std::isnan(water_old_box(i,j,k,0))) Util::Abort(INFO, "Nan found in WATER_OLD(i,j,k)");
-				if(std::isinf(water_old_box(i,j,k,0))) Util::Abort(INFO, "Nan found in WATER_OLD(i,j,k)");
+				if(std::isnan(water_old_box(i,j,k,0))) assert(-1); // TODO // Util::Abort(INFO, "Nan found in WATER_OLD(i,j,k)");
+				if(std::isinf(water_old_box(i,j,k,0))) assert(-1); // TODO // Util::Abort(INFO, "Nan found in WATER_OLD(i,j,k)");
 				if(water_old_box(i,j,k,0) > 1.0)
 				{
-					Util::Warning(INFO,"Water concentration exceeded 1 at (", i, ",", j, ",", "k) and lev = ", lev, " Resetting");
+					// TODO // Util::Warning(INFO,"Water concentration exceeded 1 at (", i, ",", j, ",", "k) and lev = ", lev, " Resetting");
 					water_old_box(i,j,k,0) = 1.0;
 				}
 				water_box(i,j,k,0) =
@@ -554,7 +551,7 @@ PolymerDegradation::Advance (int lev, amrex::Real time, amrex::Real dt)
 							);
 				if(water_box(i,j,k,0) > 1.0)
 				{
-					Util::Warning(INFO, "Water concentration has exceeded one after computation. Resetting it to one");
+					// TODO // Util::Warning(INFO, "Water concentration has exceeded one after computation. Resetting it to one");
 					water_box(i,j,k,0) = 1.0;
 				}
 			});
@@ -594,49 +591,51 @@ PolymerDegradation::Advance (int lev, amrex::Real time, amrex::Real dt)
 		amrex::Array4<const amrex::Real> const& Temp_box 		= (*Temp[lev]).array(mfi);
 		//Util::Message(INFO);
 
+		// TODO // NEED TO FIX THIS!
+		Util::Abort(INFO,"This function is temporarily out of order!");
 		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
-			for (int n = 0; n < damage.number_of_eta; n++)
-			{
-				if(damage.type == "water")
-				{
-					//Util::Message(INFO);
-					Set::Scalar temp1 = 0.0;
-					if(water_box(i,j,k,0) > 0.0 && eta_old_box(i,j,k,n) < damage_w.d_final)
-					{
-						for (int l = 0; l < damage_w.number_of_terms; l++)
-								temp1 += damage_w.d_i[l]*water_box(i,j,k,0)*std::exp(-std::max(0.0,time-damage_w.t_start_i[l])/damage_w.tau_i[l])/(damage_w.tau_i[l]);
-					}
-					eta_new_box(i,j,k,n) = eta_old_box(i,j,k,n) + temp1*dt;
-					if(eta_new_box(i,j,k,n) > damage_w.d_final)
-						Util::Abort(INFO, "eta exceeded ",damage_w.d_final, ". Rhs = ", temp1, ", Water = ", water_box(i,j,k,n));
-				}
-				else if(damage.type == "thermal")
-				{
-					//Util::Message(INFO);
-					Set::Scalar gT = damage_T.c0 + damage_T.c1*(std::tanh((Temp_box(i,j,k,0)-damage_T.c2)/damage_T.c3));
-					eta_new_box(i,j,k,n) = eta_old_box(i,j,k,n) + dt*(1.0-gT)*std::exp(-time/damage_T.tau_T)/damage_T.tau_T;
-				}
-				else if(damage.type == "coupled")
-				{
-					//Util::Message(INFO);
-					Set::Scalar temp1 = 0.0;
-					if(water_box(i,j,k,0) > 0.0 && eta_old_box(i,j,k,n) < damage_w.d_final)
-					{
-						for (int l = 0; l < damage_w.number_of_terms; l++)
-								temp1 += damage_w.d_i[l]*water_box(i,j,k,0)*std::exp(-std::max(0.0,time-damage_w.t_start_i[l])/damage_w.tau_i[l])/(damage_w.tau_i[l]);
-					}
-					eta_w_box(i,j,k,n) = eta_w_old_box(i,j,k,n) + temp1*dt;
-					if(eta_w_box(i,j,k,n) > damage_w.d_final)
-						Util::Abort(INFO, "eta exceeded ",damage_w.d_final, ". Rhs = ", temp1, ", Water = ", water_box(i,j,k,n));
-
-					Set::Scalar gT = damage_T.c0 + damage_T.c1*(std::tanh((Temp_box(i,j,k,0)-damage_T.c2)/damage_T.c3));
-					eta_T_box(i,j,k,n) = eta_T_old_box(i,j,k,n) + dt*(1.0-gT)*std::exp(-time/damage_T.tau_T)/damage_T.tau_T;
-
-					eta_new_box(i,j,k,n) = 1.0 - (1.0 - eta_w_box(i,j,k,n))*(1.0 - eta_T_box(i,j,k,n));
-				}
-				else
-					Util::Abort(INFO, "Damage model not implemented yet");
-			}
+//			for (int n = 0; n < damage.number_of_eta; n++)
+//			{
+//				//if(damage.type == "water") // TODO
+//				{
+//					Set::Scalar temp1 = 0.0;
+//					if(water_box(i,j,k,0) > 0.0 && eta_old_box(i,j,k,n) < damage_w.d_final)
+//					{
+//						damage_w.d_i[i];
+//						for (int l = 0; l < damage_w.number_of_terms; l++)
+//								temp1 += damage_w.d_i[l]*water_box(i,j,k,0)*std::exp(-std::max(0.0,time-damage_w.t_start_i[l])/damage_w.tau_i[l])/(damage_w.tau_i[l]);
+//					}
+//					eta_new_box(i,j,k,n) = eta_old_box(i,j,k,n) + temp1*dt;
+//					//if(eta_new_box(i,j,k,n) > damage_w.d_final) // TODO
+//						// Util::Abort(INFO, "eta exceeded ",damage_w.d_final, ". Rhs = ", temp1, ", Water = ", water_box(i,j,k,n));
+//				}
+//				//else if(damage.type == "thermal") // TODO
+//				{
+//					//Util::Message(INFO);
+//					Set::Scalar gT = damage_T.c0 + damage_T.c1*(std::tanh((Temp_box(i,j,k,0)-damage_T.c2)/damage_T.c3));
+//					eta_new_box(i,j,k,n) = eta_old_box(i,j,k,n) + dt*(1.0-gT)*std::exp(-time/damage_T.tau_T)/damage_T.tau_T;
+//				}
+//				// else if(damage.type == "coupled") // TODO
+//				{
+//					//Util::Message(INFO);
+//					Set::Scalar temp1 = 0.0;
+//					if(water_box(i,j,k,0) > 0.0 && eta_old_box(i,j,k,n) < damage_w.d_final)
+//					{
+//						for (int l = 0; l < damage_w.number_of_terms; l++)
+//								temp1 += damage_w.d_i[l]*water_box(i,j,k,0)*std::exp(-std::max(0.0,time-damage_w.t_start_i[l])/damage_w.tau_i[l])/(damage_w.tau_i[l]);
+//					}
+//					eta_w_box(i,j,k,n) = eta_w_old_box(i,j,k,n) + temp1*dt;
+//					if(eta_w_box(i,j,k,n) > damage_w.d_final)
+//						Util::Abort(INFO, "eta exceeded ",damage_w.d_final, ". Rhs = ", temp1, ", Water = ", water_box(i,j,k,n));
+//
+//					Set::Scalar gT = damage_T.c0 + damage_T.c1*(std::tanh((Temp_box(i,j,k,0)-damage_T.c2)/damage_T.c3));
+//					eta_T_box(i,j,k,n) = eta_T_old_box(i,j,k,n) + dt*(1.0-gT)*std::exp(-time/damage_T.tau_T)/damage_T.tau_T;
+//
+//					eta_new_box(i,j,k,n) = 1.0 - (1.0 - eta_w_box(i,j,k,n))*(1.0 - eta_T_box(i,j,k,n));
+//				}
+//				//else // TODO
+//				//	Util::Abort(INFO, "Damage model not implemented yet");
+//			}
 		});
 	}
 	if (rhs[lev]->contains_nan()) Util::Abort(INFO);
@@ -799,10 +798,6 @@ PolymerDegradation::DegradeMaterial(int lev, amrex::FabArray<amrex::BaseFab<pd_m
 	  For now we are just using isotropic degradation.
 	*/
 	if(damage.anisotropy) Util::Abort(__FILE__,"DegradeModulus",__LINE__,"Not implemented yet");
-
-	static amrex::IntVect AMREX_D_DECL(dx(AMREX_D_DECL(1,0,0)),
-					   dy(AMREX_D_DECL(0,1,0)),
-					   dz(AMREX_D_DECL(0,0,1)));
 
 	//bool isMFIterSafe  = (model[lev].DistributionMap() == (*eta_new[lev]).DistributionMap());
 	//Util::Message(INFO, "isMFIterSafe = ",isMFIterSafe);

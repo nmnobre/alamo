@@ -52,28 +52,30 @@ CahnHilliard::Advance (int lev, Set::Scalar /*time*/, Set::Scalar dt)
 		amrex::Array4<amrex::Real> const& inter    = intermediate[lev]->array(mfi);
 		amrex::Array4<amrex::Real> const& etanew    = etanewmf[lev]->array(mfi);
 
-		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
-				Set::Scalar lap =
-				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(eta,i,j,k,0,DX) +
-				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(eta,i,j,k,0,DX);
+		assert(-1); // TODO fix this
 
-				inter(i,j,k) =
-				 	eta(i,j,k)*eta(i,j,k)*eta(i,j,k)
-				 	- eta(i,j,k)
-				 	- gamma*lap;
-
-
-				etanew(i,j,k) = eta(i,j,k) - dt*inter(i,j,k); // Allen Cahn
-			});
-
-		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
-				Set::Scalar lap = 
-				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(inter,i,j,k,0,DX) +
-				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(inter,i,j,k,0,DX);
-
-				etanew(i,j,k) = eta(i,j,k) + dt*lap;
-			});
-
+//		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+//				Set::Scalar lap =
+//				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(eta,i,j,k,0,DX) +
+//				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(eta,i,j,k,0,DX);
+//
+//				inter(i,j,k) =
+//				 	eta(i,j,k)*eta(i,j,k)*eta(i,j,k)
+//				 	- eta(i,j,k)
+//				 	- gamma*lap;
+//
+//
+//				etanew(i,j,k) = eta(i,j,k) - dt*inter(i,j,k); // Allen Cahn
+//			});
+//
+//		amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+//				Set::Scalar lap = 
+//				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(inter,i,j,k,0,DX) +
+//				 	Numeric::Stencil<Set::Scalar,2,0,0>::D(inter,i,j,k,0,DX);
+//
+//				etanew(i,j,k) = eta(i,j,k) + dt*lap;
+//			});
+//
 	}
 }
 

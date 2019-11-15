@@ -49,33 +49,34 @@ public:
 
 		for (amrex::MFIter mfi(*a_field[lev],amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 		{
-			amrex::Box bx = mfi.tilebox();
-			bx.grow(a_field[lev]->nGrow());
-			amrex::Array4<Set::Scalar> const& field = a_field[lev]->array(mfi);
-			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
-				amrex::Real x = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];
-				amrex::Real y = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];
-				if (y > f(x))
-				{
-					if (type == Type::Partition)
-					{
-						field(i,j,k,0) += 0.;     
-						field(i,j,k,1) += alpha2;     
-					}
-					else
-						field(i,j,k,0) += alpha2;					
-				}
-				else
-				{
-					if (type == Type::Partition)
-					{
-						field(i,j,k,0) += alpha1;     
-						field(i,j,k,1) += 0.;     
-					}
-					else
-						field(i,j,k,0) += alpha1;
-				}
-			});
+			Util::Abort(INFO); // TODO
+			//amrex::Box bx = mfi.tilebox();
+			//bx.grow(a_field[lev]->nGrow());
+			//amrex::Array4<Set::Scalar> const& field = a_field[lev]->array(mfi);
+			//amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
+			//	amrex::Real x = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];
+			//	amrex::Real y = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];
+			//	if (y > f(x))
+			//	{
+			//		if (type == Type::Partition)
+			//		{
+			//			field(i,j,k,0) += 0.;     
+			//			field(i,j,k,1) += alpha2;     
+			//		}
+			//		else
+			//			field(i,j,k,0) += alpha2;					
+			//	}
+			//	else
+			//	{
+			//		if (type == Type::Partition)
+			//		{
+			//			field(i,j,k,0) += alpha1;     
+			//			field(i,j,k,1) += 0.;     
+			//		}
+			//		else
+			//			field(i,j,k,0) += alpha1;
+			//	}
+			//});
 		}
 	};
   

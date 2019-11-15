@@ -87,6 +87,7 @@ public:
 
     //Print Thetas Sigmas Sigmas' and Sigmas''
   };
+  __host__ __device__
   amrex::Real W(amrex::Real theta)
   {
     // put in code so that 0 <= theta < 2*pi
@@ -119,6 +120,7 @@ public:
     }
     return 0;
   };
+  __host__ __device__
   amrex::Real DW(amrex::Real theta)
   {
    // put in code so that 0 <= theta < 2*pi
@@ -151,6 +153,7 @@ public:
     }
     return 0;
   };
+  __host__ __device__
   amrex::Real DDW(amrex::Real theta)
   {
     // put in code so that 0 <= theta < 2*pi

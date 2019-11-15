@@ -12,7 +12,6 @@
 #include "Util/Util.H"
 #include "IC/Random.H"
 #include "IC/Trig.H"
-#include "IC/Sphere.H"
 #include "Model/Solid/LinearElastic/Isotropic.H"
 #include "Model/Solid/LinearElastic/MultiWell.H"
 #include "Model/Solid/LinearElastic/Laplacian.H"
@@ -20,6 +19,7 @@
 #include "Numeric/Stencil.H"
 #include "Solver/Nonlocal/Linear.H"
 #include "IC/Trig.H"
+
 namespace Integrator
 {
 PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
@@ -141,7 +141,7 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 		pp.query("type", ic_type);
 		if (ic_type == "perturbed_interface")
 			ic = new IC::PerturbedInterface(geom);
-		else if (ic_type == "tabulated_interface")
+		else if (ic_type == "tabulated_interface") // TODO
 			ic = new IC::TabulatedInterface(geom);
 		else if (ic_type == "voronoi")
 		{
@@ -149,7 +149,7 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 			pp.query("voronoi.number_of_grains", total_grains);
 			ic = new IC::Voronoi(geom, total_grains);
 		}
-		else if (ic_type == "sphere")
+		else if (ic_type == "sphere") // TODO
 			ic = new IC::Sphere(geom);
 		else
 			Util::Abort(INFO, "No valid initial condition specified");
@@ -223,10 +223,13 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 			RegisterNodalFab(stress_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "stress",true);
 			RegisterNodalFab(energies_mf, number_of_grains, 2, "energies",false);
 
-			elastic.model.resize(number_of_grains);
+			//elastic.model.resize(number_of_grains);
 			for (int i = 0; i < number_of_grains; i++)
 			{
-				elastic.model[i].Randomize(elastic.C11, elastic.C12, elastic.C44);
+				model_type tmpmodel;
+				tmpmodel.Randomize(elastic.C11, elastic.C12, elastic.C44);
+				elastic.model.push_back(tmpmodel);
+				//elastic.model[i].Randomize(elastic.C11, elastic.C12, elastic.C44); // TODO
 			}
 		}
 	}
@@ -309,10 +312,10 @@ void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt
 							kappa*laplacian +
 							Dkappa*(cos(2.0*Theta)*DDeta(0,1) + 0.5*sin(2.0*Theta)*(DDeta(1,1) - DDeta(0,0)))
 							+ 0.5*DDkappa*(sinTheta*sinTheta*DDeta(0,0) - 2.*sinTheta*cosTheta*DDeta(0,1) + cosTheta*cosTheta*DDeta(1,1));
-						if (std::isnan(Boundary_term)) Util::Abort(INFO,"nan at m=",i,",",j,",",k);
+						//if (std::isnan(Boundary_term)) Util::Abort(INFO,"nan at m=",i,",",j,",",k); // TODO
 			
 						driving_force += - (Boundary_term) + anisotropy.beta*(Curvature_term);
-						if (std::isnan(driving_force)) Util::Abort(INFO,"nan at m=",i,",",j,",",k);
+						//if (std::isnan(driving_force)) Util::Abort(INFO,"nan at m=",i,",",j,",",k); // TODO
 
 #elif AMREX_SPACEDIM == 3
 						// GRAHM-SCHMIDT PROCESS 
@@ -432,8 +435,8 @@ void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt
 				// EVOLVE ETA
 				//
 				etanew(i, j, k, m) = eta(i, j, k, m) - pf.M * dt * driving_force;
-				if (std::isnan(driving_force))
-					Util::Abort(INFO, i, " ", j, " ", k, " ", m);
+				//if (std::isnan(driving_force))
+					//Util::Abort(INFO, i, " ", j, " ", k, " ", m); // TODO
 			}
 		});
 	}
@@ -528,9 +531,13 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 			amrex::Array4<const Set::Scalar> const &eta = eta_new_mf[lev]->array(mfi);
 
 			amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-				model(i, j, k) = elastic.model[0] * 0.0;
+				//model_type tmp = elastic.model[0]; // TODO
+				//model(i, j, k) = tmp * 0.0;
 				for (int n = 0; n < number_of_grains; n++)
-					model(i, j, k) += elastic.model[n] * eta(i, j, k, n);
+				{
+					//tmp = elastic.model[n];
+					//model(i, j, k) += tmp * eta(i, j, k, n);
+				}
 
 				//Set::Matrix Fgb = (1.0 - eta(i, j, k)) * Fmatrix + eta(i, j, k) * Finclusion;
 				//model(i, j, k) = model_type(lame, shear);
@@ -540,7 +547,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 
 		amrex::Geometry geom = elasticop.Geom(lev);
 		for (int i = 0; i < 2; i++)
-		{
+		{ 
 			amrex::FabArray<amrex::BaseFab<model_type>> &mf = model_mf[lev];
 			mf.FillBoundary(geom.periodicity());
 			const int ncomp = mf.nComp();
@@ -591,7 +598,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 	for (int lev = 0; lev < disp_mf.size(); lev++)
 	{
 		elasticop.Stress(lev, *stress_mf[lev], *disp_mf[lev]);
-		elasticop.Energy(lev,*energies_mf[lev],*disp_mf[lev],elastic.model);
+		//elasticop.Energy(lev,*energies_mf[lev],*disp_mf[lev], elastic.model); // TODO
 	}
 }
 

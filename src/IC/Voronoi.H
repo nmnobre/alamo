@@ -50,6 +50,9 @@ public:
 		AMREX_D_TERM(size(0) = geom[0].ProbHi()[0] - geom[0].ProbLo()[0];,
 					 size(1) = geom[0].ProbHi()[1] - geom[0].ProbLo()[1];,
 					 size(2) = geom[0].ProbHi()[2] - geom[0].ProbLo()[2];)
+					 
+		Set::Scalar AMREX_D_DECL(xlo = geom[lev].ProbLo()[0],  ylo = geom[lev].ProbLo()[1],   zlo = geom[lev].ProbLo()[2]);
+		Set::Scalar AMREX_D_DECL(dx  = geom[lev].CellSize()[0], dy  = geom[lev].CellSize()[1], dz  = geom[lev].CellSize()[2]);
 
 		for (amrex::MFIter mfi(*a_field[lev],amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 		{
@@ -60,48 +63,49 @@ public:
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
 				Set::Vector x;
-				AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
-							 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
-							 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
+				AMREX_D_TERM(x(0) = xlo + ((amrex::Real)(i) + 0.5) * dx;,
+							 x(1) = ylo + ((amrex::Real)(j) + 0.5) * dy;,
+							 x(2) = zlo + ((amrex::Real)(k) + 0.5) * dz;);
 							
 				amrex::Real min_distance = std::numeric_limits<amrex::Real>::infinity();
 				int min_grain_id = -1;
 
-				for (int n = 0; n<number_of_grains; n++)
-				{
-					Set::Scalar d = (x - voronoi[n]).lpNorm<2>();
+				assert(-1); // TODO: fix this part of the code.
 
-					if (geom[0].isPeriodic(0))
-						{
-							d = std::min(d,
-										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(0)).lpNorm<2>(),
-												   (x-voronoi[n] - size(0)*Set::Vector::Unit(0)).lpNorm<2>()));
-						}
-#if AMREX_SPACEDIM>1
-					if (geom[0].isPeriodic(1))
-						{
-							d = std::min(d,
-										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(1)).lpNorm<2>(),
-												   (x-voronoi[n] - size(0)*Set::Vector::Unit(1)).lpNorm<2>()));
-						}
-#endif
-#if AMREX_SPACEDIM>2
-					if (geom[0].isPeriodic(2))
-						{
-							d = std::min(d,
-										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(2)).lpNorm<2>(),
-												   (x-voronoi[n] - size(0)*Set::Vector::Unit(2)).lpNorm<2>()));
-						}
-#endif
-					if (d<min_distance)
-						{
-							min_distance = d;
-							min_grain_id = n;
-						}
-				}
-
-				if (type == Type::Values) field(i,j,k) = alpha[min_grain_id];
-				else if (type == Type::Partition) field(i,j,k,min_grain_id % ncomp) = alpha[min_grain_id];
+//				for (int n = 0; n<number_of_grains; n++)
+//				{
+//					Set::Scalar d = (x - voronoi[n]).lpNorm<2>();
+//
+//					if (geom[0].isPeriodic(0))
+//						{
+//							d = std::min(d,
+//										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(0)).lpNorm<2>(),
+//												   (x-voronoi[n] - size(0)*Set::Vector::Unit(0)).lpNorm<2>()));
+//						}
+//#if AMREX_SPACEDIM>1
+//					if (geom[0].isPeriodic(1))
+//						{
+//							d = std::min(d,
+//										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(1)).lpNorm<2>(),
+//												   (x-voronoi[n] - size(0)*Set::Vector::Unit(1)).lpNorm<2>()));
+//						}
+//#endif
+//#if AMREX_SPACEDIM>2
+//					if (geom[0].isPeriodic(2))
+//						{
+//							d = std::min(d,
+//										 std::min( (x-voronoi[n] + size(0)*Set::Vector::Unit(2)).lpNorm<2>(),
+//												   (x-voronoi[n] - size(0)*Set::Vector::Unit(2)).lpNorm<2>()));
+//						}
+//#endif
+//					if (d<min_distance)
+//						{
+//							min_distance = d;
+//							min_grain_id = n;
+//						}
+//				}
+//				if (type == Type::Values) field(i,j,k) = alpha[min_grain_id];
+//				else if (type == Type::Partition) field(i,j,k,min_grain_id % ncomp) = alpha[min_grain_id];
 			});
 		}
 	}

@@ -37,14 +37,17 @@ public:
 		sigma0 = Util::Random();
 		sigma1 = Util::Random();
 	};
+	__host__ __device__
 	amrex::Real W(amrex::Real theta)
 	{
 		return sigma0 + 0.5*sigma1*(1.0 - cos(4.0*(theta-theta0)));
 	};
+	__host__ __device__
 	amrex::Real DW(amrex::Real theta)
 	{
 		return 2.0*sigma1*sin(4.0*(theta-theta0));
 	};
+	__host__ __device__
 	amrex::Real DDW(amrex::Real theta)
 	{
 		return 8.0*sigma1*cos(4.0*(theta-theta0));

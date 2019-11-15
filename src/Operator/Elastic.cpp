@@ -3,7 +3,6 @@
 #include "Model/Solid/LinearElastic/MultiWell.H"
 #include "Model/Solid/LinearElastic/Laplacian.H"
 #include "Model/Solid/LinearElastic/Degradable/Isotropic.H"
-#include "Model/Solid/Viscoelastic/Isotropic.H"
 #include "Elastic.H"
 
 #include "Numeric/Stencil.H"
@@ -190,8 +189,8 @@ Elastic<T>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u) c
 				for (int p = 0; p < AMREX_SPACEDIM; p++)
 				{
  					AMREX_D_TERM(gradu(p,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(U,i,j,k,p,DX,sten));,
-					 	     gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(U,i,j,k,p,DX,sten));,
-					 	     gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(U,i,j,k,p,DX,sten)););
+					 	    	 gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(U,i,j,k,p,DX,sten));,
+					 	    	 gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(U,i,j,k,p,DX,sten)););
 				}
 					
 				// Stress tensor computed using the model fab
@@ -209,25 +208,25 @@ Elastic<T>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u) c
 					
 
 					// The gradient of the displacement gradient tensor
-					std::array<Set::Matrix,AMREX_SPACEDIM> gradgradu; // gradgradu[k](l,j) = u_{k,lj}
+					Set::Matrix3 gradgradu; // gradgradu[k](l,j) = u_{k,lj}
 
 					// Fill gradu and gradgradu
 					for (int p = 0; p < AMREX_SPACEDIM; p++)
 					{
 						// Diagonal terms:
-						AMREX_D_TERM(gradgradu[p](0,0) = (Numeric::Stencil<Set::Scalar,2,0,0>::D(U,i,j,k,p,DX));,
-							     gradgradu[p](1,1) = (Numeric::Stencil<Set::Scalar,0,2,0>::D(U,i,j,k,p,DX));,
-							     gradgradu[p](2,2) = (Numeric::Stencil<Set::Scalar,0,0,2>::D(U,i,j,k,p,DX)););
+						AMREX_D_TERM(gradgradu(p,0,0) = (Numeric::Stencil<Set::Scalar,2,0,0>::D(U,i,j,k,p,DX));,
+							    	 gradgradu(p,1,1) = (Numeric::Stencil<Set::Scalar,0,2,0>::D(U,i,j,k,p,DX));,
+							    	 gradgradu(p,2,2) = (Numeric::Stencil<Set::Scalar,0,0,2>::D(U,i,j,k,p,DX)););
 
 						// Off-diagonal terms:
 						AMREX_D_TERM(,// 2D
-							     gradgradu[p](0,1) = (Numeric::Stencil<Set::Scalar,1,1,0>::D(U, i,j,k,p, DX));
-							     gradgradu[p](1,0) = gradgradu[p](0,1);
-							     ,// 3D
-							     gradgradu[p](0,2) = (Numeric::Stencil<Set::Scalar,1,0,1>::D(U, i,j,k,p, DX));
-							     gradgradu[p](1,2) = (Numeric::Stencil<Set::Scalar,0,1,1>::D(U, i,j,k,p, DX));
-							     gradgradu[p](2,0) = gradgradu[p](0,2);
-							     gradgradu[p](2,1) = gradgradu[p](1,2););
+							    	 gradgradu(p,0,1) = (Numeric::Stencil<Set::Scalar,1,1,0>::D(U, i,j,k,p, DX));
+							    	 gradgradu(p,1,0) = gradgradu[p](0,1);
+							    	 ,// 3D
+							    	 gradgradu(p,0,2) = (Numeric::Stencil<Set::Scalar,1,0,1>::D(U, i,j,k,p, DX));
+							    	 gradgradu(p,1,2) = (Numeric::Stencil<Set::Scalar,0,1,1>::D(U, i,j,k,p, DX));
+							    	 gradgradu(p,2,0) = gradgradu(p,0,2);
+							    	 gradgradu(p,2,1) = gradgradu(p,1,2););
 					}
 	
 					//
@@ -292,8 +291,8 @@ Elastic<T>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 
 				
 
-				Set::Matrix gradu; // gradu(i,j) = u_{i,j)
-				std::array<Set::Matrix,AMREX_SPACEDIM> gradgradu; // gradgradu[k](l,j) = u_{k,lj}
+				Set::Matrix  gradu; // gradu(i,j) = u_{i,j)
+				Set::Matrix3 gradgradu; // gradgradu[k](l,j) = u_{k,lj}
 
 				for (int p = 0; p < AMREX_SPACEDIM; p++)
 				{
@@ -305,17 +304,17 @@ Elastic<T>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 							     gradu(q,1) = ((!ymax ? 0.0 : (p==q ? 1.0 : 0.0)) - (!ymin ? 0.0 : (p==q ? 1.0 : 0.0)))/((ymin || ymax ? 1.0 : 2.0)*DX[1]);,
 							     gradu(q,2) = ((!zmax ? 0.0 : (p==q ? 1.0 : 0.0)) - (!zmin ? 0.0 : (p==q ? 1.0 : 0.0)))/((zmin || zmax ? 1.0 : 2.0)*DX[2]););
 			
-						AMREX_D_TERM(gradgradu[q](0,0) = (p==q ? -2.0 : 0.0)/DX[0]/DX[0];
-							     ,// 2D
-							     gradgradu[q](0,1) = 0.0;
-							     gradgradu[q](1,0) = 0.0;
-							     gradgradu[q](1,1) = (p==q ? -2.0 : 0.0)/DX[1]/DX[1];
-							     ,// 3D
-							     gradgradu[q](0,2) = 0.0;
-							     gradgradu[q](1,2) = 0.0;
-							     gradgradu[q](2,0) = 0.0;
-							     gradgradu[q](2,1) = 0.0;
-							     gradgradu[q](2,2) = (p==q ? -2.0 : 0.0)/DX[2]/DX[2]);
+						AMREX_D_TERM(gradgradu(q,0,0) = (p==q ? -2.0 : 0.0)/DX[0]/DX[0];
+							    	 ,// 2D
+							    	 gradgradu(q,0,1) = 0.0;
+							    	 gradgradu(q,1,0) = 0.0;
+							    	 gradgradu(q,1,1) = (p==q ? -2.0 : 0.0)/DX[1]/DX[1];
+							    	 ,// 3D
+							    	 gradgradu(q,0,2) = 0.0;
+							    	 gradgradu(q,1,2) = 0.0;
+							    	 gradgradu(q,2,0) = 0.0;
+							    	 gradgradu(q,2,1) = 0.0;
+							    	 gradgradu(q,2,2) = (p==q ? -2.0 : 0.0)/DX[2]/DX[2]);
 					}
 
 					Set::Matrix sig = C(i,j,k)(gradu,m_homogeneous);
@@ -834,10 +833,9 @@ Elastic<T>::FillBoundaryCoeff (MultiTab& sigma, const Geometry& geom)
 }
 
 template class Elastic<Model::Solid::LinearElastic::Isotropic>;
-//template class Elastic<Model::Solid::LinearElastic::Cubic>;
-//template class Elastic<Model::Solid::LinearElastic::Multiwell>;
+template class Elastic<Model::Solid::LinearElastic::Cubic>;
+template class Elastic<Model::Solid::LinearElastic::Multiwell>;
 //template class Elastic<Model::Solid::LinearElastic::Laplacian>;
 //template class Elastic<Model::Solid::LinearElastic::Degradable::Isotropic>;
-//template class Elastic<Model::Solid::Viscoelastic::Isotropic>;
 }
 

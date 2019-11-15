@@ -43,6 +43,30 @@ Set::Scalar Random();
 
 namespace Set
 {
+    
+class Matrix3
+{
+public:
+    Set::Matrix data[AMREX_SPACEDIM];
+    AMREX_FORCE_INLINE __host__ __device__
+    Scalar & operator () (const int i, const int j, const int k)
+    {
+        return data[i](j,k);
+    }
+    AMREX_FORCE_INLINE __host__ __device__
+    Matrix & operator [] (const int i)
+    {
+        return data[i];
+    }
+
+    AMREX_FORCE_INLINE __host__ __device__ void operator  = (Matrix3 a) {for (int i = 0; i < AMREX_SPACEDIM; i++) data[i]  = a.data[i];}
+    AMREX_FORCE_INLINE __host__ __device__ void operator += (Matrix3 a) {for (int i = 0; i < AMREX_SPACEDIM; i++) data[i] += a.data[i];}
+    AMREX_FORCE_INLINE __host__ __device__ void operator -= (Matrix3 a) {for (int i = 0; i < AMREX_SPACEDIM; i++) data[i] -= a.data[i];}
+    AMREX_FORCE_INLINE __host__ __device__ void operator *= (Set::Scalar alpha) {for (int i = 0; i < AMREX_SPACEDIM; i++) data[i] *= alpha;}
+    AMREX_FORCE_INLINE __host__ __device__ void operator /= (Set::Scalar alpha) {for (int i = 0; i < AMREX_SPACEDIM; i++) data[i] /= alpha;}
+
+};
+    
 /// \brief Data structure for a symmetrix 4th order 3D tensor
 ///
 /// Let the tensor
@@ -62,7 +86,7 @@ class Matrix4<3,Sym::Full>
                         NAN,NAN,NAN,NAN,NAN};
 
 public:
-    Matrix4() {};
+    __host__ __device__ Matrix4() {};
     AMREX_FORCE_INLINE
     __host__ __device__
     Scalar & operator () (const int i, const int j, const int k, const int l)
@@ -158,7 +182,7 @@ class Matrix4<2,Sym::Full>
 {
     Scalar data[5] = {NAN,NAN,NAN,NAN,NAN};
 public:
-    Matrix4() {};
+    __host__ __device__ Matrix4() {};
     AMREX_FORCE_INLINE
     __host__ __device__
     Scalar & operator () (const int i, const int j, const int k, const int l)
@@ -204,8 +228,8 @@ class Matrix4<3,Sym::Isotropic>
 {
     Set::Scalar lambda=NAN, mu=NAN;
 public:
-    Matrix4() {};
-    Matrix4(Set::Scalar a_lambda, Set::Scalar a_mu) : lambda(a_lambda), mu(a_mu) {};
+    __host__ __device__ Matrix4() {};
+    __host__ __device__ Matrix4(Set::Scalar a_lambda, Set::Scalar a_mu) : lambda(a_lambda), mu(a_mu) {};
     AMREX_FORCE_INLINE
     Scalar operator () (const int i, const int j, const int k, const int l)
     {
@@ -261,7 +285,7 @@ class Matrix4<3,Sym::MajorMinor>
                         NAN,NAN,NAN,NAN,NAN,NAN,NAN };
 
 public:
-    Matrix4() {};
+    __host__ __device__ Matrix4() {};
     AMREX_FORCE_INLINE
     Scalar & operator () (const int i, const int j, const int k, const int l)
     {

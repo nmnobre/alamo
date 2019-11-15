@@ -50,7 +50,7 @@ public:
 	PolymerDegradation();
 	~PolymerDegradation();
 
-protected:
+public:
 
 	/// \fn    Advance
 	/// \brief Evolve phase field in time

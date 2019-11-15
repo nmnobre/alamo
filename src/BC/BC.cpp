@@ -36,6 +36,7 @@ int ReadString(std::string bcstring)
        bcstring == "periodic")         return (int)amrex::LinOpBCType::Periodic;
 	return 0;
 }
+__host__ __device__
 bool IsPeriodic(int bctype)
 {
 	///\todo We need to clean up these operators
@@ -45,6 +46,7 @@ bool IsPeriodic(int bctype)
 	if (bctype == (int)amrex::LinOpBCType::Periodic) return true;
 	else return false;
 }
+__host__ __device__
 bool IsNeumann(int bctype)
 {
 	//if (bctype == INT_DIR) return true;
@@ -52,17 +54,20 @@ bool IsNeumann(int bctype)
 	if (bctype == (int)amrex::LinOpBCType::Neumann) return true;
 	else return false;
 }
+__host__ __device__
 bool IsDirichlet(int bctype)
 {
 	if (bctype == EXT_DIR) return true;
 	if (bctype == (int)amrex::LinOpBCType::Dirichlet) return true;
 	else return false;
 }
+__host__ __device__
 bool IsReflectEven(int bctype)
 {
 	if (bctype == REFLECT_EVEN) return true;
 	else return false;
 }
+__host__ __device__
 bool IsReflectOdd(int bctype)
 {
 	if (bctype == REFLECT_ODD) return true;

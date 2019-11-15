@@ -77,11 +77,11 @@ protected:
 namespace BCUtil
 {
 int ReadString(std::string bcstring);
-bool IsPeriodic(int bctype);
-bool IsNeumann(int bctype);
-bool IsReflectEven(int bctype);
-bool IsReflectOdd(int bctype);
-bool IsDirichlet(int bctype);
+__host__ __device__ bool IsPeriodic(int bctype);
+__host__ __device__ bool IsNeumann(int bctype);
+__host__ __device__ bool IsReflectEven(int bctype);
+__host__ __device__ bool IsReflectOdd(int bctype);
+__host__ __device__ bool IsDirichlet(int bctype);
 }
 
 }

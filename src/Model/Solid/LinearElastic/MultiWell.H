@@ -18,10 +18,10 @@ namespace LinearElastic
 class Multiwell : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	Multiwell() {} ;
-	Multiwell(Set::Scalar _mu, Set::Scalar _lambda, Set::Matrix _Fgb=Set::Matrix::Zero()) {Define(_mu,_lambda,_Fgb);} ;
-	~Multiwell() {} ;
-	void Define(Set::Scalar _mu, Set::Scalar _lambda,Set::Matrix _Fgb)
+	__host__ __device__ Multiwell() {} ;
+	__host__ __device__ Multiwell(Set::Scalar _mu, Set::Scalar _lambda, Set::Matrix _Fgb=Set::Matrix::Zero()) {Define(_mu,_lambda,_Fgb);} ;
+	//~Multiwell() {} ;
+	__host__ __device__ void Define(Set::Scalar _mu, Set::Scalar _lambda,Set::Matrix _Fgb)
 	{
 		mu = _mu; lambda = _lambda; Fgb = _Fgb;
 		for (int p = 0; p < AMREX_SPACEDIM; p++) gradFgb[p] = Set::Matrix::Zero();
@@ -36,16 +36,15 @@ public:
 	};
 
 	AMREX_FORCE_INLINE
-	__host__ __device__ virtual Set::Vector operator () (std::array<Set::Matrix,AMREX_SPACEDIM> &gradgradu,bool a_homogeneous=true)
+	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradgradu,bool a_homogeneous=true)
 	{
-		std::array<Set::Matrix,AMREX_SPACEDIM> gradeps;
-		for (int i = 0; i < AMREX_SPACEDIM; i++) gradeps[i] = gradgradu[i];
+		Set::Matrix3 gradeps = gradgradu;
 		if (!a_homogeneous) for (int i = 0; i < AMREX_SPACEDIM; i++) gradeps[i] -= gradFgb[i];
 		Set::Vector f = Set::Vector::Zero();
 		for (int i = 0; i < AMREX_SPACEDIM; i++)
 			for (int j=0; j < AMREX_SPACEDIM; j++)
 				{
-					f(i) += mu*(gradeps[i](j,j) + gradeps[j](i,j))  + lambda*gradeps[j](j,i);
+					f(i) += mu*(gradeps(i,j,j) + gradeps(j,i,j))  + lambda*gradeps(j,j,i);
 				}
 		return f;
 	}
@@ -64,28 +63,29 @@ public:
 
 	__host__ __device__ Multiwell operator + (const Multiwell &rhs) const
 	{
-		Multiwell ret(mu+rhs.mu, lambda+rhs.lambda,Fgb + rhs.Fgb);
-		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] + rhs.gradFgb[i];
+		//gradFgb + gradFgb;
+		Multiwell ret(mu+rhs.mu, lambda+rhs.lambda,Fgb + rhs.Fgb); ret.gradFgb = gradFgb; ret.gradFgb += rhs.gradFgb;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] + rhs.gradFgb[i];
 		return ret;
 	}
 
 	__host__ __device__ Multiwell & operator = (const Multiwell &rhs)
 	{
-		mu=rhs.mu; lambda=rhs.lambda; Fgb = rhs.Fgb;
-		for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] = rhs.gradFgb[i];
+		mu=rhs.mu; lambda=rhs.lambda; Fgb = rhs.Fgb; gradFgb = rhs.gradFgb;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] = rhs.gradFgb[i];
 		return *this;
 	}
 
 	__host__ __device__ void operator += (const Multiwell &rhs)
 	{
-		mu+=rhs.mu; lambda+=rhs.lambda; Fgb += rhs.Fgb;
-		for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] += rhs.gradFgb[i];
+		mu+=rhs.mu; lambda+=rhs.lambda; Fgb += rhs.Fgb; gradFgb += rhs.gradFgb;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] += rhs.gradFgb[i];
 	}
 
 	__host__ __device__ Multiwell operator - (const Multiwell &rhs) const
 	{
-		Multiwell ret(mu-rhs.mu, lambda-rhs.lambda,Fgb-rhs.Fgb);
-		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] - rhs.gradFgb[i];
+		Multiwell ret(mu-rhs.mu, lambda-rhs.lambda,Fgb-rhs.Fgb); ret.gradFgb = gradFgb; ret.gradFgb -= rhs.gradFgb;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] - rhs.gradFgb[i];
 		return ret;
 	}
 
@@ -97,15 +97,15 @@ public:
 
 	__host__ __device__ virtual Multiwell operator / (const Set::Scalar alpha) const
 	{
-		Multiwell ret(mu/alpha, lambda/alpha,Fgb/alpha);
-		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]/alpha;
+		Multiwell ret(mu/alpha, lambda/alpha,Fgb/alpha); ret.gradFgb = gradFgb; ret.gradFgb /= alpha;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]/alpha;
 		return ret;
 	}
 
 	__host__ __device__ virtual Multiwell operator * (const Set::Scalar alpha) const
 	{
-		Multiwell ret(mu*alpha, lambda*alpha,Fgb*alpha);
-		for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]*alpha;
+		Multiwell ret(mu*alpha, lambda*alpha,Fgb*alpha); ret.gradFgb = gradFgb; ret.gradFgb *= alpha;
+		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]*alpha;
 		return ret;
 	}
 	
@@ -114,7 +114,7 @@ private:
 	Set::Scalar lambda; ///< Second Lame parameter \f$\lambda\f$
 public:
 	Set::Matrix Fgb = Set::Matrix::Zero();
-	std::array<Set::Matrix,AMREX_SPACEDIM> gradFgb;
+	Set::Matrix3 gradFgb;
 };
 
 }
