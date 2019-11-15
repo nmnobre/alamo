@@ -132,7 +132,7 @@ public:
 					else if (m_bc_lo[q][p] == Type::Periodic)
 						continue;
 					else
-						Util::Loop::Abort(INFO);
+						assert(-1); // Util::Loop::Abort(INFO); // TODO
 				}
 				if (m[q] == domain.hiVect()[q])
 				{
@@ -144,7 +144,8 @@ public:
 						f(p) = +gradu(p,q);
 					else if (m_bc_hi[q][p] == Type::Periodic)
 						continue;
-					else Util::Loop::Abort(INFO);
+					else 
+						assert(-1); // Util::Loop::Abort(INFO); // TODO
 				}
 			}
 		}

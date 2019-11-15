@@ -16,8 +16,6 @@ struct Stencils
 	StencilType x=StencilType::Central, y=StencilType::Central, z=StencilType::Central;
 };
 
-Stencils DefaultType;
-
 //
 static
 AMREX_FORCE_INLINE 

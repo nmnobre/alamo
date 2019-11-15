@@ -114,24 +114,24 @@ __host__ void Warning (std::string file, std::string func, int line, Args const 
 	}
 }
 
-namespace Loop
-{
-__device__ void Abort (std::string file, std::string func, int line)
-{
-	assert(-1);
-	// DO NOTHING
-}
-template<typename... Args>
-__device__ void Message (std::string file, std::string func, int line)
-{
-	// DO NOTHING
-}
-template<typename... Args>
-__device__ void Warning (std::string file, std::string func, int line)
-{
-	// DO NOTHING
-}
-}
+//namespace Loop
+//{
+//__device__ void Abort (std::string file, std::string func, int line)
+//{
+//	assert(-1);
+//	// DO NOTHING
+//}
+//template<typename... Args>
+//__device__ void Message (std::string file, std::string func, int line)
+//{
+//	// DO NOTHING
+//}
+//template<typename... Args>
+//__device__ void Warning (std::string file, std::string func, int line)
+//{
+//	// DO NOTHING
+//}
+//}
 
 
 

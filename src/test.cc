@@ -25,13 +25,13 @@ int main (int argc, char* argv[])
 
 	Util::Test::Message("Set::Matrix4");
 	{
-		int subfailed = 0;
-		Test::Set::Matrix4<2,Set::Sym::Full> test_2d_full;
-		subfailed += Util::Test::SubMessage("2D - Full", test_2d_full.SymmetryTest(0));
-		Test::Set::Matrix4<3,Set::Sym::Full> test_3d_full;
-		subfailed += Util::Test::SubMessage("3D - Full", test_3d_full.SymmetryTest(0));
-		Test::Set::Matrix4<3,Set::Sym::MajorMinor> test_3d_majorminor;
-		subfailed += Util::Test::SubMessage("3D - MajorMinor", test_3d_majorminor.SymmetryTest(0));
+//		int subfailed = 0;
+//		Test::Set::Matrix4<2,Set::Sym::Full> test_2d_full;
+//		subfailed += Util::Test::SubMessage("2D - Full", test_2d_full.SymmetryTest(0));
+//		Test::Set::Matrix4<3,Set::Sym::Full> test_3d_full;
+//		subfailed += Util::Test::SubMessage("3D - Full", test_3d_full.SymmetryTest(0));
+//		Test::Set::Matrix4<3,Set::Sym::MajorMinor> test_3d_majorminor;
+//		subfailed += Util::Test::SubMessage("3D - MajorMinor", test_3d_majorminor.SymmetryTest(0));
 	}
 //	Util::Test::Message("Model::Interface::GB::GB<Sin>");
 //	{

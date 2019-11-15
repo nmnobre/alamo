@@ -21,7 +21,7 @@ public:
 		for (int ctr = 0; ctr < 20; ctr++)
 		{
 			model.Randomize();
-			std::array<Set::Matrix,AMREX_SPACEDIM> gradgradu;
+			Set::Matrix3 gradgradu;
 			for (int i = 0; i < AMREX_SPACEDIM; i++) gradgradu[i] = Set::Matrix::Random();
 
 			Set::Vector f1 = model(gradgradu);
