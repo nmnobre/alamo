@@ -394,9 +394,9 @@ void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt
 								for (int r = 0; r < 3; r++)
 									for (int s = 0; s < 3; s++)
 									{
-										Util::Message(INFO,p,q,r,s," ",DDDDEta(p,q,r,s));
+										// Util::Message(INFO,p,q,r,s," ",DDDDEta(p,q,r,s)); // TODO
 									}
-							Util::Abort(INFO,"nan/inf detected at amrlev = ", lev," i=",i," j=",j," k=",k);
+							assert(-1) ; // Util::Abort(INFO,"nan/inf detected at amrlev = ", lev," i=",i," j=",j," k=",k); // TODO
 						}
 #endif
 				}

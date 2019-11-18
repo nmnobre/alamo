@@ -835,7 +835,7 @@ Elastic<T>::FillBoundaryCoeff (MultiTab& sigma, const Geometry& geom)
 template class Elastic<Model::Solid::LinearElastic::Isotropic>;
 template class Elastic<Model::Solid::LinearElastic::Cubic>;
 template class Elastic<Model::Solid::LinearElastic::Multiwell>;
-//template class Elastic<Model::Solid::LinearElastic::Laplacian>;
-//template class Elastic<Model::Solid::LinearElastic::Degradable::Isotropic>;
+template class Elastic<Model::Solid::LinearElastic::Laplacian>;
+template class Elastic<Model::Solid::LinearElastic::Degradable::Isotropic>;
 }
 

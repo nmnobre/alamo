@@ -49,25 +49,25 @@ public:
 		
 	};
 
-	Isotropic operator + (const Isotropic &rhs) const
+	__host__ __device__ Isotropic operator + (const Isotropic &rhs) const
 	{return Isotropic(mu+rhs.mu, lambda+rhs.lambda);}
 
-	void operator += (const Isotropic &rhs)
+	__host__ __device__ void operator += (const Isotropic &rhs)
 	{mu+=rhs.mu; lambda+=rhs.lambda;}
 
-	Isotropic operator - (const Isotropic &rhs) const
+	__host__ __device__ Isotropic operator - (const Isotropic &rhs) const
 	{return Isotropic(mu-rhs.mu, lambda-rhs.lambda);}
 
-	Isotropic operator * (const Isotropic &rhs) const
+	__host__ __device__ Isotropic operator * (const Isotropic &rhs) const
 	{return Isotropic(mu*rhs.mu, lambda*rhs.lambda);}
 
-	Isotropic operator / (const Isotropic &rhs) const
+	__host__ __device__ Isotropic operator / (const Isotropic &rhs) const
 	{return Isotropic(mu/rhs.mu, lambda/rhs.lambda);}
 
-	virtual Isotropic operator / (const Set::Scalar alpha) const
+	__host__ __device__ virtual Isotropic operator / (const Set::Scalar alpha) const
 	{return Isotropic(mu/alpha, lambda/alpha);}
 
-	virtual Isotropic operator * (const Set::Scalar alpha) const
+	__host__ __device__ virtual Isotropic operator * (const Set::Scalar alpha) const
 	{return Isotropic(mu*alpha, lambda*alpha);}
 
 	__host__ __device__
@@ -80,7 +80,7 @@ public:
 		
 	}
 
-	void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
+	__host__ __device__ void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
 	{
 		if(eta.size() == 0) return;
 		else if(eta.size() == 1)

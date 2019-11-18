@@ -49,25 +49,25 @@ public:
 		alpha = Util::Random();
 	};
 
-	Laplacian operator + (const Laplacian &rhs) const
+	__host__ __device__ Laplacian operator + (const Laplacian &rhs) const
 	{return Laplacian(alpha+rhs.alpha);}
 
-	void operator += (const Laplacian &rhs)
+	__host__ __device__ void operator += (const Laplacian &rhs)
 	{alpha+=rhs.alpha;}
 
-	Laplacian operator - (const Laplacian &rhs) const
+	__host__ __device__ Laplacian operator - (const Laplacian &rhs) const
 	{return Laplacian(alpha-rhs.alpha);}
 
-	Laplacian operator * (const Laplacian &rhs) const
+	__host__ __device__ Laplacian operator * (const Laplacian &rhs) const
 	{return Laplacian(alpha*rhs.alpha);}
 
-	Laplacian operator / (const Laplacian &rhs) const
+	__host__ __device__ Laplacian operator / (const Laplacian &rhs) const
 	{return Laplacian(alpha/rhs.alpha);}
 
-	virtual Laplacian operator / (const Set::Scalar beta) const
+	__host__ __device__ virtual Laplacian operator / (const Set::Scalar beta) const
 	{return Laplacian(alpha/beta);}
 
-	virtual Laplacian operator * (const Set::Scalar beta) const
+	__host__ __device__ virtual Laplacian operator * (const Set::Scalar beta) const
 	{return Laplacian(alpha*beta);}
 
 public:
