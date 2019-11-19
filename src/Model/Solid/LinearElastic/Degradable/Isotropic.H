@@ -23,11 +23,11 @@ public:
 	Isotropic() { } ;
 	Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda), mu0(_mu), lambda0(_lambda) {} ;
 	//~Isotropic() {} ;
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
 	{
 		return mu*(eps + eps.transpose()) + lambda*Set::Matrix::Identity()*eps.trace();
 	};
-	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true)
+	AMREX_GPU_HOST_DEVICE virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true)
 	{
 		Set::Vector f = Set::Vector::Zero();
 		for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -49,28 +49,28 @@ public:
 		
 	};
 
-	__host__ __device__ Isotropic operator + (const Isotropic &rhs) const
+	AMREX_GPU_HOST_DEVICE Isotropic operator + (const Isotropic &rhs) const
 	{return Isotropic(mu+rhs.mu, lambda+rhs.lambda);}
 
-	__host__ __device__ void operator += (const Isotropic &rhs)
+	AMREX_GPU_HOST_DEVICE void operator += (const Isotropic &rhs)
 	{mu+=rhs.mu; lambda+=rhs.lambda;}
 
-	__host__ __device__ Isotropic operator - (const Isotropic &rhs) const
+	AMREX_GPU_HOST_DEVICE Isotropic operator - (const Isotropic &rhs) const
 	{return Isotropic(mu-rhs.mu, lambda-rhs.lambda);}
 
-	__host__ __device__ Isotropic operator * (const Isotropic &rhs) const
+	AMREX_GPU_HOST_DEVICE Isotropic operator * (const Isotropic &rhs) const
 	{return Isotropic(mu*rhs.mu, lambda*rhs.lambda);}
 
-	__host__ __device__ Isotropic operator / (const Isotropic &rhs) const
+	AMREX_GPU_HOST_DEVICE Isotropic operator / (const Isotropic &rhs) const
 	{return Isotropic(mu/rhs.mu, lambda/rhs.lambda);}
 
-	__host__ __device__ virtual Isotropic operator / (const Set::Scalar alpha) const
+	AMREX_GPU_HOST_DEVICE virtual Isotropic operator / (const Set::Scalar alpha) const
 	{return Isotropic(mu/alpha, lambda/alpha);}
 
-	__host__ __device__ virtual Isotropic operator * (const Set::Scalar alpha) const
+	AMREX_GPU_HOST_DEVICE virtual Isotropic operator * (const Set::Scalar alpha) const
 	{return Isotropic(mu*alpha, lambda*alpha);}
 
-	__host__ __device__
+	AMREX_GPU_HOST_DEVICE
 	void DegradeModulus(const Set::Scalar eta)
 	{
 		if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);
@@ -80,7 +80,7 @@ public:
 		
 	}
 
-	__host__ __device__ void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
+	AMREX_GPU_HOST_DEVICE void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
 	{
 		if(eta.size() == 0) return;
 		else if(eta.size() == 1)

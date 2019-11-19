@@ -50,7 +50,7 @@ void Terminate(const char * msg, int signal, bool backtrace);
 void Abort (const char * msg);
 
 template<typename... Args>
-__host__ void Abort (std::string file, std::string func, int line, Args const &... args)
+void Abort (std::string file, std::string func, int line, Args const &... args)
 {
 
 	std::ostringstream infostream;
@@ -71,7 +71,7 @@ __host__ void Abort (std::string file, std::string func, int line, Args const &.
 }
 
 template<typename... Args>
-__host__ void Message (std::string file, std::string func, int line, Args const &... args)
+void Message (std::string file, std::string func, int line, Args const &... args)
 {
 	if (amrex::ParallelDescriptor::IOProcessor())
 	{
@@ -93,7 +93,7 @@ __host__ void Message (std::string file, std::string func, int line, Args const 
 }
 
 template<typename... Args>
-__host__ void Warning (std::string file, std::string func, int line, Args const &... args)
+void Warning (std::string file, std::string func, int line, Args const &... args)
 {
 	if (amrex::ParallelDescriptor::IOProcessor())
 	{

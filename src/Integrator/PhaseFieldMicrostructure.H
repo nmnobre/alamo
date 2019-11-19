@@ -13,9 +13,9 @@
 #include "AMReX_ParallelDescriptor.H"
 #include <AMReX_MLMG.H>
 
-#include <thrust/system/cuda/vector.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
+//#include <thrust/system/cuda/vector.h>
+//#include <thrust/host_vector.h>
+//#include <thrust/device_vector.h>
 
 #include "Integrator/Integrator.H"
 
@@ -153,9 +153,9 @@ private:
 		amrex::Real tstart = 0.0;
 		amrex::Vector<amrex::Real> load_t;
 		amrex::Vector<amrex::Real> load_disp;
-		//std::vector<model_type> model;
+		std::vector<model_type> model;
 		//thrust::host_vector<model_type> model;
-		thrust::device_vector<model_type> model;
+		//thrust::device_vector<model_type> model;
 		//thrust::system::cuda::vector<model_type> model;
 
 		Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;

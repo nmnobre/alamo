@@ -21,18 +21,20 @@ template<Set::Sym sym>
 class LinearElastic : public Solid
 {
 public:
-	__host__ __device__ LinearElastic() {};
-	//__host__ __device__ virtual ~LinearElastic() {};
+	AMREX_GPU_HOST_DEVICE 
+	LinearElastic() {};
 	///
 	/// Returns
 	/// \f[\mathbb{C}_{ijkl}u_{k,l}\f]
 	///
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &eps, bool a_homogeneous=true) const = 0;
+	AMREX_GPU_HOST_DEVICE
+	virtual Set::Matrix operator () (Set::Matrix &eps, bool a_homogeneous=true) const = 0;
 	///
 	/// Returns
 	/// \f[\mathbb{C}_{ijkl}u_{k,lj}\f]
 	///
-	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradeps, bool a_homogeneous=true) = 0;
+	AMREX_GPU_HOST_DEVICE
+	virtual Set::Vector operator () (Set::Matrix3 &gradeps, bool a_homogeneous=true) = 0;
 	
 protected:
 };

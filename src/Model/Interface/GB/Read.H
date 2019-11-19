@@ -87,7 +87,7 @@ public:
 
     //Print Thetas Sigmas Sigmas' and Sigmas''
   };
-  __host__ __device__
+  AMREX_GPU_HOST_DEVICE
   amrex::Real W(amrex::Real theta)
   {
     // put in code so that 0 <= theta < 2*pi
@@ -120,7 +120,7 @@ public:
     }
     return 0;
   };
-  __host__ __device__
+  AMREX_GPU_HOST_DEVICE
   amrex::Real DW(amrex::Real theta)
   {
    // put in code so that 0 <= theta < 2*pi
@@ -130,6 +130,7 @@ public:
 	theta=theta-(div*2*pi);
       }
     else if(theta<0)
+
       {
 	int div=fabs(theta)/(2*pi);
 	theta=theta+((div+1)*2*pi);
@@ -153,7 +154,7 @@ public:
     }
     return 0;
   };
-  __host__ __device__
+  AMREX_GPU_HOST_DEVICE
   amrex::Real DDW(amrex::Real theta)
   {
     // put in code so that 0 <= theta < 2*pi

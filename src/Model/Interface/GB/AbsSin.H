@@ -37,20 +37,20 @@ public:
 		sigma0 = Util::Random();
 		sigma1 = Util::Random();
 	};
-  __host__ __device__ amrex::Real W(amrex::Real theta)
+  AMREX_GPU_HOST_DEVICE amrex::Real W(amrex::Real theta)
   {
     //sigma(theta)=sigma0+sigma1*fabs(sin(n*(theta-theta0)))
     //n=2:  
     return sigma0+sigma1*fabs(sin(2*(theta-theta0)));  
     
   };
-  __host__ __device__ amrex::Real DW(amrex::Real theta)
+  AMREX_GPU_HOST_DEVICE amrex::Real DW(amrex::Real theta)
   {
     //sigma'(theta)=(n*sigma1*sin(n*(theta-theta0))*cos(n*(theta-theta0)))/fabs(sin(n*(theta-theta0)))
     //n=2:
     return (2*sigma1*sin(2*(theta-theta0))*cos(2*(theta-theta0)))/fabs(sin(2*(theta-theta0)));
   };
-  __host__ __device__ amrex::Real DDW(amrex::Real theta)
+  AMREX_GPU_HOST_DEVICE amrex::Real DDW(amrex::Real theta)
   {
     //sigma''(theta)=-n^2*sigma1*fabs(sin(n*(theta-theta0)))
     //n=2:

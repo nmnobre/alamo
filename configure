@@ -66,6 +66,7 @@ parser.add_argument('--docs',dest='docs',action='store_true',help='Check install
 parser.add_argument('--diff',dest='diff',action='store_true',help='Use diff2html to generate git diff reports')
 parser.add_argument('--profile',dest='profile',action='store_true',default=False,help="Enable tiny profiling in AMReX")
 parser.add_argument('--cuda',dest='cuda',action='store_true',default=False,help="Compile for NVidia GPU")
+parser.add_argument('--cuda-arch',default='75',help="NVidia GPU architecture")
 parser.set_defaults(debug=False)
 args=parser.parse_args()
 
@@ -159,7 +160,10 @@ if (args.buildamrex == True):
     subprocess.Popen(amrex_configure.split(),cwd="amrex")
     
     f2.write("amrex/"+postfix+":\n")
-    f2.write("\t$(MAKE) -C amrex $(MAKECMD)\n") # --output-sync=target
+    if args.cuda:
+        f2.write("\t$(MAKE) -C amrex $(MAKECMD) CUDA_ARCH={}\n".format(args.cuda_arch)) 
+    else:   
+        f2.write("\t$(MAKE) -C amrex $(MAKECMD)\n") 
     f2.write("\tmake -C amrex install\n")
         
     if not args.offline:
@@ -230,29 +234,49 @@ elif (args.eigen != ""):
 # Compiler
 #
 
-if not args.comp in ['g++','icc','clang++']:
-    raise Exception(color.red + "ERROR" + color.reset + ": Compiler must be g++, clang++, or icc")
-if (args.comp == "gcc"): f.write("COMP = GCC\n")
-elif (args.comp == "clang"): f.write("COMP = CLANG\n")
-elif (args.comp == "intel"): f.write("COMP = INTEL\n")
-message("Comp-Type", str(args.comp))
-shellmessage("Comp-Version",args.comp+" --version")
-shellmessage("Comp-MPI","mpicxx -cxx="+args.comp+" -show")
-f.write("CC = mpicxx -cxx="+args.comp+"\n")
-if args.comp == 'g++':     
-    f.write("MPI_LIB = -lgfortran -lmpich\n")
-    f.write("CXX_COMPILE_FLAGS += -Wpedantic\n")
-    if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
-    else:          f.write("CXX_COMPILE_FLAGS += -O3 -flto\n")
-if args.comp == 'clang++': 
-    f.write("MPI_LIB = -lgfortran -lmpich\n")
-    f.write("CXX_COMPILE_FLAGS += -Wpedantic\n")
-    if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
-    else:          f.write("CXX_COMPILE_FLAGS += -O3\n")
-if args.comp == 'icc':     
-    f.write("MPI_LIB = -lifcore\n")
-    if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
-    else:          f.write("CXX_COMPILE_FLAGS += -Ofast -ipo\n") # -inline-forceinline
+if args.cuda:
+    message("Cuda:","Yes")
+    f.write("CC = nvcc \n")
+    f.write("CXX_COMPILE_FLAGS += -ccbin=mpicxx -Xcompiler=' -Werror=return-type -g -O3  -pthread  --std=c++14 -Winline -Wextra -Wall ' \n")
+    f.write("CXX_COMPILE_FLAGS += --std=c++14 -Wno-deprecated-gpu-targets -m64 \n")
+    f.write("CXX_COMPILE_FLAGS += -arch=compute_{} -code=sm_{} \n".format(args.cuda_arch,args.cuda_arch))
+    f.write("CXX_COMPILE_FLAGS += -maxrregcount=255 -lineinfo --ptxas-options=-O3 --ptxas-options=-v --use_fast_math  -dc -x cu --expt-relaxed-constexpr --expt-extended-lambda \n")
+
+    f.write("INCLUDE += -I/usr/local/cuda/include")
+
+    f.write("LINKER_FLAGS += -Wno-deprecated-gpu-targets -m64 \n")
+    f.write("LINKER_FLAGS += -arch=compute_{} -code=sm_{} \n".format(args.cuda_arch,args.cuda_arch))
+    f.write("LINKER_FLAGS += -maxrregcount=255 -g -G --ptxas-options=-v --use_fast_math \n")
+    f.write("LINKER_FLAGS += -Xlinker=-Bsymbolic-functions -Xlinker=-z,relro \n")
+
+    f.write("LIB += -L/usr/local/cuda/lib64 -lamrex -lcuda\n")
+
+else:
+    if not args.comp in ['g++','icc','clang++']:
+        raise Exception(color.red + "ERROR" + color.reset + ": Compiler must be g++, clang++, or icc")
+    if (args.comp == "gcc"): f.write("COMP = GCC\n")
+    elif (args.comp == "clang"): f.write("COMP = CLANG\n")
+    elif (args.comp == "intel"): f.write("COMP = INTEL\n")
+    message("Comp-Type", str(args.comp))
+    shellmessage("Comp-Version",args.comp+" --version")
+    shellmessage("Comp-MPI","mpicxx -cxx="+args.comp+" -show")
+    f.write("CC = mpicxx -cxx="+args.comp+"\n")
+    f.write("CXX_COMPILE_FLAGS += -Winline -Wextra -Wall \n")
+    f.write("LINKER_FLAGS += -Bsymbolic-functions \n")
+    if args.comp == 'g++':     
+        f.write("MPI_LIB = -lgfortran -lmpich\n")
+        f.write("CXX_COMPILE_FLAGS += -Wpedantic\n")
+        if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
+        else:          f.write("CXX_COMPILE_FLAGS += -O3 -flto\n")
+    if args.comp == 'clang++': 
+        f.write("MPI_LIB = -lgfortran -lmpich\n")
+        f.write("CXX_COMPILE_FLAGS += -Wpedantic\n")
+        if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
+        else:          f.write("CXX_COMPILE_FLAGS += -O3\n")
+    if args.comp == 'icc':     
+        f.write("MPI_LIB = -lifcore\n")
+        if args.debug: f.write("CXX_COMPILE_FLAGS += -ggdb -g3\n")
+        else:          f.write("CXX_COMPILE_FLAGS += -Ofast -ipo\n") # -inline-forceinline
 
 #
 # Python information

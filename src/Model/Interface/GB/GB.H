@@ -17,9 +17,9 @@ class GB
 {
 	public:
 	GB() {};
-	__host__ __device__ virtual amrex::Real W(amrex::Real theta) = 0;
-	__host__ __device__ virtual amrex::Real DW(amrex::Real theta) = 0;
-	__host__ __device__ virtual amrex::Real DDW(amrex::Real theta) = 0;
+	AMREX_GPU_HOST_DEVICE virtual amrex::Real W(amrex::Real theta) = 0;
+	AMREX_GPU_HOST_DEVICE virtual amrex::Real DW(amrex::Real theta) = 0;
+	AMREX_GPU_HOST_DEVICE virtual amrex::Real DDW(amrex::Real theta) = 0;
 
 	void ExportToFile(std::string filename, amrex::Real dTheta)
 	{

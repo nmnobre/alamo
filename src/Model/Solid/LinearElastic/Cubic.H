@@ -48,48 +48,48 @@ namespace LinearElastic
 class Cubic : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::MajorMinor>
 {
 public:
-	__host__ __device__ Cubic() {} ;
-	__host__ __device__ Cubic(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R = Eigen::Matrix3d::Identity());
-	__host__ __device__ Cubic(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2);
+	AMREX_GPU_HOST_DEVICE Cubic() {} ;
+	AMREX_GPU_HOST_DEVICE Cubic(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R = Eigen::Matrix3d::Identity());
+	AMREX_GPU_HOST_DEVICE Cubic(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2);
 	//~Cubic() {} ;
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const;
-	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true);
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const;
+	AMREX_GPU_HOST_DEVICE virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true);
 
-	__host__ __device__ virtual Set::Scalar    W (Set::Matrix &eps) const;
-	__host__ __device__ virtual Set::Matrix   DW (Set::Matrix &eps) const;
-	__host__ __device__ virtual Set::Vector   DW (Set::Matrix3 &gradeps);
-	__host__ __device__ virtual Set::Matrix4<3,Set::Sym::MajorMinor> DDW (Set::Matrix &eps) const;
+	AMREX_GPU_HOST_DEVICE virtual Set::Scalar    W (Set::Matrix &eps) const;
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix   DW (Set::Matrix &eps) const;
+	AMREX_GPU_HOST_DEVICE virtual Set::Vector   DW (Set::Matrix3 &gradeps);
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix4<3,Set::Sym::MajorMinor> DDW (Set::Matrix &eps) const;
 
-	__host__ __device__ void Randomize();
-	__host__ __device__ void Randomize(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44);
-	__host__ __device__ void define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R = Eigen::Matrix3d::Identity());
-	__host__ __device__ void define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2);
+	AMREX_GPU_HOST_DEVICE void Randomize();
+	AMREX_GPU_HOST_DEVICE void Randomize(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44);
+	AMREX_GPU_HOST_DEVICE void define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R = Eigen::Matrix3d::Identity());
+	AMREX_GPU_HOST_DEVICE void define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2);
 	
 	Cubic operator + (const Cubic &rhs) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C += rhs.C; return ret;}
 
 	Cubic operator - (const Cubic &rhs) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C -= rhs.C; return ret;}
 
 	Cubic operator * (const Cubic &rhs) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C *= rhs.C; return ret;}
 
 	Cubic operator / (const Cubic &rhs) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C /= rhs.C; return ret;}
 
 	Cubic operator * (const Set::Scalar alpha) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C *= alpha; return ret;}
 
 	Cubic operator / (const Set::Scalar alpha) const
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	{Cubic ret = *this; ret.C /= alpha; return ret;}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	void operator += (const Cubic &rhs) {C += rhs.C;}
 
 private:

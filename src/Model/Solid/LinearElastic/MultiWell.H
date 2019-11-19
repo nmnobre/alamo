@@ -18,17 +18,21 @@ namespace LinearElastic
 class Multiwell : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	__host__ __device__ Multiwell() {} ;
-	__host__ __device__ Multiwell(Set::Scalar _mu, Set::Scalar _lambda, Set::Matrix _Fgb=Set::Matrix::Zero()) {Define(_mu,_lambda,_Fgb);} ;
-	//~Multiwell() {} ;
-	__host__ __device__ void Define(Set::Scalar _mu, Set::Scalar _lambda,Set::Matrix _Fgb)
+	AMREX_GPU_HOST_DEVICE 
+	Multiwell() {} ;
+	
+	AMREX_GPU_HOST_DEVICE 
+	Multiwell(Set::Scalar _mu, Set::Scalar _lambda, Set::Matrix _Fgb=Set::Matrix::Zero()) {Define(_mu,_lambda,_Fgb);} ;
+	
+	AMREX_GPU_HOST_DEVICE 
+	void Define(Set::Scalar _mu, Set::Scalar _lambda,Set::Matrix _Fgb)
 	{
 		mu = _mu; lambda = _lambda; Fgb = _Fgb;
 		for (int p = 0; p < AMREX_SPACEDIM; p++) gradFgb[p] = Set::Matrix::Zero();
 	}
 
 	AMREX_FORCE_INLINE
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &gradu,bool a_homogeneous=true) const
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix operator () (Set::Matrix &gradu,bool a_homogeneous=true) const
 	{
 		Set::Matrix eps = gradu;
 		if (!a_homogeneous) eps -= Fgb;
@@ -36,7 +40,7 @@ public:
 	};
 
 	AMREX_FORCE_INLINE
-	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradgradu,bool a_homogeneous=true)
+	AMREX_GPU_HOST_DEVICE virtual Set::Vector operator () (Set::Matrix3 &gradgradu,bool a_homogeneous=true)
 	{
 		Set::Matrix3 gradeps = gradgradu;
 		if (!a_homogeneous) for (int i = 0; i < AMREX_SPACEDIM; i++) gradeps[i] -= gradFgb[i];
@@ -61,7 +65,8 @@ public:
 			" lambda = " << lambda << std::endl;
 	}
 
-	__host__ __device__ Multiwell operator + (const Multiwell &rhs) const
+	AMREX_GPU_HOST_DEVICE 
+	Multiwell operator + (const Multiwell &rhs) const
 	{
 		//gradFgb + gradFgb;
 		Multiwell ret(mu+rhs.mu, lambda+rhs.lambda,Fgb + rhs.Fgb); ret.gradFgb = gradFgb; ret.gradFgb += rhs.gradFgb;
@@ -69,20 +74,23 @@ public:
 		return ret;
 	}
 
-	__host__ __device__ Multiwell & operator = (const Multiwell &rhs)
+	AMREX_GPU_HOST_DEVICE 
+	Multiwell & operator = (const Multiwell &rhs)
 	{
 		mu=rhs.mu; lambda=rhs.lambda; Fgb = rhs.Fgb; gradFgb = rhs.gradFgb;
 		//for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] = rhs.gradFgb[i];
 		return *this;
 	}
 
-	__host__ __device__ void operator += (const Multiwell &rhs)
+	AMREX_GPU_HOST_DEVICE 
+	void operator += (const Multiwell &rhs)
 	{
 		mu+=rhs.mu; lambda+=rhs.lambda; Fgb += rhs.Fgb; gradFgb += rhs.gradFgb;
 		//for (int i = 0; i < AMREX_SPACEDIM; i++) gradFgb[i] += rhs.gradFgb[i];
 	}
 
-	__host__ __device__ Multiwell operator - (const Multiwell &rhs) const
+	AMREX_GPU_HOST_DEVICE 
+	Multiwell operator - (const Multiwell &rhs) const
 	{
 		Multiwell ret(mu-rhs.mu, lambda-rhs.lambda,Fgb-rhs.Fgb); ret.gradFgb = gradFgb; ret.gradFgb -= rhs.gradFgb;
 		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i] - rhs.gradFgb[i];
@@ -95,14 +103,16 @@ public:
 	//Multiwell operator / (const Multiwell &rhs) const
 	//{return Multiwell(mu/rhs.mu, lambda/rhs.lambda);}
 
-	__host__ __device__ virtual Multiwell operator / (const Set::Scalar alpha) const
+	AMREX_GPU_HOST_DEVICE 
+	virtual Multiwell operator / (const Set::Scalar alpha) const
 	{
 		Multiwell ret(mu/alpha, lambda/alpha,Fgb/alpha); ret.gradFgb = gradFgb; ret.gradFgb /= alpha;
 		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]/alpha;
 		return ret;
 	}
 
-	__host__ __device__ virtual Multiwell operator * (const Set::Scalar alpha) const
+	AMREX_GPU_HOST_DEVICE 
+	virtual Multiwell operator * (const Set::Scalar alpha) const
 	{
 		Multiwell ret(mu*alpha, lambda*alpha,Fgb*alpha); ret.gradFgb = gradFgb; ret.gradFgb *= alpha;
 		//for (int i = 0; i < AMREX_SPACEDIM; i++) ret.gradFgb[i] = gradFgb[i]*alpha;

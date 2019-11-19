@@ -25,17 +25,16 @@ namespace LinearElastic
 class Laplacian : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	__host__ __device__ Laplacian() {} ;
-	__host__ __device__ Laplacian(Set::Scalar _alpha) : alpha(_alpha)  {} ;
-	//__host__ __device__ ~Laplacian() {} ;
+	AMREX_GPU_HOST_DEVICE Laplacian() {} ;
+	AMREX_GPU_HOST_DEVICE Laplacian(Set::Scalar _alpha) : alpha(_alpha)  {} ;
 	AMREX_FORCE_INLINE
-	__host__ __device__ virtual Set::Matrix operator () (Set::Matrix &gradu,bool =true) const
+	AMREX_GPU_HOST_DEVICE virtual Set::Matrix operator () (Set::Matrix &gradu,bool =true) const
 	{
 		//return alpha * 0.5*(gradu + gradu.transpose());
 		return alpha * gradu;
 	};
 	AMREX_FORCE_INLINE
-	__host__ __device__ virtual Set::Vector operator () (Set::Matrix3 &gradgradu,bool =true)
+	AMREX_GPU_HOST_DEVICE virtual Set::Vector operator () (Set::Matrix3 &gradgradu,bool =true)
 	{
 		Set::Vector f = Set::Vector::Zero();
 		for (int i = 0; i < AMREX_SPACEDIM; i++)
@@ -49,25 +48,25 @@ public:
 		alpha = Util::Random();
 	};
 
-	__host__ __device__ Laplacian operator + (const Laplacian &rhs) const
+	AMREX_GPU_HOST_DEVICE Laplacian operator + (const Laplacian &rhs) const
 	{return Laplacian(alpha+rhs.alpha);}
 
-	__host__ __device__ void operator += (const Laplacian &rhs)
+	AMREX_GPU_HOST_DEVICE void operator += (const Laplacian &rhs)
 	{alpha+=rhs.alpha;}
 
-	__host__ __device__ Laplacian operator - (const Laplacian &rhs) const
+	AMREX_GPU_HOST_DEVICE Laplacian operator - (const Laplacian &rhs) const
 	{return Laplacian(alpha-rhs.alpha);}
 
-	__host__ __device__ Laplacian operator * (const Laplacian &rhs) const
+	AMREX_GPU_HOST_DEVICE Laplacian operator * (const Laplacian &rhs) const
 	{return Laplacian(alpha*rhs.alpha);}
 
-	__host__ __device__ Laplacian operator / (const Laplacian &rhs) const
+	AMREX_GPU_HOST_DEVICE Laplacian operator / (const Laplacian &rhs) const
 	{return Laplacian(alpha/rhs.alpha);}
 
-	__host__ __device__ virtual Laplacian operator / (const Set::Scalar beta) const
+	AMREX_GPU_HOST_DEVICE virtual Laplacian operator / (const Set::Scalar beta) const
 	{return Laplacian(alpha/beta);}
 
-	__host__ __device__ virtual Laplacian operator * (const Set::Scalar beta) const
+	AMREX_GPU_HOST_DEVICE virtual Laplacian operator * (const Set::Scalar beta) const
 	{return Laplacian(alpha*beta);}
 
 public:

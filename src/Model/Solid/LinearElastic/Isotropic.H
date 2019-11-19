@@ -22,19 +22,19 @@ namespace LinearElastic
 class Isotropic : public Model::Solid::LinearElastic::LinearElastic<Set::Sym::Isotropic>
 {
 public:
-	__host__ __device__ Isotropic() {} ;
-	__host__ __device__ Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda) {} ;
-	//__host__ __device__ ~Isotropic() {} ;
+	AMREX_GPU_HOST_DEVICE Isotropic() {} ;
+	AMREX_GPU_HOST_DEVICE Isotropic(Set::Scalar _mu, Set::Scalar _lambda) : mu(_mu) , lambda(_lambda) {} ;
+	//AMREX_GPU_HOST_DEVICE ~Isotropic() {} ;
 
 	AMREX_FORCE_INLINE
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	virtual Set::Matrix operator () (Set::Matrix &eps,bool =true) const
 	{
 		return mu*(eps + eps.transpose()) + lambda*Set::Matrix::Identity()*eps.trace();
 	};
 
 	AMREX_FORCE_INLINE
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	virtual Set::Vector operator () (Set::Matrix3 &gradeps,bool =true)
 	{
 		Set::Vector f = Set::Vector::Zero();
@@ -56,31 +56,31 @@ public:
 			" lambda = " << lambda << std::endl;
 	}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	Isotropic operator + (const Isotropic &rhs) const
 	{return Isotropic(mu+rhs.mu, lambda+rhs.lambda);}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	void operator += (const Isotropic &rhs)
 	{mu+=rhs.mu; lambda+=rhs.lambda;}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	Isotropic operator - (const Isotropic &rhs) const
 	{return Isotropic(mu-rhs.mu, lambda-rhs.lambda);}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	Isotropic operator * (const Isotropic &rhs) const
 	{return Isotropic(mu*rhs.mu, lambda*rhs.lambda);}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	Isotropic operator / (const Isotropic &rhs) const
 	{return Isotropic(mu/rhs.mu, lambda/rhs.lambda);}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	virtual Isotropic operator / (const Set::Scalar alpha) const
 	{return Isotropic(mu/alpha, lambda/alpha);}
 
-	__host__ __device__ 
+	AMREX_GPU_HOST_DEVICE 
 	virtual Isotropic operator * (const Set::Scalar alpha) const
 	{return Isotropic(mu*alpha, lambda*alpha);}
 
