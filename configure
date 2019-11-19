@@ -161,7 +161,7 @@ if (args.buildamrex == True):
     
     f2.write("amrex/"+postfix+":\n")
     if args.cuda:
-        f2.write("\t$(MAKE) -C amrex $(MAKECMD) CUDA_ARCH={}\n".format(args.cuda_arch)) 
+        f2.write("\t$(MAKE) -C amrex CUDA_ARCH={} $(MAKECMD) \n".format(args.cuda_arch)) 
     else:   
         f2.write("\t$(MAKE) -C amrex $(MAKECMD)\n") 
     f2.write("\tmake -C amrex install\n")
