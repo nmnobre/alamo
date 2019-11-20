@@ -7,6 +7,7 @@ import textwrap
 import sys
 import ctypes.util
 import glob
+import shutil
 
 python_version = str(sys.version_info.major) + "." + str(sys.version_info.minor)
 
@@ -36,7 +37,12 @@ def message(title,message="",wrap_message=True):
     else: print(message)
 def shellmessage(title,cmd):
     print(color.boldgreen + title.ljust(width) + color.reset,end="")
-    wrap(subprocess.check_output(cmd.split(' '),stderr=subprocess.STDOUT).decode('ascii').replace('\n',' '))
+    message = (subprocess.check_output(cmd.split(' '),stderr=subprocess.STDOUT).decode('ascii')).split('\n')
+    pre = ""
+    for m in message: 
+        if m != "":
+            print(pre + m)
+            pre = "".ljust(width)
 def warning(message):
     print(color.boldyellow + "WARNING".ljust(width) + color.reset,end="")
     wrap(message)
@@ -237,7 +243,14 @@ elif (args.eigen != ""):
 #
 
 if args.cuda:
-    message("Cuda:","Yes")
+    if not shutil.which("nvcc"):
+        raise Exception(error("NVidia CUDA compiler (nvcc) not found!"))
+    message("CUDA:","Yes")
+    shellmessage("CUDA-Version", "nvcc --version")
+    
+    if shutil.which("nvidia-smi"):
+        shellmessage("System GPUs","nvidia-smi -L")
+    
     f.write("CC = nvcc \n")
     f.write("CXX_COMPILE_FLAGS += -ccbin=mpicxx -Xcompiler=' -Werror=return-type -g -O3  -pthread  --std=c++14 -Winline -Wextra -Wall ' \n")
     f.write("CXX_COMPILE_FLAGS += --std=c++14 -Wno-deprecated-gpu-targets -m64 \n")
