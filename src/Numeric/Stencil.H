@@ -51,7 +51,7 @@ struct Stencil<T,1,0,0>
 	AMREX_GPU_HOST_DEVICE 
 	static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM],
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx,
 		   Stencils stencil = Stencils())
 	{
 		if (stencil.x == StencilType::Lo)
@@ -69,7 +69,7 @@ struct Stencil<T,0,1,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM],
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx,
 		   	Stencils stencil = Stencils())
 	{
 		if (stencil.y == StencilType::Lo)
@@ -89,7 +89,7 @@ struct Stencil<T,0,0,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM],
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx,
 		   Stencils stencil = Stencils())
 	{
 		if (stencil.z == StencilType::Lo)
@@ -113,7 +113,7 @@ struct Stencil<T,2,0,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return (f(i+1,j,k,m) - 2.0*f(i,j,k,m) + f(i-1,j,k,m))/dx[0]/dx[0];
 	};
@@ -125,7 +125,7 @@ struct Stencil<T,0,2,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return (f(i,j+1,k,m) - 2.0*f(i,j,k,m) + f(i,j-1,k,m))/dx[1]/dx[1];
 	};
@@ -137,7 +137,7 @@ struct Stencil<T,0,0,2>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return (f(i,j,k+1,m) - 2.0*f(i,j,k,m) + f(i,j,k-1,m))/dx[2]/dx[2];
 	};
@@ -149,7 +149,7 @@ struct Stencil<T,1,1,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 0.25*(f(i+1,j+1,k,m) + f(i-1,j-1,k,m) - f(i+1,j-1,k,m) - f(i-1,j+1,k,m))/(dx[0]*dx[1]);
 	};
@@ -160,7 +160,7 @@ struct Stencil<T,1,0,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 0.25*(f(i+1,j,k+1,m) + f(i-1,j,k-1,m) - f(i+1,j,k-1,m) - f(i-1,j,k+1,m))/(dx[0]*dx[2]);
 	};
@@ -171,7 +171,7 @@ struct Stencil<T,0,1,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 0.25*(f(i,j+1,k+1,m) + f(i,j-1,k-1,m) - f(i,j+1,k-1,m) - f(i,j-1,k+1,m))/(dx[1]*dx[2]);
 	};
@@ -187,7 +187,7 @@ struct Stencil<T,4,0,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return ((f(i+2,j,k,m)) - 4.*(f(i+1,j,k,m)) + 6.*(f(i,j,k,m)) - 4.*(f(i-1,j,k,m)) + (f(i-2,j,k,m))) /
 				(dx[0]*dx[0]*dx[0]*dx[0]);
@@ -199,7 +199,7 @@ struct Stencil<T,0,4,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return ((f(i,j+2,k,m)) - 4.*(f(i,j+1,k,m)) + 6.*(f(i,j,k,m)) - 4.*(f(i,j-1,k,m)) + (f(i,j-2,k,m))) /
 				(dx[1]*dx[1]*dx[1]*dx[1]);
@@ -211,7 +211,7 @@ struct Stencil<T,0,0,4>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return ((f(i,j,k+2,m)) - 4.*(f(i,j,k+1,m)) + 6.*(f(i,j,k,m)) - 4.*(f(i,j,k-1,m)) + (f(i,j,k-2,m))) /
 				(dx[2]*dx[2]*dx[2]*dx[2]);
@@ -226,7 +226,7 @@ struct Stencil<T,3,1,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	((   -f(i+2,j+2,k,m) + 8.0*f(i+2,j+1,k,m) - 8.0*f(i+2,j-1,k,m) + f(i+2,j-2,k,m))
 				 -2*(-f(i+1,j+2,k,m) + 8.0*f(i+1,j+1,k,m) - 8.0*f(i+1,j-1,k,m) + f(i+1,j-2,k,m))
@@ -244,7 +244,7 @@ struct Stencil<T,1,3,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return ((-f(i+2,j+2,k,m) + 8.0*f(i+1,j+2,k,m) - 8.0*f(i-1,j+2,k,m) + f(i-2,j+2,k,m))
 			 -2*(-f(i+2,j+1,k,m) + 8.0*f(i+1,j+1,k,m) - 8.0*f(i-1,j+1,k,m) + f(i-2,j+1,k,m))
@@ -262,7 +262,7 @@ struct Stencil<T,0,3,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	((   -f(i,j+2,k+2,m) + 8.0*f(i,j+2,k+1,m) - 8.0*f(i,j+2,k-1,m) + f(i,j+2,k-2,m))
 				 -2*(-f(i,j+1,k+2,m) + 8.0*f(i,j+1,k+1,m) - 8.0*f(i,j+1,k-1,m) + f(i,j+1,k-2,m))
@@ -278,7 +278,7 @@ struct Stencil<T,0,1,3>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	((   -f(i,j+2,k+2,m) + 8.0*f(i,j+1,k+2,m) - 8.0*f(i,j-1,k+2,m) + f(i,j-2,k+2,m))
 				 -2*(-f(i,j+2,k+1,m) + 8.0*f(i,j+1,k+1,m) - 8.0*f(i,j-1,k+1,m) + f(i,j-2,k+1,m))
@@ -294,7 +294,7 @@ struct Stencil<T,1,0,3>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	((   -f(i+2,j,k+2,m) + 8.0*f(i+1,j,k+2,m) - 8.0*f(i-1,j,k+2,m) + f(i-2,j,k+2,m))
 				 -2*(-f(i+2,j,k+1,m) + 8.0*f(i+1,j,k+1,m) - 8.0*f(i-1,j,k+1,m) + f(i-2,j,k+1,m))
@@ -311,7 +311,7 @@ struct Stencil<T,3,0,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	((   -f(i+2,j,k+2,m) + 8.0*f(i+2,j,k+1,m) - 8.0*f(i+2,j,k-1,m) + f(i+2,j,k-2,m))
 				 -2*(-f(i+1,j,k+2,m) + 8.0*f(i+1,j,k+1,m) - 8.0*f(i+1,j,k-1,m) + f(i+1,j,k-2,m))
@@ -328,7 +328,7 @@ struct Stencil<T,2,2,0>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 	(-(   -f(i+2,j+2,k,m)+16.0*f(i+1,j+2,k,m)-30.0*f(i  ,j+2,k,m) +16.0*f(i-1,j+2,k,m)-f(i-2,j+2,k,m))
 			     +16*(-f(i+2,j+1,k,m)+16.0*f(i+1,j+1,k,m)-30.0*f(i  ,j+1,k,m) +16.0*f(i-1,j+1,k,m)-f(i-2,j+1,k,m))
@@ -346,7 +346,7 @@ struct Stencil<T,0,2,2>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 	(-(   -f(i,j+2,k+2,m)+16.0*f(i,j+2,k+1,m)-30.0*f(i,j+2,k,m) +16.0*f(i,j+2,k-1,m)-f(i,j+2,k-2,m))
 			     +16*(-f(i,j+1,k+2,m)+16.0*f(i,j+1,k+1,m)-30.0*f(i,j+1,k,m) +16.0*f(i,j+1,k-1,m)-f(i,j+1,k-2,m))
@@ -363,7 +363,7 @@ struct Stencil<T,2,0,2>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   	   const int &i, const int &j, const int &k, const int &m,
-		       const Set::Scalar dx[AMREX_SPACEDIM])
+		       const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return 	(-(   -f(i+2,j,k+2,m)+16.0*f(i+2,j,k+1,m)-30.0*f(i+2,j,k,m) +16.0*f(i+2,j,k-1,m)-f(i+2,j,k-2,m))
 			     +16*(-f(i+1,j,k+2,m)+16.0*f(i+1,j,k+1,m)-30.0*f(i+1,j,k,m) +16.0*f(i+1,j,k-1,m)-f(i+1,j,k-2,m))
@@ -382,7 +382,7 @@ struct Stencil<T,2,1,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	( + (f(i+1,j+1,k+1,m) - 2.0*f(i,j+1,k+1,m) + f(i-1,j+1,k+1,m))
 				  - (f(i+1,j-1,k+1,m) - 2.0*f(i,j-1,k+1,m) + f(i-1,j-1,k+1,m))
@@ -399,7 +399,7 @@ struct Stencil<T,1,2,1>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	( + (f(i+1,j+1,k+1,m) - 2.0*f(i+1,j,k+1,m) + f(i+1,j-1,k+1,m))
 				  - (f(i-1,j+1,k+1,m) - 2.0*f(i-1,j,k+1,m) + f(i-1,j-1,k+1,m))
@@ -416,7 +416,7 @@ struct Stencil<T,1,1,2>
 	AMREX_FORCE_INLINE
 	AMREX_GPU_HOST_DEVICE static T D(const amrex::Array4<const T> &f,
 		   const int &i, const int &j, const int &k, const int &m,
-		   const Set::Scalar dx[AMREX_SPACEDIM])
+		   const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 	{
 		return	( + (f(i+1,j+1,k+1,m) - 2.0*f(i+1,j+1,k,m) + f(i+1,j+1,k-1,m))
 				  - (f(i-1,j+1,k+1,m) - 2.0*f(i-1,j+1,k,m) + f(i-1,j+1,k-1,m))
@@ -431,7 +431,7 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Scalar
 Laplacian(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k, const int &m,
-		const Set::Scalar dx[AMREX_SPACEDIM])
+		const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Scalar ret = 0.0;
 	ret += (Numeric::Stencil<Set::Scalar,2,0,0>::D(f,i,j,k,m,dx));
@@ -448,7 +448,7 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Vector
 Gradient(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k, const int &m,
-		const Set::Scalar dx[AMREX_SPACEDIM])
+		const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Vector ret;
 	ret(0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(f,i,j,k,m,dx));
@@ -465,7 +465,7 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Matrix
 Gradient(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k,
-		const Set::Scalar dx[AMREX_SPACEDIM])
+		const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Matrix ret;
 	ret(0,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(f,i,j,k,0,dx));
@@ -490,7 +490,7 @@ AMREX_GPU_HOST_DEVICE
 Set::Matrix
 Hessian(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k, const int &m,
-		const Set::Scalar dx[AMREX_SPACEDIM])
+		const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Matrix ret;
 	ret(0,0) = (Numeric::Stencil<Set::Scalar,2,0,0>::D(f,i,j,k,m,dx));
@@ -515,14 +515,14 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Matrix4<dim,Set::Sym::Full>
 DoubleHessian(const amrex::Array4<const Set::Scalar> &f,
 		   	  const int &i, const int &j, const int &k, const int &m,
-		      const Set::Scalar dx[AMREX_SPACEDIM]);
+		      const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx);
 
 template<>
 AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Matrix4<2,Set::Sym::Full>
 DoubleHessian<2>(const amrex::Array4<const Set::Scalar> &f,
 		   	  const int &i, const int &j, const int &k, const int &m,
-		      const Set::Scalar dx[AMREX_SPACEDIM])
+		      const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Matrix4<2,Set::Sym::Full> ret;
     // [0,0,0,0]
@@ -543,7 +543,7 @@ AMREX_FORCE_INLINE AMREX_GPU_HOST_DEVICE
 Set::Matrix4<3,Set::Sym::Full>
 DoubleHessian<3>(const amrex::Array4<const Set::Scalar> &f,
 		   	  const int &i, const int &j, const int &k, const int &m,
-		      const Set::Scalar dx[AMREX_SPACEDIM])
+		      const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> dx)
 {
 	Set::Matrix4<3,Set::Sym::Full> ret;
     // [0,0,0,0]
