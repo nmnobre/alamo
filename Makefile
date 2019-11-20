@@ -130,7 +130,7 @@ obj/obj-$(POSTFIX)/%.cpp.o:
 	@printf '%9s' "($(CTR)/$(NUM)) " 
 	@printf "$(RESET)$<\n"
 	@mkdir -p $(dir $@)
-	$(CC) $(CXX_COMPILE_FLAGS) $(INCLUDE) -c $< -o $@ $(METADATA_FLAGS)
+	@$(CC) $(CXX_COMPILE_FLAGS) $(INCLUDE) -c $< -o $@ $(METADATA_FLAGS)
 
 
 obj/obj-$(POSTFIX)/%.cpp.d: src/%.cpp  ${AMREX_TARGET}

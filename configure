@@ -54,7 +54,7 @@ parser.add_argument('--dim', default=3, type=int, help='Spatial dimension [3]')
 parser.add_argument('--comp', default="g++", help='Compiler. Options: [g++], clang++, icc')
 parser.add_argument('--amrex', default="", help='Path to AMReX installation []')
 parser.add_argument('--build-amrex', dest="buildamrex",action='store_true',default=False, help='Download and build AMReX automatically')
-parser.add_argument('--build-amrex-branch',dest="buildamrexbranch",default="287b51a44c2773cd52b45760d20a14f0e77e740a", help='AMReX Branch (You probably don\'t need to change this!' )
+parser.add_argument('--build-amrex-branch',dest="buildamrexbranch",default="19.11", help='AMReX Branch (You probably don\'t need to change this!' )
 parser.add_argument('--eigen', default="", help='Path to Eigen installation []')
 parser.add_argument('--get-eigen', dest="geteigen",action='store_true',default=False, help='Download Eigen automatically')
 parser.add_argument('--debug', dest='debug', action='store_true', help='Compile in debug mode')
@@ -132,7 +132,7 @@ if (args.buildamrex == True):
     if args.profile: amrex_configure += ' --enable-tiny-profile=yes'
     if args.cuda: 
         amrex_configure += ' --with-cuda=yes'
-        amrex_configure += ' --cuda-arch={}'.format(args.cuda_arch)
+        #amrex_configure += ' --cuda-arch={}'.format(args.cuda_arch)
     args.amrex = "amrex/"+postfix
     f.write("AMREX = amrex/" + postfix + "/\n")
     f.write("AMREX_TARGET = amrex/" + postfix + "\n")
@@ -162,7 +162,10 @@ if (args.buildamrex == True):
     subprocess.Popen(amrex_configure.split(),cwd="amrex")
     
     f2.write("amrex/"+postfix+":\n")
-    f2.write("\t$(MAKE) -C amrex $(MAKECMD)\n") 
+    if args.cuda:
+        f2.write("\t$(MAKE) -C amrex CUDA_ARCH={} $(MAKECMD)\n".format(args.cuda_arch)) 
+    else:
+        f2.write("\t$(MAKE) -C amrex $(MAKECMD)\n") 
     f2.write("\tmake -C amrex install\n")
         
     if not args.offline:
@@ -241,7 +244,7 @@ if args.cuda:
     f.write("CXX_COMPILE_FLAGS += -arch=compute_{} -code=sm_{} \n".format(args.cuda_arch,args.cuda_arch))
     f.write("CXX_COMPILE_FLAGS += -maxrregcount=255 -lineinfo --ptxas-options=-O3 --ptxas-options=-v --use_fast_math  -dc -x cu --expt-relaxed-constexpr --expt-extended-lambda \n")
 
-    f.write("INCLUDE += -I/usr/local/cuda/include")
+    f.write("INCLUDE += -I/usr/local/cuda/include \n")
 
     f.write("LINKER_FLAGS += -Wno-deprecated-gpu-targets -m64 \n")
     f.write("LINKER_FLAGS += -arch=compute_{} -code=sm_{} \n".format(args.cuda_arch,args.cuda_arch))
