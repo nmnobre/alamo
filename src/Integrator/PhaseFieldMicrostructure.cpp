@@ -243,7 +243,8 @@ void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt
 	/// TODO Make this optional
 	//if (lev != max_level) return;
 	std::swap(eta_old_mf[lev], eta_new_mf[lev]);
-	const amrex::Real *DX = geom[lev].CellSize();
+	//const amrex::Real *DX = geom[lev].CellSize();
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {geom[lev].CellSize()[0],geom[lev].CellSize()[1],geom[lev].CellSize()[2]};
 
 	Model::Interface::GB::SH gbmodel(0.0, 0.0, anisotropy.sigma0, anisotropy.sigma1);
 
@@ -463,8 +464,9 @@ void PhaseFieldMicrostructure::Initialize(int lev)
 void PhaseFieldMicrostructure::TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, amrex::Real /*time*/, int /*ngrow*/)
 {
 	BL_PROFILE("PhaseFieldMicrostructure::TagCellsForRefinement");
-	const amrex::Real *DX = geom[lev].CellSize();
-	const Set::Vector dx(DX);
+	//const amrex::Real *DX = geom[lev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {geom[lev].CellSize()[0],geom[lev].CellSize()[1],geom[lev].CellSize()[2]};
+	const Set::Vector dx(DX[0], DX[1], DX[2]); // TODO
 	const Set::Scalar dxnorm = dx.lpNorm<2>();
 
 	for (amrex::MFIter mfi(*eta_new_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -608,7 +610,9 @@ void PhaseFieldMicrostructure::Integrate(int amrlev, Set::Scalar time, int /*ste
 	Model::Interface::GB::SH gbmodel(0.0, 0.0, anisotropy.sigma0, anisotropy.sigma1);
 
 	BL_PROFILE("PhaseFieldMicrostructure::Integrate");
-	const amrex::Real *DX = geom[amrlev].CellSize();
+	//const amrex::Real *DX = geom[amrlev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {geom[amrlev].CellSize()[0],geom[amrlev].CellSize()[1],geom[amrlev].CellSize()[2]};
+
 	amrex::Array4<amrex::Real> const &eta = (*eta_new_mf[amrlev]).array(mfi);
 	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 		Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);

@@ -153,7 +153,8 @@ Elastic<T>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u) c
 	amrex::Box domain(m_geom[amrlev][mglev].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
-	const Real* DX = m_geom[amrlev][mglev].CellSize();
+	//const Real* DX = m_geom[amrlev][mglev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][mglev].CellSize()[0],m_geom[amrlev][mglev].CellSize()[1],m_geom[amrlev][mglev].CellSize()[2]};
 
 	for (MFIter mfi(a_f, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -265,7 +266,8 @@ Elastic<T>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 
 	amrex::Box domain(m_geom[amrlev][mglev].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
-	const Real* DX = m_geom[amrlev][mglev].CellSize();
+	//const Real* DX = m_geom[amrlev][mglev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][mglev].CellSize()[0],m_geom[amrlev][mglev].CellSize()[1],m_geom[amrlev][mglev].CellSize()[2]};
 	
 	for (MFIter mfi(a_diag, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -401,7 +403,8 @@ Elastic<T>::Strain  (int amrlev,
 {
 	BL_PROFILE("Operator::Elastic::Strain()");
 
-	const amrex::Real* DX = m_geom[amrlev][0].CellSize();
+	//const amrex::Real* DX = m_geom[amrlev][0].CellSize();// TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][0].CellSize()[0],m_geom[amrlev][0].CellSize()[1],m_geom[amrlev][0].CellSize()[2]};
 	amrex::Box domain(m_geom[amrlev][0].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
@@ -462,7 +465,8 @@ Elastic<T>::Stress (int amrlev,
 	BL_PROFILE("Operator::Elastic::Stress()");
 	SetHomogeneous(false);
 
-	const amrex::Real* DX = m_geom[amrlev][0].CellSize();
+	//const amrex::Real* DX = m_geom[amrlev][0].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][0].CellSize()[0],m_geom[amrlev][0].CellSize()[1],m_geom[amrlev][0].CellSize()[2]};
 	amrex::Box domain(m_geom[amrlev][0].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
@@ -526,7 +530,9 @@ Elastic<T>::Energy (int amrlev,
 	amrex::Box domain(m_geom[amrlev][0].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
-	const amrex::Real* DX = m_geom[amrlev][0].CellSize();
+	//const amrex::Real* DX = m_geom[amrlev][0].CellSize();// TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][0].CellSize()[0],m_geom[amrlev][0].CellSize()[1],m_geom[amrlev][0].CellSize()[2]};
+
 
 	for (MFIter mfi(a_u, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -581,7 +587,8 @@ Elastic<T>::Energy (int amrlev, amrex::MultiFab& a_energies, const amrex::MultiF
 	amrex::Box domain(m_geom[amrlev][0].Domain());
 	domain.convert(amrex::IntVect::TheNodeVector());
 
-	const amrex::Real* DX = m_geom[amrlev][0].CellSize();
+	//const amrex::Real* DX = m_geom[amrlev][0].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {m_geom[amrlev][0].CellSize()[0],m_geom[amrlev][0].CellSize()[1],m_geom[amrlev][0].CellSize()[2]};
 
 	for (MFIter mfi(a_u, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{

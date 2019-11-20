@@ -237,7 +237,8 @@ void
 Mobility::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 {
 	std::swap(gammagbold_mf[lev], gammagb_mf[lev]);
-	const amrex::Real* DX = geom[lev].CellSize();
+	//const amrex::Real* DX = geom[lev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {geom[lev].CellSize()[0],geom[lev].CellSize()[1],geom[lev].CellSize()[2]};
 
 	for (amrex::MFIter mfi(*gammagb_mf[lev],amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -264,7 +265,8 @@ Mobility::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 void
 Mobility::TagCellsForRefinement (int lev, amrex::TagBoxArray& a_tags, amrex::Real /*time*/, int /*ngrow*/)
 {
-	const amrex::Real* DX      = geom[lev].CellSize();
+	//const amrex::Real* DX      = geom[lev].CellSize(); // TODO
+	const amrex::GpuArray<Set::Scalar,AMREX_SPACEDIM> DX = {geom[lev].CellSize()[0],geom[lev].CellSize()[1],geom[lev].CellSize()[2]};
 	const Set::Scalar dxnorm = sqrt(DX[0]*DX[0] +  DX[1]*DX[1]);
 
 	for (amrex::MFIter mfi(*gammagb_mf[lev],TilingIfNotGPU()); mfi.isValid(); ++mfi)
