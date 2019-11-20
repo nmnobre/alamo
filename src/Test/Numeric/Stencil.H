@@ -40,6 +40,7 @@ public:
 		grids[0].maxSize(ncells[0]/2);
 		dmap[0].define(grids[0]);
 
+		Util::Message(INFO,"Just checking , I'm here");
 		phi[0].define(grids[0],dmap[0],1,nghost);
 		DphiNumeric[0].define(grids[0],dmap[0],1,nghost);
 		DphiExact[0].define(grids[0],dmap[0],1,nghost);
@@ -93,25 +94,23 @@ public:
 			amrex::Array4<amrex::Real> const& DPhi    = DphiNumeric[0].array(mfi);
 			amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int p, int q, int r)
 			{
-			  //DPhi(p,q,r) = (Phi(p+1,q,r) - Phi(p-1,q,r))/DX[0];//::Numeric::Stencil<Set::Scalar,i,j,k>::D(Phi,p,q,r,0,DX);
 			  DPhi(p,q,r) = ::Numeric::Stencil<Set::Scalar,i,j,k>::D(Phi,p,q,r,0,DX);
 			});
 		}
-//
-//		amrex::MultiFab diff(grids[0],dmap[0],ncomp,nghost);
-//		amrex::MultiFab::Copy    (diff,DphiExact[0]  ,0,0,ncomp,nghost);
-//		amrex::MultiFab::Subtract(diff,DphiNumeric[0],0,0,ncomp,nghost);
-//
-//		Set::Scalar error = diff.norm0(0,0,false) / DphiExact[0].norm0(0,0,false);
-//
-//		if (verbose) Util::Message(INFO,"Infinity norm of error = ", 100*error,"%");
-//
-//		if (plotfile != "")
-//			WritePlotFile(plotfile);
-//
-//		if (error < tolerance) return 0;
-//		else return 1;
-	  return true;
+
+		amrex::MultiFab diff(grids[0],dmap[0],ncomp,nghost);
+		amrex::MultiFab::Copy    (diff,DphiExact[0]  ,0,0,ncomp,nghost);
+		amrex::MultiFab::Subtract(diff,DphiNumeric[0],0,0,ncomp,nghost);
+
+		Set::Scalar error = diff.norm0(0,0,false) / DphiExact[0].norm0(0,0,false);
+
+		if (verbose) Util::Message(INFO,"Infinity norm of error = ", 100*error,"%");
+
+		if (plotfile != "")
+			WritePlotFile(plotfile);
+
+		if (error < tolerance) return 0;
+		else return 1;
 	}
 
 

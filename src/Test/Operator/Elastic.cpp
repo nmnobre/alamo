@@ -19,6 +19,7 @@ void Elastic::Define(const amrex::IntVect _ncells,
 	ncells = _ncells;
  	nlevels = _nlevels;
 	m_config = _config;
+	Util::Message(INFO);
 }
 
 void Elastic::Define(const int _ncells,
@@ -119,6 +120,7 @@ void Elastic::Generate()
 		res_numeric     [ilev].setVal(0.0);
 		ghost_force     [ilev].setVal(0.0);
 	}
+	Util::Message(INFO);
 
 }
 }

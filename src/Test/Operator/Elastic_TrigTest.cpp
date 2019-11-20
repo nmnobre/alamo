@@ -12,24 +12,64 @@ namespace Test
 {
 namespace Operator
 {
+
+class supersimple
+{
+public:
+  supersimple() { int dosomething = 5;};
+  int member;
+};
+
 int
+AMREX_GPU_HOST_DEVICE
 Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 {
+  Util::Message(INFO);
 	Generate();
+	Util::Message(INFO);
 	
 	Set::Scalar tolerance = 0.02;
-
+	Util::Message(INFO);
 	int failed = 0;
 
 	// Define the "model" fab to be a Laplacian, so that this
 	// elastic operator acts as a Laplacian on the "component-th" component of the fab.
 	Set::Scalar alpha = 1.0;
+	Util::Message(INFO);
 	//using model_type = Model::Solid::LinearElastic::Isotropic; model_type model(2.6,6.0); 
 	using model_type = Model::Solid::LinearElastic::Laplacian; model_type model(alpha);
+	Util::Message(INFO);
 	amrex::Vector<amrex::FabArray<amrex::BaseFab<model_type> > > modelfab(nlevels); 
+	Util::Message(INFO);
+	modelfab[0];
+	Util::Message(INFO);
+	ngrids[0];
+	Util::Message(INFO);
+	dmap[0];
+	amrex::BoxArray mytmpgrid = ngrids[0];
+	Util::Message(INFO);
+	amrex::DistributionMapping mytmpdm = dmap[0];
+	Util::Message(INFO);
+	amrex::FabArray<amrex::BaseFab<amrex::Real> > mytmpmodel1;
+	Util::Message(INFO);
+	mytmpmodel1.define(mytmpgrid,mytmpdm,1,2);
+	Util::Message(INFO);
+	amrex::FabArray<amrex::BaseFab<supersimple> > mytmpmodel2;
+	Util::Message(INFO);
+	mytmpmodel2.define(mytmpgrid,mytmpdm,1,2);
+	Util::Message(INFO);
+	amrex::FabArray<amrex::BaseFab<model_type> > mytmpmodel;
+	Util::Message(INFO);
+	mytmpmodel.define(mytmpgrid,mytmpdm,1,2);
+	Util::Message(INFO);
+	modelfab[0].define(ngrids[0], dmap[0], 1, 2);;
+	Util::Message(INFO);
  	for (int ilev = 0; ilev < nlevels; ++ilev) modelfab[ilev].define(ngrids[ilev], dmap[ilev], 1, 2);
+	Util::Message(INFO);
  	for (int ilev = 0; ilev < nlevels; ++ilev) modelfab[ilev].setVal(model);
+	Util::Message(INFO);
 
+	Util::Message(INFO);
 	// Initialize: set the rhs_prescribed to sin(n pi x1 / L) * sin(n pi x2 / L), so that
 	// the exact solution is sin(n pi x1 / L) * sin(n pi x2 / L) / pi / 2.
 	// Set everything else to zero.
@@ -43,18 +83,21 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 		icrhs.Initialize(ilev,rhs_prescribed);
 		icexact.Initialize(ilev,solution_exact);
 	}
+	Util::Message(INFO);
 
 	amrex::LPInfo info;
  	info.setAgglomeration(m_agglomeration);
  	info.setConsolidation(m_consolidation);
  	if (m_maxCoarseningLevel > -1) info.setMaxCoarseningLevel(m_maxCoarseningLevel);
  	nlevels = geom.size();
+	Util::Message(INFO);
 
 	::Operator::Elastic<model_type> elastic;
 	elastic.SetUniform(false);
  	elastic.define(geom, cgrids, dmap, info);
  	for (int ilev = 0; ilev < nlevels; ++ilev) elastic.SetModel(ilev,modelfab[ilev]);
 
+	Util::Message(INFO);
 	// Set up boundary conditions, and 
 	// configure the problem so that it is 1D, 2D, or 3D
 	BC::Operator::Elastic<model_type> bc;
@@ -90,6 +133,7 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 	}
 	elastic.SetBC(&bc);
 
+	Util::Message(INFO);
 
 	// Create MLMG solver and solve
 	//amrex::MLMG mlmg(elastic);
@@ -104,6 +148,7 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 		   GetVecOfConstPtrs(rhs_prescribed),
 		   m_tol_rel,m_tol_abs);
 
+	Util::Message(INFO);
 	// Compute solution error
 	for (int i = 0; i < nlevels; i++)
 	{
@@ -111,6 +156,7 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 	  	amrex::MultiFab::Subtract(solution_error[i],solution_exact[i],component,component,1,2);
 	}
 
+	Util::Message(INFO);
 	//Compute numerical right hand side
 	mlmg.apply(GetVecOfPtrs(rhs_numeric),GetVecOfPtrs(solution_numeric));
 
@@ -119,6 +165,7 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 
 	// Compute numerical residual
 	mlmg.compResidual(GetVecOfPtrs(res_numeric),GetVecOfPtrs(solution_numeric),GetVecOfConstPtrs(rhs_prescribed));
+	Util::Message(INFO);
 
 	// Compute exact residual
 	mlmg.compResidual(GetVecOfPtrs(res_exact),GetVecOfPtrs(solution_exact),GetVecOfConstPtrs(rhs_prescribed));
@@ -130,11 +177,13 @@ Elastic::TrigTest(int verbose, int component, int n, std::string plotfile)
 		WritePlotFile(plotfile);
 	}
 
+	Util::Message(INFO);
 	// Find maximum solution error
 	std::vector<Set::Scalar> error_norm(nlevels);
 	for (int i = 0; i < nlevels; i++) error_norm[i] = solution_error[0].norm0(component,0,false) / solution_exact[0].norm0(component,0,false);
 	Set::Scalar maxnorm = fabs(*std::max_element(error_norm.begin(),error_norm.end()));
 
+	Util::Message(INFO);
 	if (verbose) Util::Message(INFO,"relative error = ", 100*maxnorm, " %");
 	if (maxnorm > tolerance) failed += 1;
 	return failed;
