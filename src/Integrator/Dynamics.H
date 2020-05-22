@@ -73,6 +73,13 @@ public:
                 pp.query("ref_criterion",elastic.ref_criterion);
             }
         }
+        {
+            IO::ParmParse pp("dynamics");
+            {
+                // Initialize elastic model
+                pp.query("mu",mu);
+            }
+        }
         
         RegisterGeneralFab(model_mf, 1, 2);
     }
@@ -196,8 +203,8 @@ protected:
                 Set::Matrix sig_y = ((sig(i,j+1,k) - sig(i,j-1,k))/DX[1]);
 
                 Set::Vector f;
-                f(0) = sig_x(0,0) + sig_y(0,1);
-                f(1) = sig_x(1,0) + sig_y(1,1);
+                f(0) = (sig_x(0,0) + sig_y(0,1)) + mu*v(i,j,k,0);
+                f(1) = (sig_x(1,0) + sig_y(1,1)) + mu*v(i,j,k,1);
 
                 vnew(i,j,k,0) = v(i,j,k,0) + dt*f(0);
                 vnew(i,j,k,1) = v(i,j,k,1) + dt*f(1);
@@ -266,6 +273,8 @@ private:
         BC::Operator::Elastic<model_type> bc;
         Set::Scalar ref_criterion = 1E-8;
     } elastic;
+
+    Set::Scalar mu = 0.0;
 
 };
 } // namespace Integrator
