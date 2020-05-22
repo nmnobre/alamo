@@ -14,6 +14,7 @@
 #include "Integrator/Flame.H"
 #include "Integrator/PolymerDegradation.H"
 #include "Integrator/HeatConduction.H"
+#include "Integrator/Dynamics.H"
 #include "Model/Solid/Elastic/Elastic.H"
 
 int main (int argc, char* argv[])
@@ -73,6 +74,13 @@ int main (int argc, char* argv[])
 		Test::Operator::Elastic test;
 		test.Define(32,1);
 		test.TrigTest(0,0,1,Util::GetFileName());
+	}
+	else if (program == "dynamics")
+	{
+		Integrator::Integrator *dynamics = new Integrator::Dynamics();
+		dynamics->InitData();
+		dynamics->Evolve();
+		delete dynamics;
 	}
 	else
 	{
