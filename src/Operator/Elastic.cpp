@@ -178,29 +178,8 @@ Elastic<MODEL>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_
 				}
 				else
 				{
-					
-
 					// The gradient of the displacement gradient tensor
-					Set::Matrix3 gradgradu; // gradgradu[k](l,j) = u_{k,lj}
-
-					// Fill gradu and gradgradu
-					for (int p = 0; p < AMREX_SPACEDIM; p++)
-					{
-						// Diagonal terms:
-						AMREX_D_TERM(gradgradu(p,0,0) = (Numeric::Stencil<Set::Scalar,2,0,0>::D(U,i,j,k,p,DX));,
-							     gradgradu(p,1,1) = (Numeric::Stencil<Set::Scalar,0,2,0>::D(U,i,j,k,p,DX));,
-							     gradgradu(p,2,2) = (Numeric::Stencil<Set::Scalar,0,0,2>::D(U,i,j,k,p,DX)););
-
-						// Off-diagonal terms:
-						AMREX_D_TERM(,// 2D
-							     gradgradu(p,0,1) = (Numeric::Stencil<Set::Scalar,1,1,0>::D(U, i,j,k,p, DX));
-							     gradgradu(p,1,0) = gradgradu(p,0,1);
-							     ,// 3D
-							     gradgradu(p,0,2) = (Numeric::Stencil<Set::Scalar,1,0,1>::D(U, i,j,k,p, DX));
-							     gradgradu(p,1,2) = (Numeric::Stencil<Set::Scalar,0,1,1>::D(U, i,j,k,p, DX));
-							     gradgradu(p,2,0) = gradgradu(p,0,2);
-							     gradgradu(p,2,1) = gradgradu(p,1,2););
-					}
+					Set::Matrix3 gradgradu = Numeric::Hessian(U,i,j,k,DX);
 	
 					//
 					// Operator

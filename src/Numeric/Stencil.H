@@ -508,6 +508,32 @@ Hessian(const amrex::Array4<const Set::Scalar> &f,
 }
 
 AMREX_FORCE_INLINE
+Set::Matrix3
+Hessian(const amrex::Array4<const Set::Scalar> &f,
+		const int &i, const int &j, const int &k,
+		const Set::Scalar dx[AMREX_SPACEDIM])
+{
+	Set::Matrix3 ret;
+	for (int p = 0; p < AMREX_SPACEDIM; p++)
+	{
+		// Diagonal terms:
+		AMREX_D_TERM(ret(p,0,0) = (Numeric::Stencil<Set::Scalar,2,0,0>::D(f,i,j,k,p,dx));,
+			     	 ret(p,1,1) = (Numeric::Stencil<Set::Scalar,0,2,0>::D(f,i,j,k,p,dx));,
+			     	 ret(p,2,2) = (Numeric::Stencil<Set::Scalar,0,0,2>::D(f,i,j,k,p,dx)););
+		// Off-diagonal terms:
+		AMREX_D_TERM(,// 2D
+			     	 ret(p,0,1) = (Numeric::Stencil<Set::Scalar,1,1,0>::D(f,i,j,k,p,dx));
+			     	 ret(p,1,0) = ret(p,0,1);
+			     	 ,// 3D
+			     	 ret(p,0,2) = (Numeric::Stencil<Set::Scalar,1,0,1>::D(f,i,j,k,p,dx));
+			     	 ret(p,1,2) = (Numeric::Stencil<Set::Scalar,0,1,1>::D(f,i,j,k,p,dx));
+			     	 ret(p,2,0) = ret(p,0,2);
+			     	 ret(p,2,1) = ret(p,1,2););
+	}
+	return ret;
+}
+
+AMREX_FORCE_INLINE
 Set::Matrix
 FieldToMatrix(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k)

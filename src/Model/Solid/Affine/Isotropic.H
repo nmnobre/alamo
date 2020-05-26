@@ -91,6 +91,14 @@ public:
         ret.F0  = alpha*F0;
         return ret;
 	}    
+    AMREX_FORCE_INLINE
+   	virtual Isotropic operator / (const Set::Scalar alpha) const
+	{
+        Isotropic ret;
+        ret.ddw = ddw/alpha;
+        ret.F0  = F0/alpha;
+        return ret;
+	}    
     friend Isotropic operator * (const Set::Scalar alpha, const Isotropic b);
     friend Isotropic operator + (const Isotropic a, const Isotropic b);
     friend Isotropic operator - (const Isotropic a, const Isotropic b);
@@ -115,8 +123,8 @@ AMREX_FORCE_INLINE
 Isotropic operator - (const Isotropic a, const Isotropic b)
 {
     Isotropic ret;
-    ret.ddw = a.ddw + b.ddw;
-    ret.F0  = a.F0 + b.F0;
+    ret.ddw = a.ddw - b.ddw;
+    ret.F0  = a.F0 - b.F0;
     return ret;
 }    
 

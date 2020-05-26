@@ -199,12 +199,35 @@ protected:
                 std::array<Numeric::StencilType,AMREX_SPACEDIM>
 					sten = Numeric::GetStencil(i,j,k,domain);
 
-                Set::Matrix sig_x = ((sig(i+1,j,k) - sig(i-1,j,k))/DX[0]);
-                Set::Matrix sig_y = ((sig(i,j+1,k) - sig(i,j-1,k))/DX[1]);
+                Set::Matrix gradu = Numeric::Gradient(u,i,j,k,DX,sten);
 
-                Set::Vector f;
-                f(0) = (sig_x(0,0) + sig_y(0,1)) + mu*v(i,j,k,0);
-                f(1) = (sig_x(1,0) + sig_y(1,1)) + mu*v(i,j,k,1);
+				Set::Matrix3 gradgradu = Numeric::Hessian(u,i,j,k,DX);	
+				Set::Vector f = model(i,j,k).DDW(gradu)*gradgradu;
+
+				Set::Matrix
+				AMREX_D_DECL(Cgrad1 = (Numeric::Stencil<Set::Matrix,1,0,0>::D(sig,i,j,k,0,DX,sten)),
+					    	 Cgrad2 = (Numeric::Stencil<Set::Matrix,0,1,0>::D(sig,i,j,k,0,DX,sten)),
+					         Cgrad3 = (Numeric::Stencil<Set::Matrix,0,0,1>::D(sig,i,j,k,0,DX,sten)));
+				f += AMREX_D_TERM(Cgrad1.col(0), + Cgrad2.col(1), + Cgrad3.col(2));
+
+
+// (C_{ijkl} u_{k,l})_{,j} 
+
+// (DW_{ij}(grad(u)))_{,j}
+// = d(DW_{ij})/d(gradu_{kl}) * d(gradu_{kl})/dx_j
+// = DDW_{ijkl} * u_{k,lj}
+
+// 
+
+//                std::array<Numeric::StencilType,AMREX_SPACEDIM>
+//					sten = Numeric::GetStencil(i,j,k,domain);
+//
+//                Set::Matrix sig_x = ((sig(i+1,j,k) - sig(i-1,j,k))/DX[0]);
+//                Set::Matrix sig_y = ((sig(i,j+1,k) - sig(i,j-1,k))/DX[1]);
+
+                //Set::Vector f;
+                f(0) += mu*v(i,j,k,0);   
+                f(1) += mu*v(i,j,k,1);
 
                 vnew(i,j,k,0) = v(i,j,k,0) + dt*f(0);
                 vnew(i,j,k,1) = v(i,j,k,1) + dt*f(1);
@@ -229,6 +252,7 @@ protected:
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &disp = u_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &tr_eps = trace_eps_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 {
                     Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
@@ -236,8 +260,11 @@ protected:
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
                 {
-                    Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > elastic.ref_criterion)
+                    //Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
+                    //if (grad.lpNorm<2>() * DXnorm > elastic.ref_criterion)
+                    //    tags(i, j, k) = amrex::TagBox::SET;
+                    //Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
+                    if (fabs(tr_eps(i,j,k)) > elastic.ref_criterion)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
             });
