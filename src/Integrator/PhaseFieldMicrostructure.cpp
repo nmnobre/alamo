@@ -206,6 +206,7 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt)
 {
 	BL_PROFILE("PhaseFieldMicrostructure::Advance");
+	std::swap(eta_old_mf[lev], eta_new_mf[lev]);
 	const amrex::Real *DX = geom[lev].CellSize();
 
 	Model::Interface::GB::SH gbmodel(0.0, 0.0, anisotropy.sigma0, anisotropy.sigma1);
