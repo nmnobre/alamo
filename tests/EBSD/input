@@ -1,0 +1,82 @@
+alamo.program               = eshelby
+plot_file		    = tests/EBSD/output
+
+# this is not a time integration, so do
+# exactly one timestep and then quit
+timestep		    = 0.1
+stop_time		    = 10.0
+
+# amr parameters
+amr.plot_int		    = 5
+amr.max_level		    = 2
+amr.n_cell		    = 128 128 128
+amr.blocking_factor	    = 4
+amr.regrid_int		    = 1
+amr.grid_eff		    = 1.0
+
+# geometry
+geometry.prob_lo	    = -8 -8 -8 
+geometry.prob_hi	    = 8 8 8
+geometry.is_periodic	    = 0 0 0
+
+
+ic.type         = bmp
+ic.bmp.filename = tests/EBSD/ebsd_blur.bmp
+ic.bmp.fit      = fitwidth
+ic.bmp.channel  = g
+
+## ellipse configuration
+#ic.type         = ellipse
+#ic.ellipse.x0   = 1000 1000
+
+#Aluminum Oxide
+elastic.model1.E = 370 #GPa
+elastic.model1.nu = 0.22
+elastic.model1.F0 = -0.001 0 0 0 -0.001 0 0 0 -0.001
+#Nickel
+elastic.model2.E = 207 #GPa
+elastic.model2.nu = 0.31
+elastic.model1.F0 = 0.001 0 0 0 0.001 0 0 0 0.001
+
+elastic.solver.verbose = 2
+elastic.solver.nriters = 1
+elastic.solver.fixed_iter=2000
+elastic.set_dot_mask = 0
+elastic.set_singular = 1
+## Sliders on all walls
+#elastic.bc.type.ylo    = trac disp
+#elastic.bc.type.xloylo = disp disp
+#elastic.bc.type.xhiylo = disp disp
+#elastic.bc.type.xlo    = disp trac
+#elastic.bc.type.xhi    = disp trac
+#elastic.bc.type.xloyhi = disp disp
+#elastic.bc.type.xhiyhi = disp disp
+#elastic.bc.type.yhi    = trac disp
+
+
+elastic.bc.type.ylo    = disp disp
+elastic.bc.type.xloylo = disp disp
+elastic.bc.type.xhiylo = disp disp
+elastic.bc.type.xlo    = disp trac
+elastic.bc.type.xhi    = disp trac
+elastic.bc.type.xloyhi = disp disp
+elastic.bc.type.xhiyhi = disp disp
+elastic.bc.type.yhi    = disp disp
+elastic.bc.val.yhi    = 0.0 0.1
+elastic.bc.val.xloyhi = 0.0 0.1
+elastic.bc.val.xhiyhi = 0.0 0.1
+elastic.interval = 10
+
+fracture.ic.center = -3.0 1.3
+fracture.ic.orientation = 1.0 0.0
+fracture.ic.length = 1.0
+fracture.ic.thickness = 0.25
+fracture.ic.eps = 0.05
+fracture.lower_bound = 0.5
+#fracture.ref_threshold = 0.0001
+
+spall.M = 1.0
+spall.kappa = -0.0005
+spall.po = 1.
+spall.cp = 1.0
+spall.elastic_mult = -2.0

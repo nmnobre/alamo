@@ -12,7 +12,8 @@
 
 #include "IC/IC.H"
 #include "BC/BC.H"
-
+#include "IC/PS.H"
+#include "Numeric/Stencil.H"
 #include "IC/Ellipse.H"
 #include "IC/BMP.H"
 #include "IC/Notch.H"
@@ -42,6 +43,18 @@ public:
         RegisterNodalFab(res_mf, AMREX_SPACEDIM, 2, "res",true);
         RegisterNodalFab(stress_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "stress",true);
         RegisterNodalFab(strain_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strain",true);
+        RegisterNodalFab(d_mf, 1, 2, "d",true);
+        RegisterNodalFab(dold_mf, 1, 2,"dold",false);
+        RegisterNodalFab(p_mf, 1, 2, "p",true);
+        spall.ic = new IC::PS(geom,20,0,1);
+        {
+            IO::ParmParse pp("spall");
+            pp.query("M",spall.M);
+            pp.query("kappa",spall.kappa);
+            pp.query("cp",spall.cp);
+            pp.query("po",spall.po);
+            pp.query("elastic_mult",spall.elastic_mult);
+        }
         {
             IO::ParmParse pp("elastic");
             {
@@ -68,6 +81,7 @@ public:
                 pp.queryclass("bc",elastic.bc);
                 pp.query("set_dot_mask",elastic.set_dot_mask);
                 pp.query("set_singular",elastic.set_singular);
+                pp.query("interval",elastic.interval);
             }
         }
 
@@ -112,10 +126,16 @@ protected:
         rhs_mf[lev]->setVal(0.);
 
         fracture.ic->Initialize(lev,c_mf);
+
+        spall.ic->Initialize(lev,d_mf);
+        spall.ic->Initialize(lev,dold_mf);
+
+        p_mf[lev]->setVal(0.0);
     }
 
-    void TimeStepBegin(Set::Scalar, int) override
+    void TimeStepBegin(Set::Scalar, int step) override
     {
+        if (step % elastic.interval) return;
         if (finest_level != rhs_mf.size() - 1)
         {
             Util::Abort(INFO, "amr.max_level is larger than necessary. Set to ", finest_level, " or less");
@@ -140,12 +160,16 @@ protected:
                 amrex::Array4<model_type> const &model = model_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
                 amrex::Array4</*const*/ Set::Scalar> const &c   = c_mf[lev]->array(mfi);
+                amrex::Array4</*const*/ Set::Scalar> const &d   = d_mf[lev]->array(mfi);
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     model(i, j, k).ddw = eta(i, j, k) * elastic.model1.ddw + (1.0 - eta(i, j, k)) * elastic.model2.ddw;
-                    c(i,j,k) = (c(i,j,k) + fracture.lower_bound) / (1.0 + fracture.lower_bound);
-                    model(i, j, k).ddw *= c(i,j,k);
+                    //c(i,j,k) = (c(i,j,k) + fracture.lower_bound) / (1.0 + fracture.lower_bound);
+                    //model(i, j, k).ddw *= c(i,j,k);
                     model(i, j, k).F0  = eta(i, j, k) * elastic.model1.F0  + (1.0 - eta(i, j, k)) * elastic.model2.F0;
+                    Set::Scalar lowerbound = 0.05;
+                    Set::Scalar dmult = 1.0 - d(i,j,k);
+                    model(i, j, k).ddw *= (dmult + fracture.lower_bound) / (1.0 + fracture.lower_bound);
                 });
             }
 
@@ -176,8 +200,47 @@ protected:
         }
     }
 
-    void Advance(int /*lev*/, Set::Scalar /*time*/, Set::Scalar /*dt*/) override
+    void Advance(int lev, Set::Scalar /*time*/, Set::Scalar dt) override
     {
+        // w = d^2 * (1-d)^2
+        // dw/dd = 2d*(1-d)^2 - 2d^2*(1-d)
+        //       = 2*d*(1-2d)(1-d)
+        // dw/dd = d(2+d)(1-d)
+    	std::swap(dold_mf[lev], d_mf[lev]);
+        const amrex::Real *DX = geom[lev].CellSize();
+
+        
+        for (amrex::MFIter mfi(*eta_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            amrex::Box bx = mfi.tilebox();
+
+            amrex::Array4<Set::Scalar> const &d    = d_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &dold    = dold_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &stress    = stress_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &p    = p_mf[lev]->array(mfi);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                Set::Scalar df = 0.0;
+
+                df += spall.cp * 2.0 * dold(i,j,k)*(1 - 2.0*dold(i,j,k))*(1.0 - dold(i,j,k));
+                
+                df += spall.kappa * Numeric::Laplacian(dold,i,j,k,0,DX);
+                
+                Set::Matrix sig = Set::Matrix::Zero();
+                sig(0,0) = stress(i,j,k,0);
+                sig(0,1) = stress(i,j,k,1);
+                sig(1,0) = stress(i,j,k,2);
+                sig(1,1) = stress(i,j,k,3);
+                p(i,j,k) = 0.5 * sig.trace();
+
+                if (p(i,j,k) > spall.po)
+                    df += spall.elastic_mult*(p(i,j,k) - spall.po);
+
+                d(i,j,k) = dold(i,j,k) - spall.M * dt * df;
+
+            });
+        }
+
+
         // Nothing to do here.
     }
 
@@ -220,6 +283,9 @@ private:
     Set::Field<Set::Scalar> res_mf;
     Set::Field<Set::Scalar> stress_mf;
     Set::Field<Set::Scalar> strain_mf;
+    Set::Field<Set::Scalar> d_mf;
+    Set::Field<Set::Scalar> dold_mf;
+    Set::Field<Set::Scalar> p_mf;
 
     Set::Field<Set::Scalar> c_mf;
     Set::Field<model_type> model_mf;
@@ -236,6 +302,7 @@ private:
         BC::Operator::Elastic<model_type> bc;
         int set_dot_mask = 0;
         int set_singular = 0;
+        int interval = 1;
     } elastic;
 
     struct {
@@ -243,6 +310,15 @@ private:
         Set::Scalar lower_bound = 0.01;
         Set::Scalar ref_threshold = 0.01;
     } fracture;
+
+    struct {
+        IC::IC *ic;
+        Set::Scalar M = 1.0;
+        Set::Scalar kappa = 1.0;
+        Set::Scalar po = 1.0;
+        Set::Scalar cp = 1.0;
+        Set::Scalar elastic_mult = 1.0;
+    } spall;
 
 };
 } // namespace Integrator

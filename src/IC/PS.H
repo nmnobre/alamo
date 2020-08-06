@@ -22,7 +22,7 @@ public:
 			AMREX_D_TERM(points[n](0) = geom[0].ProbLo(0) + (geom[0].ProbHi(0)-geom[0].ProbLo(0))*Util::Random();,
 						 points[n](1) = geom[0].ProbLo(1) + (geom[0].ProbHi(1)-geom[0].ProbLo(1))*Util::Random();,
 						 points[n](2) = geom[0].ProbLo(2) + (geom[0].ProbHi(2)-geom[0].ProbLo(2))*Util::Random(););
-            radii[n] = 0.25*Util::Random();
+            radii[n] = 0.05;//*Util::Random();
 		}
 
   	}
