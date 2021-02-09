@@ -208,7 +208,7 @@ void Hydro::Initialize (int lev)
 
 
 
-void Hydro::Advance (int lev, amrex::Real time, amrex::Real dt)
+void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 {
   std::swap(rho_old[lev], rho[lev]);
   std::swap(u1_old[lev], u1[lev]);
