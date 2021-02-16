@@ -100,6 +100,9 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 			{
 				amrex::IntVect m(AMREX_D_DECL(i,j,k));
 
+				// e(i,j,k) value at i,j,k
+				// e(i,j,k,n)  value at i,j,k for component n
+
 				AMREX_D_TERM(amrex::Real rho_gradx = (rho_old(m+dx) - rho_old(m-dx))/(2*DX[0]);,
 								 amrex::Real rho_grady = (rho_old(m+dy) - rho_old(m-dy))/(2*DX[1]);,
 								 amrex::Real rho_gradz = (rho_old(m+dz) - rho_old(m-dz))/(2*DX[2]););
