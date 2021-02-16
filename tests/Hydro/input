@@ -1,0 +1,62 @@
+alamo.program = hydro
+
+# * = you almost definitely don't need to change this
+
+plot_file       = tests/Hydro/output  # The name of the output file 
+amr.plot_int        = 100             # How frequently to dump output
+
+amr.max_level       = 3               # How many levels of grid refinement are allowed
+amr.n_cell          = 30 10 2         # Number of cells in the x,y,z directions
+#amr.max_grid_size	= 50          # * Maximum allowable grid size
+amr.blocking_factor	= 1           # * Minimum size of each block
+amr.regrid_int      = 100             # * How frequently (in number of timesteps) to regrid
+amr.grid_eff        = 1.0             # * Closeness of regrid patch to tagged region (default = 0.7) 
+
+geometry.prob_lo    = -1.0 -0.5 -0.1  # Problem domain: furthest point to the lower left
+geometry.prob_hi    = 1.0 0.5 0.1     # Problem domain: furthest point to the upper right
+# geometry.is_periodic= 0 0 0           # * Boundary conditions - currently under construction 
+
+timestep            = 0.01     # Timestep
+stop_time           = 10.0
+
+physics.gamma      = 1.4    # adiabatic gamma
+
+bc.rho.type.xlo = dirichlet
+bc.rho.type.xhi = dirichlet
+bc.rho.type.ylo = dirichlet
+bc.rho.type.yhi = dirichlet
+bc.rho.type.zlo = dirichlet
+bc.rho.type.zhi = dirichlet
+bc.rho.val.xlo  = 1.0
+bc.rho.val.xhi  = 1.0
+bc.rho.val.ylo  = 1.0
+bc.rho.val.yhi  = 1.0
+bc.rho.val.zlo  = 1.0
+bc.rho.val.zhi  = 1.0
+
+bc.p.type.xlo = dirichlet
+bc.p.type.xhi = dirichlet
+bc.p.type.ylo = dirichlet
+bc.p.type.yhi = dirichlet
+bc.p.type.zlo = dirichlet
+bc.p.type.zhi = dirichlet
+bc.p.val.xlo  = 0.0
+bc.p.val.xhi  = 1.0
+bc.p.val.ylo  = 0.0
+bc.p.val.yhi  = 0.0
+bc.p.val.zlo  = 0.0
+bc.p.val.zhi  = 0.0
+
+bc.e.type.xlo = dirichlet
+bc.e.type.xhi = dirichlet
+bc.e.type.ylo = dirichlet
+bc.e.type.yhi = dirichlet
+bc.e.type.zlo = dirichlet
+bc.e.type.zhi = dirichlet
+bc.e.val.xlo  = 1.0
+bc.e.val.xhi  = 1.0
+bc.e.val.ylo  = 1.0
+bc.e.val.yhi  = 1.0
+bc.e.val.zlo  = 1.0
+bc.e.val.zhi  = 1.0
+
