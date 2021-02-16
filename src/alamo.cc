@@ -12,6 +12,7 @@
 #include "Integrator/Eshelby.H"
 #include "Integrator/FiniteKinematics.H"
 #include "Integrator/Flame.H"
+#include "Integrator/Hydro.H"
 #include "Integrator/PolymerDegradation.H"
 #include "Integrator/HeatConduction.H"
 #include "Integrator/Fracture.H"
@@ -53,6 +54,13 @@ int main (int argc, char* argv[])
 		flame->InitData();
 		flame->Evolve();
 		delete flame;
+	}
+	else if (program == "hydro")
+	{
+		Integrator::Integrator *hydro = new Integrator::Hydro();
+		hydro->InitData();
+		hydro->Evolve();
+		delete hydro;
 	}
 	else if (program == "heat")
 	{
