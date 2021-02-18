@@ -21,9 +21,15 @@ Hydro::Hydro() : Integrator()
 			pp.queryclass("e", *static_cast<BC::Constant *>(eBC));
 		}
 
-  rhoIC = new IC::Constant(geom);
-  pIC   = new IC::Constant(geom);
-  eIC   = new IC::Constant(geom);
+	       // 	{
+	       // 	        IO::ParmParse pp("ic");
+	       // 	        rhoIC = new IC::Constant(geom);
+	       // 		pp.queryclass("constant", *static_cast<IC::Constant *>(rhoIC));
+	       // 	        pIC   = new IC::Constant(geom);
+	       // 		pp.queryclass("constant", *static_cast<IC::Constant *>(pIC));
+	       // 	        eIC   = new IC::Constant(geom);
+	       // 		pp.queryclass("constant", *static_cast<IC::Constant *>(eIC));
+               // }
 
   RegisterNewFab(rho_mf,     rhoBC, 1, 0, "rho", true);
   RegisterNewFab(rho_old_mf, rhoBC, 1, 0, "rho_old", false);
@@ -43,16 +49,22 @@ void Hydro::Initialize(int lev)
 {        
         rho_mf[lev]->setVal(1.0);
 	rho_old_mf[lev]->setVal(1.0);
+
+        p_mf[lev]->setVal(1.0);
+	p_old_mf[lev]->setVal(1.0);
+
+	e_mf[lev]->setVal(1.0);
+	e_old_mf[lev]->setVal(1.0);
 	
 	u1_mf[lev].get()->setVal(1.0);
 	u2_mf[lev].get()->setVal(0.0);
 	u3_mf[lev].get()->setVal(0.0);
 
-	pIC->Initialize(lev, p_mf);
-	pIC->Initialize(lev, p_old_mf);
+	// pIC->Initialize(lev, p_mf);
+	// pIC->Initialize(lev, p_old_mf);
 
-	eIC->Initialize(lev, e_mf);
-	eIC->Initialize(lev, e_old_mf);
+	// eIC->Initialize(lev, e_mf);
+	// eIC->Initialize(lev, e_old_mf);
 
 	// u1BC = BC::Operator::Elastic::Constant::Type::Displacement;
 	// u2BC = BC::Operator::Elastic::Constant::Type::Displacement;

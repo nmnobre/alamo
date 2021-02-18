@@ -21,6 +21,13 @@ stop_time           = 10.0
 
 physics.gamma      = 1.4    # adiabatic gamma
 
+# ic.rho.type = constant
+# ic.rho.val = 1
+# ic.p.type = constant
+# ic.p.val = 1
+# ic.e.type = constant
+# ic.e.val = 1
+
 bc.rho.type.xlo = dirichlet
 bc.rho.type.xhi = dirichlet
 bc.rho.type.ylo = dirichlet
