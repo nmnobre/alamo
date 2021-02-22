@@ -28,12 +28,14 @@ private:
 
 	Set::Field<Set::Scalar> rho_mf;
 	Set::Field<Set::Scalar> rho_old_mf;
-	Set::Field<Set::Scalar> u1_mf;
-	Set::Field<Set::Scalar> u1_old_mf;
-        Set::Field<Set::Scalar> u2_mf;
-	Set::Field<Set::Scalar> u2_old_mf;
-        Set::Field<Set::Scalar> u3_mf;
-	Set::Field<Set::Scalar> u3_old_mf;
+        Set::Field<Set::Scalar> u_mf;
+	Set::Field<Set::Scalar> u_old_mf;
+	// Set::Field<Set::Scalar> u1_mf;
+	// Set::Field<Set::Scalar> u1_old_mf;
+        // Set::Field<Set::Scalar> u2_mf;
+	// Set::Field<Set::Scalar> u2_old_mf;
+        // Set::Field<Set::Scalar> u3_mf;
+	// Set::Field<Set::Scalar> u3_old_mf;
 	Set::Field<Set::Scalar> p_mf;
         Set::Field<Set::Scalar> p_old_mf;
 	Set::Field<Set::Scalar> e_mf;
