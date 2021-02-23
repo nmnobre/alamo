@@ -84,16 +84,16 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 
 				if (j == bx.loVect()[1] || j == bx.hiVect()[1] || k == bx.loVect()[2] || k == bx.hiVect()[2])
 				  {
-				    Set::Vector u1_grad = 1.0 0.0 0.0;,
-				    Set::Vector u2_grad = 0.0 0.0 0.0;,
-				    Set::Vector u3_grad = 0.0 0.0 0.0;);
+				    Set::Vector u1_grad(1.0, 0.0, 0.0);
+				    Set::Vector u2_grad = Set::Vector::Zero();
+				    Set::Vector u3_grad = Set::Vector::Zero();
 			          }
 
 				else
 				  {
-				    Set::Vector u1_grad = Numeric::Gradient(u_old[0], i, j, k, 0, DX);
-				    Set::Vector u2_grad = Numeric::Gradient(u_old[1], i, j, k, 0, DX);
-				    Set::Vector u3_grad = Numeric::Gradient(u_old[2], i, j, k, 0, DX);
+				    Set::Vector u1_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
+				    Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
+				    Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
 				  }
 				
 				Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
@@ -103,10 +103,10 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 		  rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad[0]) + u_old(i, j, k, 1)*(rho_grad[1]) + u_old(i, j, k, 2)*(rho_grad[2]) + rho_old(i, j, k)*(u1_grad[0] + u2_grad[1] + u3_grad[2]))*dt;
 
 		  if(i == bx.loVect()[0])
-		    {u(i, j, k) = 0.0 0.0 0.0;}
+		    {u(i, j, k) = (0.0, 0.0, 0.0);}
 
 		  else if(i == bx.hiVect()[0])
-		    {u(i, j, k) = 1.0 0.0 0.0;}
+		    {u(i, j, k) = (1.0, 0.0, 0.0);}
 
 		  else {
 		    u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0)*(u_old(i, j, k, 0)*(u1_grad[0]) + u_old(i, j, k, 1)*(u1_grad[1]) + u_old(i, j, k, 2)*(u1_grad[2])) + 1/rho_old(i, j, k)*(p_grad[0]))*dt;
