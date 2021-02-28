@@ -21,7 +21,6 @@ public:
     void
     Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2)
     {
-    	Eigen::Matrix3d m;
     	m =     Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
     		Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
     	 	Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
@@ -30,7 +29,7 @@ public:
     void
     Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R)
     {
-    
+        m = R;
     	amrex::Real Ctmp[3][3][3][3];
     	ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
 
@@ -73,6 +72,9 @@ public:
     {
         out << ddw;
     }
+
+protected:
+    Eigen::Matrix3d m;
 
 public:
     static const KinematicVariable kinvar = KinematicVariable::gradu;

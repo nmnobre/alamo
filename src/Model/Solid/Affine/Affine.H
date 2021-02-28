@@ -92,13 +92,31 @@ PlasticState operator - (const PlasticState a, const PlasticState b)
 
 
 struct SlipSystem{
-    bool on;        // slip system active or not
-    Set::Vector n;  // slip plane normal
-    Set::Vector s;  // slip direction
-    Set::Scalar tcrss;      // critically resolved shear stress
-    Set::Scalar tcrss0;     // pristine material
-    Set::Scalar s_exp;        // power law exponent
-    Set::Scalar gam0dot;    // gamma0 dot.
+    bool on;                ///< slip system active or not
+    Set::Vector s;          ///< slip plane normal
+    Set::Vector m;          ///< slip direction
+    Set::Scalar gam0dot;    ///< gamma0 dot 
+    Set::Scalar g_alpha;    ///< current strength
+    Set::Scalar m_exp;      ///< exponent
+
+    // Hardening law
+    // \dot{g}^{\alpha} = \sum_{\beta=1}^N h_{\alpha\beta} |\dot{\gamma}^\beta|
+    // h_{\alpha\beta} = q_{\alpha\beta} h(\bar{\gamma})
+    // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
+    // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
+    // q_{\alpha\beta} = 1 (if \alpha,\beta coplanar), q (else)
+
+    Set::Scalar g_alpha0;     ///< pristine material current strength
+
+    void Equal (const SlipSystem &rhs)
+    {
+        s = rhs.s;
+        m = rhs.m;
+        gam0dot = rhs.gam0dot;
+        g_alpha = rhs.g_alpha;
+        g_alpha0 = rhs.g_alpha0;
+        m_exp = rhs.m_exp;
+    }
 
 //    AMREX_FORCE_INLINE
 //    void operator = (const SlipSystem &rhs)
@@ -114,22 +132,22 @@ struct SlipSystem{
     AMREX_FORCE_INLINE
     void operator += (const SlipSystem &rhs)
     {
-        n += rhs.n;
         s += rhs.s;
-        tcrss += rhs.tcrss;
-        tcrss0 += rhs.tcrss0;
-        s_exp += rhs.s_exp;
+        m += rhs.m;
+        g_alpha += rhs.g_alpha;
+        g_alpha0 += rhs.g_alpha0;
+        m_exp += rhs.m_exp;
         gam0dot += rhs.gam0dot;
     }
     AMREX_FORCE_INLINE
     SlipSystem operator * (const Set::Scalar alpha) const
     {
         SlipSystem ret;
-        ret.n = n*alpha;
         ret.s = s*alpha;
-        ret.tcrss = tcrss*alpha;
-        ret.tcrss0 = tcrss0*alpha;
-        ret.s_exp = s_exp*alpha;
+        ret.m = m*alpha;
+        ret.g_alpha = g_alpha*alpha;
+        ret.g_alpha0 = g_alpha0*alpha;
+        ret.m_exp = m_exp*alpha;
         ret.gam0dot = gam0dot*alpha;
         
         return ret;
@@ -142,11 +160,11 @@ AMREX_FORCE_INLINE
 SlipSystem operator * (const Set::Scalar alpha, const SlipSystem b)
 {
     SlipSystem ret;
-    ret.n = b.n*alpha;
     ret.s = b.s*alpha;
-    ret.tcrss = b.tcrss*alpha;
-    ret.tcrss0 = b.tcrss0*alpha;
-    ret.s_exp = b.s_exp*alpha;
+    ret.m = b.m*alpha;
+    ret.g_alpha = b.g_alpha*alpha;
+    ret.g_alpha0 = b.g_alpha0*alpha;
+    ret.m_exp = b.m_exp*alpha;
     ret.gam0dot = b.gam0dot*alpha;
     
     return ret;
@@ -155,11 +173,11 @@ AMREX_FORCE_INLINE
 SlipSystem operator + (const SlipSystem a, const SlipSystem b)
 {
     SlipSystem ret;
-    ret.n = a.n + b.n;
     ret.s = a.s + b.s;
-    ret.tcrss = a.tcrss + b.tcrss;
-    ret.tcrss0 = a.tcrss0 + b.tcrss0;
-    ret.s_exp = a.s_exp + b.s_exp;
+    ret.m = a.m + b.m;
+    ret.g_alpha = a.g_alpha + b.g_alpha;
+    ret.g_alpha0 = a.g_alpha0 + b.g_alpha0;
+    ret.m_exp = a.m_exp + b.m_exp;
     ret.gam0dot = a.gam0dot + b.gam0dot;
     return ret;
 }
@@ -167,11 +185,11 @@ AMREX_FORCE_INLINE
 SlipSystem operator - (const SlipSystem a, const SlipSystem b)
 {
     SlipSystem ret;
-    ret.n = a.n - b.n;
     ret.s = a.s - b.s;
-    ret.tcrss = a.tcrss - b.tcrss;
-    ret.tcrss0 = a.tcrss0 - b.tcrss0;
-    ret.s_exp = a.s_exp - b.s_exp;
+    ret.m = a.m - b.m;
+    ret.g_alpha = a.g_alpha - b.g_alpha;
+    ret.g_alpha0 = a.g_alpha0 - b.g_alpha0;
+    ret.m_exp = a.m_exp - b.m_exp;
     ret.gam0dot = a.gam0dot - b.gam0dot;
     return ret;
 }
