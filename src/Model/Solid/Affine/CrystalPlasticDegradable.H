@@ -34,76 +34,89 @@ public:
 
     void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, LatticeType lattice=LatticeType::FCC)
     {
-        amrex::Vector<Set::Scalar> tcrss, exp0, gam0dot;
+        Affine::CubicDegradable::Define(a_C11, a_C12, a_C44, m);
+        amrex::Vector<Set::Scalar> g_alpha, exp0, gam0dot;
         if(lattice == LatticeType::FCC)
         {
-            tcrss.resize(12); exp0.resize(12); gam0dot.resize(12);
+            g_alpha.resize(12); exp0.resize(12); gam0dot.resize(12);
             for (int i=0; i<12; i++)
             {
-                tcrss[i] = 1.0e1; // default values.
-                exp0[i] = 2.0;
-                gam0dot[i] = 0.01;
+                g_alpha[i] = 20.0; // default values.
+                exp0[i] = 10;
+                gam0dot[i] = 0.001;
             }
         }
         else 
             Util::Abort(INFO, "This type of lattice has not been implemented yet");
-        Define(a_C11, a_C12, a_C44, m, tcrss, exp0, gam0dot, lattice);
+        DefineSlipSystem(g_alpha, exp0, gam0dot, lattice);
     }
     
-    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d a_m, amrex::Vector<Set::Scalar> &a_tcrss, amrex::Vector<Set::Scalar> &a_exp, amrex::Vector<Set::Scalar> &a_gam0dot, LatticeType lattice=LatticeType::FCC)
+    void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, amrex::Vector<Set::Scalar> &a_g_alpha, amrex::Vector<Set::Scalar> &a_exp, amrex::Vector<Set::Scalar> &a_gam0dot, LatticeType lattice=LatticeType::FCC)
+    {
+        Affine::CubicDegradable::Define(a_C11, a_C12, a_C44, m);
+        DefineSlipSystem(a_g_alpha, a_exp, a_gam0dot, lattice);
+    }
+
+    void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, amrex::Vector<SlipSystem> &a_slip)
+    {
+        Affine::CubicDegradable::Define(a_C11, a_C12, a_C44, m);
+        DefineSlipSystem(a_slip);
+    }
+
+    void DefineSlipSystem(amrex::Vector<Set::Scalar> &a_g_alpha, amrex::Vector<Set::Scalar> &a_exp, amrex::Vector<Set::Scalar> &a_gam0dot, LatticeType lattice=LatticeType::FCC)
     {
         if(lattice == LatticeType::FCC)
         {
-            if(a_tcrss.size()!=12 || a_exp.size() !=12 || a_gam0dot.size() != 12) 
+            if(a_g_alpha.size()!=12 || a_exp.size() !=12 || a_gam0dot.size() != 12) 
                 Util::Abort(INFO, "Incorrect size of slip system input information");
             
             int size = 12; 
-            Set::Scalar s = AMREX_D_PICK(1.0,1.0,INVSQ2);
-            Set::Scalar n = AMREX_D_PICK(1.0, INVSQ2, INVSQ3);
-            Set::Matrix m = Set::Matrix::Zero();
+            Set::Matrix R = Set::Matrix::Zero();
             AMREX_D_TERM(
-                m(0,0) = a_m(0,0);
+                R(0,0) = m(0,0);
                 ,
-                m(0,1) = a_m(0,1); m(1,0) = a_m(1,0); m(1,1) = a_m(1,1);
+                R(0,1) = m(0,1); R(1,0) = m(1,0); R(1,1) = m(1,1);
                 ,
-                m(0,2) = a_m(0,2); m(1,2) = a_m(1,2); m(2,0) = a_m(2,0); m(2,1) = a_m(2,1); m(2,2) = a_m(2,2);
+                R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
             );
+            Set::Scalar dir = AMREX_D_PICK(1.0,1.0,INVSQ2);
+            Set::Scalar nor = AMREX_D_PICK(1.0, INVSQ2, INVSQ3);
             
             slip.resize(size);
-            slip[0].n = m*Set::Vector(AMREX_D_DECL(n, n, n));
-            slip[1].n = m*Set::Vector(AMREX_D_DECL(n, n, n));
-            slip[2].n = m*Set::Vector(AMREX_D_DECL(n, n, n));
-            slip[0].s = m*Set::Vector(AMREX_D_DECL(0.0, -s, s));
-            slip[1].s = m*Set::Vector(AMREX_D_DECL(s, 0.0, -s));
-            slip[2].s = m*Set::Vector(AMREX_D_DECL(-s, s, 0.0));
+            slip[0].s = R*Set::Vector(AMREX_D_DECL(nor, nor, nor));
+            slip[1].s = R*Set::Vector(AMREX_D_DECL(nor, nor, nor));
+            slip[2].s = R*Set::Vector(AMREX_D_DECL(nor, nor, nor));
+            slip[0].m = R*Set::Vector(AMREX_D_DECL(0.0, -dir, dir));
+            slip[1].m = R*Set::Vector(AMREX_D_DECL(dir, 0.0, -dir));
+            slip[2].m = R*Set::Vector(AMREX_D_DECL(-dir, dir, 0.0));
 
-            slip[3].n = m*Set::Vector(AMREX_D_DECL(-n, -n, n));
-            slip[4].n = m*Set::Vector(AMREX_D_DECL(-n, -n, n));
-            slip[5].n = m*Set::Vector(AMREX_D_DECL(-n, -n, n));
-            slip[3].s = m*Set::Vector(AMREX_D_DECL(0.0, s, s));
-            slip[4].s = m*Set::Vector(AMREX_D_DECL(-s, 0.0, -s));
-            slip[5].s = m*Set::Vector(AMREX_D_DECL(s, -s, 0.0));
+            slip[3].s = R*Set::Vector(AMREX_D_DECL(-nor, -nor, nor));
+            slip[4].s = R*Set::Vector(AMREX_D_DECL(-nor, -nor, nor));
+            slip[5].s = R*Set::Vector(AMREX_D_DECL(-nor, -nor, nor));
+            slip[3].m = R*Set::Vector(AMREX_D_DECL(0.0, dir, dir));
+            slip[4].m = R*Set::Vector(AMREX_D_DECL(-dir, 0.0, -dir));
+            slip[5].m = R*Set::Vector(AMREX_D_DECL(dir, -dir, 0.0));
 
-            slip[6].n = m*Set::Vector(AMREX_D_DECL(-n, n, n));
-            slip[7].n = m*Set::Vector(AMREX_D_DECL(-n, n, n));
-            slip[8].n = m*Set::Vector(AMREX_D_DECL(-n, n, n));
-            slip[6].s = m*Set::Vector(AMREX_D_DECL(0.0, -s, s));
-            slip[7].s = m*Set::Vector(AMREX_D_DECL(-s, 0.0, -s));
-            slip[8].s = m*Set::Vector(AMREX_D_DECL(s, s, 0.0));
+            slip[6].s = R*Set::Vector(AMREX_D_DECL(-nor, nor, nor));
+            slip[7].s = R*Set::Vector(AMREX_D_DECL(-nor, nor, nor));
+            slip[8].s = R*Set::Vector(AMREX_D_DECL(-nor, nor, nor));
+            slip[6].m = R*Set::Vector(AMREX_D_DECL(0.0, -dir, dir));
+            slip[7].m = R*Set::Vector(AMREX_D_DECL(-dir, 0.0, -dir));
+            slip[8].m = R*Set::Vector(AMREX_D_DECL(dir, dir, 0.0));
 
-            slip[9].n = m*Set::Vector(AMREX_D_DECL(n, -n, n));
-            slip[10].n = m*Set::Vector(AMREX_D_DECL(n, -n, n));
-            slip[11].n = m*Set::Vector(AMREX_D_DECL(n, -n, n));
-            slip[9].s = m*Set::Vector(AMREX_D_DECL(0.0, s, s));
-            slip[10].s = m*Set::Vector(AMREX_D_DECL(s, 0.0, -s));
-            slip[11].s = m*Set::Vector(AMREX_D_DECL(-s, -s, 0.0));
+            slip[9].s = R*Set::Vector(AMREX_D_DECL(nor, -nor, nor));
+            slip[10].s = R*Set::Vector(AMREX_D_DECL(nor, -nor, nor));
+            slip[11].s = R*Set::Vector(AMREX_D_DECL(nor, -nor, nor));
+            slip[9].m = R*Set::Vector(AMREX_D_DECL(0.0, dir, dir));
+            slip[10].m = R*Set::Vector(AMREX_D_DECL(dir, 0.0, -dir));
+            slip[11].m = R*Set::Vector(AMREX_D_DECL(-dir, -dir, 0.0));
 
             for (int i = 0; i < size; i++)
             {
                 slip[i].on = true;
-                slip[i].tcrss = a_tcrss[i];
-                slip[i].tcrss0 = a_tcrss[i];
-                slip[i].s_exp = a_exp[i];
+                slip[i].g_alpha = a_g_alpha[i];
+                slip[i].g_alpha0 = a_g_alpha[i];
+                slip[i].m_exp = a_exp[i];
                 slip[i].gam0dot = a_gam0dot[i];
             }
         }
@@ -112,18 +125,14 @@ public:
 
         prev = PlasticState::Zero();
         curr = PlasticState::Zero();
-
-        CubicDegradable::Define(a_C11, a_C12, a_C44, a_m);
     }
 
-    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, amrex::Vector<SlipSystem> &a_slip)
+    void DefineSlipSystem(amrex::Vector<SlipSystem> &a_slip)
     {
         slip = a_slip;
 
         prev = PlasticState::Zero();
         curr = PlasticState::Zero();
-        
-        CubicDegradable::Define(a_C11, a_C12, a_C44, m);
     }
 
     void DegradeYieldSurface(Set::Scalar eta)
@@ -131,27 +140,14 @@ public:
         if (std::isnan(eta) || std::isinf(eta)) Util::Abort(INFO, "Nans or Infs in eta. ", eta);
         if (eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta. ", eta);
         for (int i=0; i<slip.size(); i++)
-            slip[i].tcrss = slip[i].tcrss0/eta;
+            slip[i].g_alpha = slip[i].g_alpha0/eta;
     }
 
     void DegradeYieldSurface(amrex::Vector<Set::Scalar> &eta)
     {
         if(eta.size() ==0 || eta.size() != slip.size()) Util::Abort(INFO, "Inconsistent size of eta. ", eta.size());
         for (int i=0; i<slip.size(); i++)
-            slip[i].tcrss = slip[i].tcrss0/eta[i];
-    }
-
-    Set::Scalar YieldSurface()
-    {
-        Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
-        for(int i=0; i<slip.size(); i++)
-        {
-            for (int j = 0; j < AMREX_SPACEDIM; j++)
-                for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
-            yield += slip[i].tcrss*R;
-        }
-        return yield.norm();
+            slip[i].g_alpha = slip[i].g_alpha0/eta[i];
     }
 
     Set::Scalar OriginalYieldSurface()
@@ -161,8 +157,21 @@ public:
         {
             for (int j = 0; j < AMREX_SPACEDIM; j++)
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
-            yield += slip[i].tcrss0*R;
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
+            yield += slip[i].g_alpha0*R;
+        }
+        return yield.norm();
+    }
+
+    Set::Scalar YieldSurface()
+    {
+        Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
+        for(int i=0; i<slip.size(); i++)
+        {
+            for (int j = 0; j < AMREX_SPACEDIM; j++)
+                for (int k = 0; k < AMREX_SPACEDIM; k++)
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
+            yield += slip[i].g_alpha*R;
         }
         return yield.norm();
     }
@@ -174,8 +183,8 @@ public:
         {
             for (int j = 0; j < AMREX_SPACEDIM; j++)
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
-            yield += slip[i].tcrss0*R;
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
+            yield += slip[i].g_alpha0*R;
         }
         return yield.norm()*curr.alpha;
     }
@@ -187,8 +196,8 @@ public:
         {
             for (int j = 0; j < AMREX_SPACEDIM; j++)
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
-            yield += slip[i].tcrss0*R;
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
+            yield += slip[i].g_alpha0*R;
         }
         return yield.norm()*alpha;
     }
@@ -200,8 +209,8 @@ public:
         {
             for (int j = 0; j < AMREX_SPACEDIM; j++)
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
-            yield += slip[i].tcrss*R;
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
+            yield += slip[i].g_alpha*R;
         }
         return yield.norm()*curr.alpha;
     }
@@ -210,25 +219,46 @@ public:
     {
         curr.epsp = prev.epsp;
         Set::Matrix R = Set::Matrix::Zero();
+
+        amrex::Vector<Set::Scalar> gamdot;
+        gamdot.resize(slip.size());
+
+        for (int i = 0; i < slip.size(); i++)
+        {
+            gamdot[i] = 0.0;
+            Set::Scalar tau = slip[i].m.dot(sigma*slip[i].s);
+            Set::Scalar strength = slip[i].g_alpha;
+            if(tau/strength < 1.0) continue;
+            gamdot[i] = slip[i].gam0dot*std::pow((tau/strength), slip[i].m_exp);
+        }
+
         for (int i = 0; i < slip.size(); i++)
         {
             for (int j = 0; j < AMREX_SPACEDIM; j++)
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = slip[i].s(j)*slip[i].n(k);
+                    R(j,k) = slip[i].m(j)*slip[i].s(k);
 
-            if(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss < 1.0) continue;
+            curr.epsp += dt*gamdot[i]*R;
+            gam_bar += dt*std::abs(gamdot[i]);
+        }
 
-            if(slip[i].s_exp == 1.0)
-                curr.epsp += dt*slip[i].gam0dot*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*R;
-            else if(slip[i].s_exp == 2.0)
-                curr.epsp += dt*slip[i].gam0dot*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*R;
-            else if(slip[i].s_exp == 3.0)
-                curr.epsp += dt*slip[i].gam0dot*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*(slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss)*R;
-            else
-                curr.epsp += dt*slip[i].gam0dot*std::pow((slip[i].s.dot(sigma*slip[i].n)/slip[i].tcrss), slip[i].s_exp)*R;
+        if (hardening)
+        {
+            Set::Scalar sech_gambar = 1.0/(std::cosh(((h0-hs)/(gs-g0))*gam_bar));
+            Set::Scalar h_gambar = hs + (hs-h0)*sech_gambar*sech_gambar;
+            for (int i = 0; i < slip.size(); i++)
+            {
+                Set::Scalar gdotalpha = 0;
+                for (int j = 0; j < slip.size(); j++)
+                {
+                    Set::Scalar h_ab = ((slip[i].s == slip[j].s) ? 1.0 : q) * h_gambar;
+                    gdotalpha += h_ab*std::abs(gamdot[j]);
+                }
+                slip[i].g_alpha += dt*gdotalpha;
+            }
         }
         curr.alpha = sqrt(2.0/3.0)*curr.epsp.norm();
-        CubicDegradable::SetF0(curr.epsp);
+        Cubic::SetF0(curr.epsp);
     }
 
     void SetPlasticStrains(PlasticState &a_state)
@@ -241,39 +271,19 @@ public:
     {
         return curr;
     }
-
 private: // this is to fix an issue with the intel compiler and constexpr
   constexpr static Set::Scalar INVSQ2 = 0.70710678118654752440084436210484903928483593768847403658833986899536623923105351942519376716382078636750692311545614851246241802792536860632206074854996791570661133296375279637789997525057639103028574;
   constexpr static Set::Scalar INVSQ3 = 0.57735026918962576450914878050195745564760175127012687601860232648397767230293334569371539558574952522520871380513556767665664836499965082627055183736479121617603107730076852735599160670036155830775501;
-  //constexpr static Set::Scalar INVSQ2 = 1.0/sqrt(2.0);
-  //constexpr static Set::Scalar INVSQ3 = 1.0/sqrt(3.0);
 public:
     amrex::Vector<SlipSystem> slip; 
+    bool hardening = false;
+    Set::Scalar g0, gs, h0, hs, q, gam_bar;
     PlasticState curr, prev;
 
 public:
     static void Parse(CrystalPlasticDegradable & value, IO::ParmParse & pp)
     {
-        Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
-        pp.query("C11",C11);
-        pp.query("C12",C12);
-        pp.query("C44",C44);
-
-        //if (pp.contains("random"))
-        //{
-        //    value = CubicCrystalPlastic::Random(C11,C12,C44);
-        //    return;
-        //}
-
-        Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
-        pp.query("phi1",phi1);
-        pp.query("Phi",Phi);
-        pp.query("phi2",phi2);
-
-        Eigen::Matrix3d m;
-        m = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
-            Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
+        Affine::Cubic::Parse(value,pp);
         
         std::string lattice;
         LatticeType input_lattice;
@@ -328,42 +338,84 @@ public:
             latticeinput = true;
         }
 
-        amrex::Vector<Set::Scalar> input_tcrss, input_exp, input_gam0dot;
+        amrex::Vector<Set::Scalar> input_g_alpha, g_alpha;
+        g_alpha.resize(number_of_slip_systems); 
 
-        if(pp.contains("tcrss"))
+        pp.query("hardening.on", value.hardening);
+        if (value.hardening)
         {
-            pp.queryarr("tcrss", input_tcrss);
-            if(input_tcrss.size() <= 0 || input_tcrss.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in tcrss");
+            pp.query("hardening.g0",value.g0);
+            pp.query("hardening.gs",value.gs);
+            pp.query("hardening.h0",value.h0);
+            pp.query("hardening.hs",value.hs);
+            pp.query("hardening.q",value.q);
+            value.gam_bar = 0.0;
+            for (int i = 0; i< number_of_slip_systems; i++) g_alpha[i] = value.g0;
         }
         else
         {
-            input_tcrss.resize(number_of_slip_systems);
-            for (int i = 0; i< number_of_slip_systems; i++) input_tcrss[i] = 1.0e1;
+            if(pp.contains("g_alpha"))
+            {
+                pp.queryarr("g_alpha", input_g_alpha);
+                if(input_g_alpha.size() == 1)
+                {
+                    for (int i = 0; i< number_of_slip_systems; i++) 
+                        g_alpha[i] = input_g_alpha[0];
+                }
+                else if(input_g_alpha.size() <= 0 || input_g_alpha.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in g_alpha");
+                else
+                {
+                    for (int i = 0; i< number_of_slip_systems; i++) 
+                        g_alpha[i] = input_g_alpha[i];
+                }
+            }
+            else
+                for (int i = 0; i< number_of_slip_systems; i++) g_alpha[i] = 16.0;
         }
+
+        amrex::Vector<Set::Scalar> g_exp, input_exp;
+        g_exp.resize(number_of_slip_systems); 
         if(pp.contains("exp"))
         {
             pp.queryarr("exp",input_exp);
-            if(input_exp.size() <= 0 || input_exp.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in exp");
+            if(input_exp.size() == 1)
+            {
+                for (int i = 0; i< number_of_slip_systems; i++) 
+                    g_exp[i] = input_exp[0];
+            }
+            else if(input_exp.size() <= 0 || input_exp.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in exp");
+            else
+            {
+                for (int i = 0; i< number_of_slip_systems; i++) 
+                    g_exp[i] = input_exp[i];
+            }
         }
         else
-        {
-            input_exp.resize(number_of_slip_systems);
-            for (int i = 0; i< number_of_slip_systems; i++) input_exp[i] = 2.0;
-        }
+            for (int i = 0; i< number_of_slip_systems; i++) g_exp[i] = 10.0;
+
+        amrex::Vector<Set::Scalar> input_gam0dot, gam0dot;
+        gam0dot.resize(number_of_slip_systems);
         if(pp.contains("gam0dot"))
         {
             pp.queryarr("gam0dot",input_gam0dot);
-            if(input_gam0dot.size() <= 0 || input_gam0dot.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in gam0dot");
+            if(input_gam0dot.size() == 1)
+            {
+                for (int i = 0; i< number_of_slip_systems; i++) 
+                    gam0dot[i] = input_gam0dot[0];
+            }
+            else if(input_gam0dot.size() <= 0 || input_gam0dot.size() != number_of_slip_systems) Util::Abort(INFO, "Invalid number of values in gam0dot");
+            else
+            {
+                for (int i = 0; i< number_of_slip_systems; i++) 
+                    gam0dot[i] = input_gam0dot[i];
+            }
         }
         else
-        {
-            input_gam0dot.resize(number_of_slip_systems);
-            for (int i = 0; i< number_of_slip_systems; i++) input_gam0dot[i] = 0.01;
-        }
+            for (int i = 0; i< number_of_slip_systems; i++) gam0dot[i] = 0.001;
 
         if(latticeinput)
         {
-            value.Define(C11,C12,C44,m,input_tcrss,input_exp,input_gam0dot, input_lattice);
+            value.DefineSlipSystem(g_alpha,g_exp,gam0dot, input_lattice);
         }
         else
         {
@@ -372,14 +424,14 @@ public:
             for (int i = 0; i<number_of_slip_systems; i++)
             {
                 a_slipsystem[i].on = true;
-                a_slipsystem[i].n = input_slipplanes[i];
-                a_slipsystem[i].s = input_slipdirections[i];
-                a_slipsystem[i].tcrss = input_tcrss[i];
-                a_slipsystem[i].tcrss0 = input_tcrss[i];
-                a_slipsystem[i].s_exp = input_exp[i];
-                a_slipsystem[i].gam0dot = input_gam0dot[i];
+                a_slipsystem[i].s = input_slipplanes[i];
+                a_slipsystem[i].m = input_slipdirections[i];
+                a_slipsystem[i].g_alpha = g_alpha[i];
+                a_slipsystem[i].g_alpha0 = g_alpha[i];
+                a_slipsystem[i].m_exp = g_exp[i];
+                a_slipsystem[i].gam0dot = gam0dot[i];
             }
-            value.Define(C11,C12,C44,m,a_slipsystem);
+            value.DefineSlipSystem(a_slipsystem);
         }
     }
     AMREX_FORCE_INLINE
@@ -388,13 +440,14 @@ public:
         curr += rhs.curr;
         prev += rhs.prev;
         for (int i = 0; i< std::min(rhs.slip.size(),slip.size()); i++) slip[i] += rhs.slip[i];
+        g0 += rhs.g0; 
+        gs += rhs.gs;
+        h0 += rhs.h0;
+        hs += rhs.hs;
+        q += rhs.q;
+        gam_bar += rhs.gam_bar;
         ddw += rhs.ddw;
         F0  += rhs.F0;
-        _F0  += rhs._F0;
-        R += rhs.R;
-        C110 += rhs.C110;
-        C120 += rhs.C120;
-        C440 += rhs.C440;
     }
     AMREX_FORCE_INLINE
     CrystalPlasticDegradable operator * (Set::Scalar alpha)
@@ -404,13 +457,16 @@ public:
         ret.prev = prev*alpha;
         ret.slip.resize(slip.size());
         for (int i=0; i<slip.size(); i++) ret.slip[i] = slip[i]*alpha;
+        ret.g0 = g0*alpha; 
+        ret.gs = gs*alpha; 
+        ret.h0 = h0*alpha; 
+        ret.hs = hs*alpha;
+        ret.q = q*alpha;
+        ret.gam_bar = gam_bar*alpha;
+        ret.hardening = hardening;
         ret.ddw = ddw*alpha;
         ret.F0  = alpha*F0;
-        ret._F0  = alpha*_F0;
-        ret.R = alpha*R;
-        ret.C110 = alpha*C110;
-        ret.C120 = alpha*C120;
-        ret.C440 = alpha*C440;
+    
         return ret;
     }
     friend CrystalPlasticDegradable operator * (const Set::Scalar alpha, const CrystalPlasticDegradable b);
@@ -425,14 +481,17 @@ CrystalPlasticDegradable operator * (const Set::Scalar alpha, const CrystalPlast
     ret.prev = b.prev*alpha;
     ret.slip.resize(b.slip.size());
     for (int i=0; i<b.slip.size(); i++) ret.slip[i] = b.slip[i]*alpha;
+    ret.g0 = b.g0*alpha; 
+    ret.gs = b.gs*alpha; 
+    ret.h0 = b.h0*alpha; 
+    ret.hs = b.hs*alpha;
+    ret.q = b.q*alpha;
+    ret.gam_bar = b.gam_bar*alpha;
+    ret.hardening = b.hardening;
 
     ret.ddw = b.ddw*alpha;
     ret.F0  = alpha*b.F0;
-    ret._F0  = alpha*b._F0;
-    ret.R = alpha*b.R;
-    ret.C110 = alpha*b.C110;
-    ret.C120 = alpha*b.C120;
-    ret.C440 = alpha*b.C440;
+    
     return ret;
 }
 
@@ -445,13 +504,17 @@ CrystalPlasticDegradable operator + (const CrystalPlasticDegradable a, const Cry
     ret.slip.resize(std::min(a.slip.size(),b.slip.size()));
     for (int i=0; i< std::min(a.slip.size(),b.slip.size()); i++) ret.slip[i] = a.slip[i] + b.slip[i];
 
+    ret.g0 = a.g0 + b.g0; 
+    ret.gs = a.gs + b.gs; 
+    ret.h0 = a.h0 + b.h0; 
+    ret.hs = a.hs + b.hs;
+    ret.q = a.q + b.q;
+    ret.gam_bar = a.gam_bar + b.gam_bar;
+    ret.hardening = a.hardening && b.hardening;
+
     ret.ddw = a.ddw + b.ddw;
     ret.F0  = a.F0 + b.F0;
-    ret._F0  = a._F0 + b._F0;
-    ret.R = a.R + b.R;
-    ret.C110 = a.C110 + b.C110;
-    ret.C120 = a.C120 + b.C120;
-    ret.C440 = a.C440 + b.C440;
+    
     return ret;
 }
 
@@ -464,13 +527,17 @@ CrystalPlasticDegradable operator - (const CrystalPlasticDegradable a, const Cry
     ret.slip.resize(std::min(a.slip.size(),b.slip.size()));
     for (int i=0; i< std::min(a.slip.size(),b.slip.size()); i++) ret.slip[i] = a.slip[i] - b.slip[i];
 
+    ret.g0 = a.g0 - b.g0; 
+    ret.gs = a.gs - b.gs; 
+    ret.h0 = a.h0 - b.h0; 
+    ret.hs = a.hs - b.hs;
+    ret.q = a.q - b.q;
+    ret.gam_bar = a.gam_bar - b.gam_bar;
+    ret.hardening = a.hardening && b.hardening;
+
     ret.ddw = a.ddw - b.ddw;
     ret.F0  = a.F0 - b.F0;
-    ret._F0  = a._F0 - b._F0;
-    ret.R = a.R - b.R;
-    ret.C110 = a.C110 - b.C110;
-    ret.C120 = a.C120 - b.C120;
-    ret.C440 = a.C440 - b.C440;
+    
     return ret;
 }
 

@@ -54,7 +54,7 @@ public:
     void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, amrex::Vector<Set::Scalar> &a_g_alpha, amrex::Vector<Set::Scalar> &a_exp, amrex::Vector<Set::Scalar> &a_gam0dot, LatticeType lattice=LatticeType::FCC)
     {
         Affine::Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
-        DefineSlipSystem(g_alpha, exp0, gam0dot, lattice);
+        DefineSlipSystem(a_g_alpha, a_exp, a_gam0dot, lattice);
     }
 
     void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, amrex::Vector<SlipSystem> &a_slip)
@@ -174,8 +174,8 @@ public:
             gamdot[i] = 0.0;
             Set::Scalar tau = slip[i].m.dot(sigma*slip[i].s);
             Set::Scalar strength = slip[i].g_alpha;
-            if(tau/stength < 1.0) continue;
-            gamdot[i] = slip[i].gam0dot*std::pow((tau/stength), slip[i].m_exp);
+            if(tau/strength < 1.0) continue;
+            gamdot[i] = slip[i].gam0dot*std::pow((tau/strength), slip[i].m_exp);
         }
 
         for (int i = 0; i < slip.size(); i++)
@@ -185,12 +185,12 @@ public:
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
 
             curr.epsp += dt*gamdot[i]*R;
-            gambar += dt*std::abs(gamdot[i]);
+            gam_bar += dt*std::abs(gamdot[i]);
         }
 
         if (hardening)
         {
-            Set::Scalar sech_gambar = 1.0/(std::cosh(((h0-hs)/(gs-g0))*gambar))
+            Set::Scalar sech_gambar = 1.0/(std::cosh(((h0-hs)/(gs-g0))*gam_bar));
             Set::Scalar h_gambar = hs + (hs-h0)*sech_gambar*sech_gambar;
             for (int i = 0; i < slip.size(); i++)
             {
@@ -286,7 +286,7 @@ public:
         }
 
         amrex::Vector<Set::Scalar> input_g_alpha, g_alpha;
-        g_alpa.resize(number_of_slip_systems); 
+        g_alpha.resize(number_of_slip_systems); 
 
         pp.query("hardening.on", value.hardening);
         if (value.hardening)
@@ -371,8 +371,8 @@ public:
             for (int i = 0; i<number_of_slip_systems; i++)
             {
                 a_slipsystem[i].on = true;
-                a_slipsystem[i].n = input_slipplanes[i];
-                a_slipsystem[i].s = input_slipdirections[i];
+                a_slipsystem[i].s = input_slipplanes[i];
+                a_slipsystem[i].m = input_slipdirections[i];
                 a_slipsystem[i].g_alpha = g_alpha[i];
                 a_slipsystem[i].g_alpha0 = g_alpha[i];
                 a_slipsystem[i].m_exp = g_exp[i];
@@ -409,6 +409,7 @@ public:
         ret.h0 = h0*alpha; 
         ret.hs = hs*alpha;
         ret.q = q*alpha;
+        ret.gam_bar = gam_bar*alpha;
         ret.hardening = hardening;
         ret.ddw = ddw*alpha;
         ret.F0  = alpha*F0;
@@ -432,6 +433,7 @@ CrystalPlastic operator * (const Set::Scalar alpha, const CrystalPlastic b)
     ret.h0 = b.h0*alpha; 
     ret.hs = b.hs*alpha;
     ret.q = b.q*alpha;
+    ret.gam_bar = b.gam_bar*alpha;
     ret.hardening = b.hardening;
 
     ret.ddw = b.ddw*alpha;
@@ -454,6 +456,7 @@ CrystalPlastic operator + (const CrystalPlastic a, const CrystalPlastic b)
     ret.h0 = a.h0 + b.h0; 
     ret.hs = a.hs + b.hs;
     ret.q = a.q + b.q;
+    ret.gam_bar = a.gam_bar + b.gam_bar;
     ret.hardening = a.hardening && b.hardening;
 
     ret.ddw = a.ddw + b.ddw;
@@ -476,6 +479,7 @@ CrystalPlastic operator - (const CrystalPlastic a, const CrystalPlastic b)
     ret.h0 = a.h0 - b.h0; 
     ret.hs = a.hs - b.hs;
     ret.q = a.q - b.q;
+    ret.gam_bar = a.gam_bar - b.gam_bar;
     ret.hardening = a.hardening && b.hardening;
 
     ret.ddw = a.ddw - b.ddw;
