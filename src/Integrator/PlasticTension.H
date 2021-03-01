@@ -10,17 +10,14 @@
 
 #include "Integrator/Integrator.H"
 
-#include "IC/IC.H"
-#include "BC/BC.H"
 #include "BC/Operator/Elastic/Constant.H"
 
-#include "IC/Ellipse.H"
 #include "Numeric/Stencil.H"
 
 #include "Model/Solid/Solid.H"
 #include "Solver/Nonlocal/Linear.H"
 #include "Solver/Nonlocal/Newton.H"
-#include "Model/Solid/Affine/Isotropic.H"
+#include "Model/Solid/Affine/CrystalPlastic.H"
 
 #include "Operator/Operator.H"
 
@@ -30,7 +27,7 @@ namespace Integrator
 {
 class PlasticTension : public Integrator
 {
-    using model_type = Model::Solid::Affine::Cubic;
+    using model_type = Model::Solid::Affine::CrystalPlastic;
 public:
     /// \brief Read in parameters and register field variables
     PlasticTension()
@@ -180,23 +177,15 @@ private:
         BC::Operator::Elastic::Constant bc;
     } elastic;
 
-    Set::Field<Set::Scalar> eta_mf;
     Set::Field<Set::Scalar> disp_mf;
     Set::Field<Set::Scalar> rhs_mf;
     Set::Field<Set::Scalar> res_mf;
     Set::Field<Set::Scalar> stress_mf;
     Set::Field<Set::Scalar> strain_mf;
+    Set::Field<Set::Scalar> strainp_mf;
+    Set::Field<Set::Scalar> strainp_eq_mf;
 
     Set::Field<model_type> model_mf;
-
-    IC::IC *ic;          ///< Pointer to abstract IC object
-    BC::BC<Set::Scalar> *mybc;        ///< Stock generic boundary condition object
-    
-    struct {
-        model_type model1, model2;
-        Solver::Nonlocal::Newton<Model::Solid::Affine::Isotropic> *solver;//(elastic.op);
-        BC::Operator::Elastic::Constant bc;
-    } elastic;
 
 };
 } // namespace Integrator
