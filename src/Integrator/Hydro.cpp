@@ -81,44 +81,71 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 				// e(i,j,k,n)  value at i,j,k for component n
 
 				Set::Vector rho_grad = Numeric::Gradient(rho_old, i, j, k, 0, DX);
+				Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
+				Set::Vector e_grad = Numeric::Gradient(e_old, i, j, k, 0, DX);
 
 				if (j == bx.loVect()[1] || j == bx.hiVect()[1] || k == bx.loVect()[2] || k == bx.hiVect()[2])
 				  {
 				    Set::Vector u1_grad(1.0, 0.0, 0.0);
 				    Set::Vector u2_grad = Set::Vector::Zero();
 				    Set::Vector u3_grad = Set::Vector::Zero();
-			          }
+
+				    rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad(0)) + u_old(i, j, k, 1)*(rho_grad(1)) + u_old(i, j, k, 2)*(rho_grad(2)) + rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+
+				    if(i == bx.loVect()[0])
+				      {u(i, j, k, 0) = 0.0;
+				      u(i, j, k, 1) = 0.0;
+				      u(i, j, k, 2) = 0.0;}
+
+				    else if(i == bx.hiVect()[0])
+				      {u(i, j, k, 0) = 1.0;
+				      u(i, j, k, 1) = 0.0;
+				      u(i, j, k, 2) = 0.0;}
+
+				    else {
+				      u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0)*(u_old(i, j, k, 0)*(u1_grad(0)) + u_old(i, j, k, 1)*(u1_grad(1)) + u_old(i, j, k, 2)*(u1_grad(2))) + 1/rho_old(i, j, k)*(p_grad(0)))*dt;
+				
+				      u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1)*(u_old(i, j, k, 0)*(u2_grad(0)) + u_old(i, j, k, 1)*(u2_grad(1)) + u_old(i, j, k, 2)*(u2_grad(2))) + 1/rho_old(i, j, k)*(p_grad(1)))*dt;
+				
+				      u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2)*(u_old(i, j, k, 0)*(u3_grad(0)) + u_old(i, j, k, 1)*(u3_grad(1)) + u_old(i, j, k, 2)*(u3_grad(2))) + 1/rho_old(i, j, k)*(p_grad(2)))*dt;
+		       }
+				
+				    e(i,j,k) = e_old(i,j,k) - ((u_old(i, j, k, 0)*(e_grad(0)) + u_old(i, j, k, 1)*(e_grad(1)) + u_old(i, j, k, 2)*(e_grad(2))) + p_old(i, j, k)/rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+				
+				    p(i, j, k) = (gamma - 1)*rho(i, j, k)*e(i, j, k);
+				  }
 
 				else
 				  {
 				    Set::Vector u1_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
 				    Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
 				    Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
+
+				    rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad(0)) + u_old(i, j, k, 1)*(rho_grad(1)) + u_old(i, j, k, 2)*(rho_grad(2)) + rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+
+				    if(i == bx.loVect()[0])
+				      {u(i, j, k, 0) = 0.0;
+				      u(i, j, k, 1) = 0.0;
+				      u(i, j, k, 2) = 0.0;}
+
+				    else if(i == bx.hiVect()[0])
+				      {u(i, j, k, 0) = 1.0;
+				      u(i, j, k, 1) = 0.0;
+				      u(i, j, k, 2) = 0.0;}
+
+				    else {
+				      u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0)*(u_old(i, j, k, 0)*(u1_grad(0)) + u_old(i, j, k, 1)*(u1_grad(1)) + u_old(i, j, k, 2)*(u1_grad(2))) + 1/rho_old(i, j, k)*(p_grad(0)))*dt;
+				
+				      u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1)*(u_old(i, j, k, 0)*(u2_grad(0)) + u_old(i, j, k, 1)*(u2_grad(1)) + u_old(i, j, k, 2)*(u2_grad(2))) + 1/rho_old(i, j, k)*(p_grad(1)))*dt;
+				
+				      u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2)*(u_old(i, j, k, 0)*(u3_grad(0)) + u_old(i, j, k, 1)*(u3_grad(1)) + u_old(i, j, k, 2)*(u3_grad(2))) + 1/rho_old(i, j, k)*(p_grad(2)))*dt;
+				    }
+				
+				    e(i,j,k) = e_old(i,j,k) - ((u_old(i, j, k, 0)*(e_grad(0)) + u_old(i, j, k, 1)*(e_grad(1)) + u_old(i, j, k, 2)*(e_grad(2))) + p_old(i, j, k)/rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+				
+				    p(i, j, k) = (gamma - 1)*rho(i, j, k)*e(i, j, k);
 				  }
 				
-				Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
-
-				Set::Vector e_grad = Numeric::Gradient(e_old, i, j, k, 0, DX);
-
-		  rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad[0]) + u_old(i, j, k, 1)*(rho_grad[1]) + u_old(i, j, k, 2)*(rho_grad[2]) + rho_old(i, j, k)*(u1_grad[0] + u2_grad[1] + u3_grad[2]))*dt;
-
-		  if(i == bx.loVect()[0])
-		    {u(i, j, k) = (0.0, 0.0, 0.0);}
-
-		  else if(i == bx.hiVect()[0])
-		    {u(i, j, k) = (1.0, 0.0, 0.0);}
-
-		  else {
-		    u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0)*(u_old(i, j, k, 0)*(u1_grad[0]) + u_old(i, j, k, 1)*(u1_grad[1]) + u_old(i, j, k, 2)*(u1_grad[2])) + 1/rho_old(i, j, k)*(p_grad[0]))*dt;
-				
-		    u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1)*(u_old(i, j, k, 0)*(u2_grad[0]) + u_old(i, j, k, 1)*(u2_grad[1]) + u_old(i, j, k, 2)*(u2_grad[2])) + 1/rho_old(i, j, k)*(p_grad[1]))*dt;
-				
-		    u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2)*(u_old(i, j, k, 0)*(u3_grad[0]) + u_old(i, j, k, 1)*(u3_grad[1]) + u_old(i, j, k, 2)*(u3_grad[2])) + 1/rho_old(i, j, k)*(p_grad[2]))*dt;
-		       }
-				
-		  e(i,j,k) = e_old(i,j,k) - ((u_old(i, j, k, 0)*(e_grad[0]) + u_old(i, j, k, 1)*(e_grad[1]) + u_old(i, j, k, 2)*(e_grad[2])) + p_old(i, j, k)/rho_old(i, j, k)*(u1_grad[0] + u2_grad[1] + u3_grad[2]))*dt;
-				
-		  p(i, j, k) = (gamma - 1)*rho(i, j, k)*e(i, j, k);
 
 				if (std::isnan(rho(amrex::IntVect(AMREX_D_DECL(i,j,k)))))
 					Util::Abort(INFO, "NaN encountered");
