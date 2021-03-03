@@ -104,7 +104,7 @@ protected:
         rhs_mf[lev]->setVal(0.);
     }
 
-    void TimeStepBegin(Set::Scalar, int) override
+    void TimeStepBegin(Set::Scalar a_time, int) override
     {
         // Set linear elastic model
         
@@ -134,6 +134,7 @@ protected:
             Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
 
+        elastic.bc.SetTime(a_time);
         elastic.bc.Init(rhs_mf,geom);
 
         amrex::LPInfo info;
