@@ -32,72 +32,85 @@ public:
         yield_strength = a_yield;
         hardening_modulus = a_hardening;
         
-        curr = PlasticState::Zero(); 
-        prev = PlasticState::Zero();
+        curr = Set::Matrix::Zero(); 
+        prev = Set::Matrix::Zero();
+        beta = Set::Matrix::Zero();
+        beta_prev = Set::Matrix::Zero();
 
         Isotropic::Define(a_mu, a_lambda);
     }
 
     Set::Scalar YieldSurface()
     {
-        return yield_strength + curr.alpha*hardening_modulus;
+        return yield_strength + curr.norm()*hardening_modulus;
     }
 
     Set::Scalar PlasticEnergy()
     {
-        return (yield_strength*curr.alpha + 0.5*hardening_modulus*curr.alpha*curr.alpha);
+        return (yield_strength*curr.norm() + 0.5*hardening_modulus*curr.norm()*curr.norm());
     }
     
-    void EvolvePlasticStrain(Set::Matrix sigma, Set::Matrix strain, Set::Scalar /*dt*/)
+    void Advance(Set::Matrix sigma, Set::Matrix strain, Set::Matrix3 /*eps_grad*/, Set::Scalar /*dt*/)
     {
         Set::Scalar SQ2O3 = sqrt(1.0 - 1.0/((double)AMREX_SPACEDIM));
         Set::Matrix sigdev = sigma - (1.0/((double)AMREX_SPACEDIM))*sigma.trace()*Set::Matrix::Identity();
         Set::Matrix epsdev = strain - strain.trace()*Set::Matrix::Identity();
 
-        Set::Matrix zeta_trial = sigdev  - prev.beta + 2.0*m_mu*epsdev;
+        prev = curr;
+        beta_prev = beta;
+        Set::Matrix zeta_trial = sigdev  - beta_prev + 2.0*m_mu*epsdev;
 
-        Set::Scalar f_trial = zeta_trial.norm() - SQ2O3*(yield_strength + theta*hardening_modulus*prev.alpha);
+        Set::Scalar f_trial = zeta_trial.norm() - SQ2O3*(yield_strength + theta*hardening_modulus*prev.norm());
         if( f_trial <= 0.0)
         {
-            curr.epsp = prev.epsp; curr.alpha = prev.alpha; curr.beta = prev.beta; 
+            curr = prev; 
+            beta = beta_prev;
+            //curr.alpha = prev.alpha; curr.beta = prev.beta; 
             return;
         }
         Set::Matrix n_new = zeta_trial/zeta_trial.norm();
         Set::Scalar dGamma = f_trial/(2.0*(m_mu)*(1.0 + (hardening_modulus/(3.0*m_mu))));
         Set::Scalar dH = SQ2O3*(1.0-theta)*hardening_modulus*dGamma;
 
-        curr.alpha = prev.alpha + SQ2O3*dGamma;
-        curr.beta = prev.beta + SQ2O3*dH*n_new;
-        curr.epsp = prev.epsp + dGamma*n_new;
-        Isotropic::SetF0(curr.epsp);
+        //curr.alpha = prev.alpha + SQ2O3*dGamma;
+        beta = beta_prev + SQ2O3*dH*n_new;
+        curr = prev + dGamma*n_new;
+        Isotropic::SetF0(curr);
     }
 
     void SetPlasticStrains()
     {
-        prev = Affine::PlasticState::Zero();
-        curr = Affine::PlasticState::Zero();
+        prev = Set::Matrix::Zero();
+        curr = Set::Matrix::Zero();
     }
 
-    void SetPlasticStrains(PlasticState &a_state)
+    void SetPlasticStrains(Set::Matrix &a_state)
     {
         prev = a_state;
         curr = a_state;
-        Isotropic::SetF0(curr.epsp);
+        Isotropic::SetF0(curr);
     }
 
-    PlasticState GetPlasticState()
+    Set::Matrix GetPlasticState()
     {
         return curr;
     }
 
 public:
-    PlasticState curr, prev;
+    Set::Matrix curr, prev;
+    Set::Matrix beta, beta_prev;
     Set::Scalar theta;                  // isotropic and kinematic hardening parameter
     Set::Scalar yield_strength;          // yield strength
     Set::Scalar hardening_modulus;      // hardening modulus
     Set::Scalar m_mu;
 
 public:
+    static J2Plastic Zero()
+    {
+        J2Plastic ret;
+        ret.Define(0.,0.,0.,0.,0.0);
+        return ret;
+    }
     static void Parse(J2Plastic & value, IO::ParmParse & pp)
     {
         Set::Scalar mu, lambda;
@@ -128,6 +141,8 @@ public:
         m_mu += rhs.m_mu;
         curr += rhs.curr;
         prev += rhs.prev;
+        beta += rhs.beta;
+        beta_prev += rhs.beta_prev;
         theta += rhs.theta;
         yield_strength += rhs.yield_strength;
         hardening_modulus += rhs.hardening_modulus;
@@ -142,6 +157,8 @@ public:
         ret.m_mu = alpha * m_mu;
         ret.curr = alpha*curr;
         ret.prev = alpha*prev;
+        ret.beta = alpha*beta;
+        ret.beta_prev = alpha*beta_prev;
         ret.theta = alpha*theta;
         ret.yield_strength = alpha*yield_strength;
         ret.hardening_modulus = alpha*hardening_modulus;
@@ -163,6 +180,8 @@ J2Plastic operator * (const Set::Scalar alpha, const J2Plastic b)
     ret.m_mu = alpha * b.m_mu;
     ret.curr = alpha * b.curr;
     ret.prev = alpha * b.prev;
+    ret.beta = alpha*b.beta;
+    ret.beta_prev = alpha*b.beta_prev;
     ret.theta = alpha * b.theta;
     ret.yield_strength = alpha * b.yield_strength;
     ret.hardening_modulus = alpha * b.hardening_modulus;
@@ -178,6 +197,8 @@ J2Plastic operator + (const J2Plastic a, const J2Plastic b)
     ret.m_mu = a.m_mu + b.m_mu;
     ret.curr = a.curr + b.curr;
     ret.prev = a.prev + b.prev;
+    ret.beta = a.beta + b.beta;
+    ret.beta_prev = a.beta_prev + b.beta_prev;
     ret.theta = a.theta + b.theta;
     ret.yield_strength = a.yield_strength + b.yield_strength;
     ret.hardening_modulus = a.hardening_modulus + b.hardening_modulus;
@@ -193,6 +214,8 @@ J2Plastic operator - (const J2Plastic a, const J2Plastic b)
     ret.m_mu = a.m_mu - b.m_mu;
     ret.curr = a.curr - b.curr;
     ret.prev = a.prev - b.prev;
+    ret.beta = a.beta - b.beta;
+    ret.beta_prev = a.beta_prev - b.beta_prev;
     ret.theta = a.theta - b.theta;
     ret.yield_strength = a.yield_strength - b.yield_strength;
     ret.hardening_modulus = a.hardening_modulus - b.hardening_modulus;

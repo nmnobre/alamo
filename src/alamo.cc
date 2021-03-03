@@ -43,6 +43,13 @@ int main (int argc, char* argv[])
 		eshelby->Evolve();		
 		delete eshelby;
 	}
+	else if (program == "crystalplastictensiontest")
+	{
+		Integrator::Integrator *cp_tt = new Integrator::TensionTest<Model::Solid::Affine::CrystalPlastic>();
+		cp_tt->InitData();
+		cp_tt->Evolve();		
+		delete cp_tt;
+	}
 	else if (program == "finitekinematics")
 	{
 		//Integrator::Integrator *fk = new Integrator::FiniteKinematics();

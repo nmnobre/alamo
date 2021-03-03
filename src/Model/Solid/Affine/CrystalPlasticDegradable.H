@@ -123,16 +123,16 @@ public:
         else
             Util::Abort(INFO, "Slip system not implemented yet");
 
-        prev = PlasticState::Zero();
-        curr = PlasticState::Zero();
+        prev = Set::Matrix::Zero();
+        curr = Set::Matrix::Zero();
     }
 
     void DefineSlipSystem(amrex::Vector<SlipSystem> &a_slip)
     {
         slip = a_slip;
 
-        prev = PlasticState::Zero();
-        curr = PlasticState::Zero();
+        prev = Set::Matrix::Zero();
+        curr = Set::Matrix::Zero();
     }
 
     void DegradeYieldSurface(Set::Scalar eta)
@@ -186,7 +186,7 @@ public:
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
             yield += slip[i].g_alpha0*R;
         }
-        return yield.norm()*curr.alpha;
+        return (yield.transpose()*curr).trace();
     }
 
     Set::Scalar OriginalPlasticEnergy(Set::Scalar alpha)
@@ -212,12 +212,12 @@ public:
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
             yield += slip[i].g_alpha*R;
         }
-        return yield.norm()*curr.alpha;
+        return (yield.transpose()*curr).trace();
     }
 
-    void EvolvePlasticStrain(Set::Matrix sigma, Set::Matrix /*strain*/, Set::Scalar dt)
+    void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
-        curr.epsp = prev.epsp;
+        curr = prev;
         Set::Matrix R = Set::Matrix::Zero();
 
         amrex::Vector<Set::Scalar> gamdot;
@@ -238,7 +238,7 @@ public:
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
 
-            curr.epsp += dt*gamdot[i]*R;
+            curr += dt*gamdot[i]*R;
             gam_bar += dt*std::abs(gamdot[i]);
         }
 
@@ -257,17 +257,16 @@ public:
                 slip[i].g_alpha += dt*gdotalpha;
             }
         }
-        curr.alpha = sqrt(2.0/3.0)*curr.epsp.norm();
-        Cubic::SetF0(curr.epsp);
+        Cubic::SetF0(curr);
     }
 
-    void SetPlasticStrains(PlasticState &a_state)
+    void SetPlasticStrains(Set::Matrix &a_state)
     {
         prev = a_state;
         curr = a_state;
     }
 
-    PlasticState GetPlasticState()
+    Set::Matrix GetPlasticState()
     {
         return curr;
     }
@@ -278,7 +277,7 @@ public:
     amrex::Vector<SlipSystem> slip; 
     bool hardening = false;
     Set::Scalar g0, gs, h0, hs, q, gam_bar;
-    PlasticState curr, prev;
+    Set::Matrix curr, prev;
 
 public:
     static void Parse(CrystalPlasticDegradable & value, IO::ParmParse & pp)

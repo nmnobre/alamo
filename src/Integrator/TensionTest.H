@@ -73,6 +73,17 @@ public:
                 pp.queryclass("ellipse",static_cast<IC::Ellipse*>(ic));
             }
         }
+
+        {
+            IO::ParmParse pp("plastic");
+            pp.query("on", plastic.on);
+            if (plastic.on)
+            {
+                pp.query("hardening",plastic.hardening);
+                RegisterNodalFab(plastic.strainp_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp",true);
+                RegisterNodalFab(plastic.strainp_eq_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp_eq",true);
+            }
+        }
     }
 
 protected:
@@ -114,6 +125,7 @@ protected:
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     model(i,j,k) = MODEL::Zero();
+                    if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
                     for (int n = 0; n < elastic.models.size(); n++) 
                         model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
                 });
@@ -159,9 +171,34 @@ protected:
         }
     }
 
-    void Advance(int /*lev*/, Set::Scalar /*time*/, Set::Scalar /*dt*/) override
+    void Advance(int lev, Set::Scalar /*time*/, Set::Scalar dt) override
     {
-        // Nothing to do here.
+        if (plastic.on)
+        {
+            const Set::Scalar* DX = geom[lev].CellSize();
+            for ( amrex::MFIter mfi(*eta_mf[lev],true); mfi.isValid(); ++mfi )
+            {
+                const amrex::Box& bx = mfi.nodaltilebox();
+                amrex::Array4<MODEL>        const &model = model_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar> const& stress = stress_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar> const& strain = strain_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar> const& strainp = plastic.strainp_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
+
+                amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+                    Set::Matrix sigma = Numeric::FieldToMatrix(stress,i,j,k);
+                    Set::Matrix eps = Numeric::FieldToMatrix(strain,i,j,k);
+                    Set::Matrix3 eps_grad = Numeric::GradientMatrix(strain,i,j,k,DX);
+                    model(i,j,k).Advance(sigma,eps,eps_grad,dt);
+                    Set::Matrix epsp = model(i,j,k).GetPlasticState();
+                    Numeric::MatrixToField(strainp,i,j,k,epsp);
+                    strainp_eq(i,j,k) = epsp.norm();
+                });
+            }
+            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.strainp_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
+        }
     }
 
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, amrex::Real /*time*/, int /*ngrow*/) override
@@ -175,6 +212,7 @@ protected:
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &disp = eta_mf[lev]->array(mfi);
+            amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 {
                     Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
@@ -183,6 +221,11 @@ protected:
                 }
                 {
                     Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
+                    if (grad.lpNorm<2>() * DXnorm > 0.01)
+                        tags(i, j, k) = amrex::TagBox::SET;
+                }
+                {
+                    Set::Vector grad = Numeric::Gradient(strainp_eq, i, j, k, 0, DX.data());
                     if (grad.lpNorm<2>() * DXnorm > 0.01)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
@@ -205,10 +248,16 @@ private:
     
     struct {
         std::vector<MODEL> models;
-        model_type model1, model2;
         Solver::Nonlocal::Newton<MODEL> *solver;//(elastic.op);
         BC::Operator::Elastic::Constant bc;
     } elastic;
+
+    struct{
+        bool on = false;
+        bool hardening = false;
+        Set::Field<Set::Scalar> strainp_mf;
+        Set::Field<Set::Scalar> strainp_eq_mf;
+    } plastic;
 
 };
 } // namespace Integrator

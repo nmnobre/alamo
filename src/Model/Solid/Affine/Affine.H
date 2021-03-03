@@ -17,78 +17,78 @@ namespace Affine
 //class Affine
 //{
 
-struct PlasticState{
-    Set::Matrix epsp;   // Plastic strain
-    Set::Scalar alpha;  // Equivalent plastic strain
-    Set::Matrix beta;
+// struct PlasticState{
+//     Set::Matrix epsp;   // Plastic strain
+//     Set::Scalar alpha;  // Equivalent plastic strain
+//     Set::Matrix beta;
 
-    static PlasticState Zero()
-    {
-        PlasticState ret;
-        ret.epsp = Set::Matrix::Zero();
-        ret.beta = Set::Matrix::Zero();
-        ret.alpha = 0.0;
-        return ret;
-    }
+//     static PlasticState Zero()
+//     {
+//         PlasticState ret;
+//         ret.epsp = Set::Matrix::Zero();
+//         ret.beta = Set::Matrix::Zero();
+//         ret.alpha = 0.0;
+//         return ret;
+//     }
 
-//    AMREX_FORCE_INLINE
-//    void operator = (const PlasticState &rhs)
-//    {
-//        epsp = rhs.epsp;
-//        beta = rhs.beta;
-//        alpha = rhs.alpha;
-//    }
+// //    AMREX_FORCE_INLINE
+// //    void operator = (const PlasticState &rhs)
+// //    {
+// //        epsp = rhs.epsp;
+// //        beta = rhs.beta;
+// //        alpha = rhs.alpha;
+// //    }
 
-    AMREX_FORCE_INLINE
-    void operator += (const PlasticState &rhs)
-    {
-        epsp += rhs.epsp;
-        alpha += rhs.alpha;
-        beta += rhs.beta;
-    }
-    AMREX_FORCE_INLINE
-    PlasticState operator * (const Set::Scalar _alpha) const
-    {
-        PlasticState ret;
-        ret.epsp = epsp*_alpha;
-        ret.alpha = alpha*_alpha;
-        ret.beta = beta*_alpha;
-        return ret;
-    }
-    friend PlasticState operator * (const Set::Scalar alpha, const PlasticState b);
-    friend PlasticState operator + (const PlasticState a, const PlasticState b);
-    friend PlasticState operator - (const PlasticState a, const PlasticState b);
-};
+//     AMREX_FORCE_INLINE
+//     void operator += (const PlasticState &rhs)
+//     {
+//         epsp += rhs.epsp;
+//         alpha += rhs.alpha;
+//         beta += rhs.beta;
+//     }
+//     AMREX_FORCE_INLINE
+//     PlasticState operator * (const Set::Scalar _alpha) const
+//     {
+//         PlasticState ret;
+//         ret.epsp = epsp*_alpha;
+//         ret.alpha = alpha*_alpha;
+//         ret.beta = beta*_alpha;
+//         return ret;
+//     }
+//     friend PlasticState operator * (const Set::Scalar alpha, const PlasticState b);
+//     friend PlasticState operator + (const PlasticState a, const PlasticState b);
+//     friend PlasticState operator - (const PlasticState a, const PlasticState b);
+// };
 
-AMREX_FORCE_INLINE
-PlasticState operator * (const Set::Scalar alpha, const PlasticState b)
-{
-    PlasticState ret;
-    ret.epsp = b.epsp*alpha;
-    ret.beta = b.beta*alpha;
-    ret.alpha = b.alpha*alpha;
-    return ret;
-}
+// AMREX_FORCE_INLINE
+// PlasticState operator * (const Set::Scalar alpha, const PlasticState b)
+// {
+//     PlasticState ret;
+//     ret.epsp = b.epsp*alpha;
+//     ret.beta = b.beta*alpha;
+//     ret.alpha = b.alpha*alpha;
+//     return ret;
+// }
 
-AMREX_FORCE_INLINE
-PlasticState operator + (const PlasticState a, const PlasticState b)
-{
-    PlasticState ret;
-    ret.epsp = a.epsp + b.epsp;
-    ret.beta = a.beta + b.beta;
-    ret.alpha = a.alpha + b.alpha;
-    return ret;
-}
+// AMREX_FORCE_INLINE
+// PlasticState operator + (const PlasticState a, const PlasticState b)
+// {
+//     PlasticState ret;
+//     ret.epsp = a.epsp + b.epsp;
+//     ret.beta = a.beta + b.beta;
+//     ret.alpha = a.alpha + b.alpha;
+//     return ret;
+// }
 
-AMREX_FORCE_INLINE
-PlasticState operator - (const PlasticState a, const PlasticState b)
-{
-    PlasticState ret;
-    ret.epsp = a.epsp - b.epsp;
-    ret.beta = a.beta - b.beta;
-    ret.alpha = a.alpha - b.alpha;
-    return ret;
-}
+// AMREX_FORCE_INLINE
+// PlasticState operator - (const PlasticState a, const PlasticState b)
+// {
+//     PlasticState ret;
+//     ret.epsp = a.epsp - b.epsp;
+//     ret.beta = a.beta - b.beta;
+//     ret.alpha = a.alpha - b.alpha;
+//     return ret;
+// }
 
 
 struct SlipSystem{
@@ -98,13 +98,6 @@ struct SlipSystem{
     Set::Scalar gam0dot;    ///< gamma0 dot 
     Set::Scalar g_alpha;    ///< current strength
     Set::Scalar m_exp;      ///< exponent
-
-    // Hardening law
-    // \dot{g}^{\alpha} = \sum_{\beta=1}^N h_{\alpha\beta} |\dot{\gamma}^\beta|
-    // h_{\alpha\beta} = q_{\alpha\beta} h(\bar{\gamma})
-    // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
-    // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
-    // q_{\alpha\beta} = 1 (if \alpha,\beta coplanar), q (else)
 
     Set::Scalar g_alpha0;     ///< pristine material current strength
 

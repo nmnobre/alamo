@@ -40,6 +40,10 @@ public:
     virtual Set::Matrix DW(const Set::Matrix &) const         {Util::Abort(INFO,"DW not implemented"); return Set::Matrix::Zero();};
     virtual Set::Matrix4<AMREX_SPACEDIM,SYM> DDW(const Set::Matrix &) const {Util::Abort(INFO,"DDW not implemented"); return ddw;};
 	
+    virtual void Advance(const Set::Matrix &, const Set::Matrix &, const Set::Matrix3 &, const Set::Scalar /*dt*/) {return;}
+    virtual void SetHardening(const bool /*flag*/) {return;}
+    virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
+
 public:
     mutable Set::Matrix4<AMREX_SPACEDIM,SYM> ddw;
 

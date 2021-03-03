@@ -32,6 +32,15 @@ public:
         Define(a_C11, a_C12, a_C44, m, lattice);
     }
 
+    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2, LatticeType lattice=LatticeType::FCC)
+    {
+        Eigen::Matrix3d m;
+    	m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
+    		Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
+    	 	Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
+        Define(a_C11, a_C12, a_C44, m, lattice);
+    }
+
     void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, LatticeType lattice=LatticeType::FCC)
     {
         Affine::Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
@@ -61,6 +70,27 @@ public:
     {
         Affine::Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
         DefineSlipSystem(a_slip);
+    }
+
+    void DefineSlipSystem(Set::Scalar a_g_alpha, Set::Scalar a_exp, Set::Scalar a_gam0got, LatticeType lattice=LatticeType::FCC)
+    {
+        amrex::Vector<Set::Scalar> g_alpha, m_exp, gam0dot;
+        if (lattice == LatticeType::FCC)
+        {
+            g_alpha.resize(12);
+            m_exp.resize(12);
+            gam0dot.resize(12);
+            for(int i = 0; i<12; i++)
+            {
+                g_alpha[i] = a_g_alpha;
+                m_exp[i] = a_exp;
+                gam0dot[i] = a_gam0got;
+            }
+        }
+        else
+            Util::Abort(INFO, "Lattice model not implemented yet");
+        
+        DefineSlipSystem(g_alpha, m_exp, gam0dot, lattice);
     }
 
     void DefineSlipSystem(amrex::Vector<Set::Scalar> &a_g_alpha, amrex::Vector<Set::Scalar> &a_exp, amrex::Vector<Set::Scalar> &a_gam0dot, LatticeType lattice=LatticeType::FCC)
@@ -123,16 +153,16 @@ public:
         else
             Util::Abort(INFO, "Slip system not implemented yet");
 
-        prev = PlasticState::Zero();
-        curr = PlasticState::Zero();
+        prev = Set::Matrix::Zero();
+        curr = Set::Matrix::Zero();
     }
 
     void DefineSlipSystem(amrex::Vector<SlipSystem> &a_slip)
     {
         slip = a_slip;
 
-        prev = PlasticState::Zero();
-        curr = PlasticState::Zero();
+        prev = Set::Matrix::Zero();
+        curr = Set::Matrix::Zero();
     }
 
     Set::Scalar YieldSurface()
@@ -158,12 +188,20 @@ public:
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
             yield += slip[i].g_alpha*R;
         }
-        return yield.norm()*curr.alpha;
+        return (yield.transpose()*curr).trace();
     }
 
-    void EvolvePlasticStrain(Set::Matrix sigma, Set::Matrix /*strain*/, Set::Scalar dt)
+    // Hardening law
+    // \dot{g}^{\alpha} = \sum_{\beta=1}^N h_{\alpha\beta} |\dot{\gamma}^\beta|
+    // h_{\alpha\beta} = q_{\alpha\beta} h(\bar{\gamma})
+    // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
+    // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
+    // q_{\alpha\beta} = 1 (if \alpha,\beta coplanar), q (else)
+
+    
+    void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
-        curr.epsp = prev.epsp;
+        curr = prev;
         Set::Matrix R = Set::Matrix::Zero();
 
         amrex::Vector<Set::Scalar> gamdot;
@@ -184,7 +222,7 @@ public:
                 for (int k = 0; k < AMREX_SPACEDIM; k++)
                     R(j,k) = slip[i].m(j)*slip[i].s(k);
 
-            curr.epsp += dt*gamdot[i]*R;
+            curr += dt*gamdot[i]*R;
             gam_bar += dt*std::abs(gamdot[i]);
         }
 
@@ -203,20 +241,21 @@ public:
                 slip[i].g_alpha += dt*gdotalpha;
             }
         }
-        curr.alpha = sqrt(2.0/3.0)*curr.epsp.norm();
-        Cubic::SetF0(curr.epsp);
+        Cubic::SetF0(curr);
     }
 
-    void SetPlasticStrains(PlasticState &a_state)
+    void SetPlasticStrains(Set::Matrix &a_state)
     {
         prev = a_state;
         curr = a_state;
     }
 
-    PlasticState GetPlasticState()
+    Set::Matrix GetPlasticState()
     {
         return curr;
     }
+
+    void SetHardening(bool flag) { hardening = flag; }
 
 private: // this is to fix an issue with the intel compiler and constexpr
   constexpr static Set::Scalar INVSQ2 = 0.70710678118654752440084436210484903928483593768847403658833986899536623923105351942519376716382078636750692311545614851246241802792536860632206074854996791570661133296375279637789997525057639103028574;
@@ -225,9 +264,24 @@ public:
     amrex::Vector<SlipSystem> slip; 
     bool hardening = false;
     Set::Scalar g0, gs, h0, hs, q, gam_bar;
-    PlasticState curr, prev;
+    Set::Matrix curr, prev;
 
 public:
+    static CrystalPlastic Zero()
+    {
+        CrystalPlastic ret;
+        ret.Define(0.0,0.0,0.0,0.0,0.0,0.0,LatticeType::FCC);
+        ret.DefineSlipSystem(0.,0.,0.);
+        ret.hardening = false;
+        ret.g0 = 0.0;
+        ret.gs = 0.0;
+        ret.h0 = 0.0;
+        ret.hs = 0.0;
+        ret.q = 0.0;
+        ret.gam_bar = 0.0;
+        return ret;
+    }
+
     static void Parse(CrystalPlastic & value, IO::ParmParse & pp)
     {
         Affine::Cubic::Parse(value,pp);

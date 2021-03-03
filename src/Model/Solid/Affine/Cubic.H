@@ -54,6 +54,13 @@ public:
     Set::Matrix F0 = Set::Matrix::Zero();
     static const KinematicVariable kinvar = KinematicVariable::gradu;
 
+    static Cubic Zero()
+    {
+        Cubic ret;
+        ret.Define(0.0,0.0,0.0,0.0,0.0,0.0);
+        return ret;
+    }
+
     static Cubic Random()
     {
         return Random(Util::Random(), Util::Random(), Util::Random());
