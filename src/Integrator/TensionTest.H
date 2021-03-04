@@ -81,7 +81,7 @@ public:
             {
                 pp.query("hardening",plastic.hardening);
                 RegisterNodalFab(plastic.strainp_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp",true);
-                RegisterNodalFab(plastic.strainp_eq_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp_eq",true);
+                RegisterNodalFab(plastic.strainp_eq_mf, 1, 2, "strainp_eq",true);
             }
         }
     }
@@ -102,6 +102,14 @@ protected:
 
         disp_mf[lev]->setVal(0.);
         rhs_mf[lev]->setVal(0.);
+        stress_mf[lev]->setVal(0.);
+        strain_mf[lev]->setVal(0.);
+
+        if (plastic.on)
+        {
+            plastic.strainp_mf[lev]->setVal(0.);
+            plastic.strainp_eq_mf[lev]->setVal(0.0);
+        }
     }
 
     void TimeStepBegin(Set::Scalar a_time, int) override
