@@ -327,146 +327,17 @@ public:
 
         value.DefineSlipSystem(f_g_alpha,f_g_exp,f_gam0dot);
     }
-    AMREX_FORCE_INLINE
-	void operator += (const CrystalPlastic &rhs)
-    {
-        curr += rhs.curr;
-        prev += rhs.prev;
-        for (int i = 0; i < 12; i++)
-        {
-            m_exp[i] += rhs.m_exp[i];
-            g_alpha[i] += rhs.g_alpha[i];
-            gam0dot[i] += rhs.gam0dot[i];
-        }
-        
-        g0 += rhs.g0; 
-        gs += rhs.gs;
-        h0 += rhs.h0;
-        hs += rhs.hs;
-        q += rhs.q;
-        gam_bar += rhs.gam_bar;
-        ddw += rhs.ddw;
-        F0  += rhs.F0;
-    }
-    AMREX_FORCE_INLINE
-    CrystalPlastic operator * (Set::Scalar alpha)
-    {
-        CrystalPlastic ret;
-        ret.curr = curr*alpha;
-        ret.prev = prev*alpha;
 
-        ret.DefineSlipSystem(0.,0.,0.);
-
-        for (int i = 0; i < 12; i++)
-        {
-            ret.m_exp[i] = alpha*m_exp[i];
-            ret.g_alpha[i] = alpha*g_alpha[i];
-            ret.gam0dot[i] = alpha*gam0dot[i];
-        }
-
-        ret.g0 = g0*alpha; 
-        ret.gs = gs*alpha; 
-        ret.h0 = h0*alpha; 
-        ret.hs = hs*alpha;
-        ret.q = q*alpha;
-        ret.gam_bar = gam_bar*alpha;
-        //ret.hardening = hardening;
-        ret.ddw = ddw*alpha;
-        ret.F0  = alpha*F0;
-    
-        return ret;
-    }
-    friend CrystalPlastic operator * (const Set::Scalar alpha, const CrystalPlastic b);
-    friend CrystalPlastic operator + (const CrystalPlastic a, const CrystalPlastic b);
-    friend CrystalPlastic operator - (const CrystalPlastic a, const CrystalPlastic b);
+    #define OP_CLASS CrystalPlastic
+    #define OP_VARS X(curr) X(prev) X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) X(ddw) X(F0)
+    #define OP_LOOP_NUM 12
+    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
+    #include "Model/Solid/InClassOperators.H"
 };
-AMREX_FORCE_INLINE
-CrystalPlastic operator * (const Set::Scalar alpha, const CrystalPlastic b)
-{
-    CrystalPlastic ret;
-    ret.curr = b.curr*alpha;
-    ret.prev = b.prev*alpha;
-    ret.DefineSlipSystem(0.,0.,0.);
+#include "Model/Solid/ExtClassOperators.H"
 
-    for (int i = 0; i < 12; i++)
-    {
-        ret.m_exp[i] = alpha*b.m_exp[i];
-        ret.g_alpha[i] = alpha*b.g_alpha[i];
-        ret.gam0dot[i] = alpha*b.gam0dot[i];
-    }
-    ret.g0 = b.g0*alpha; 
-    ret.gs = b.gs*alpha; 
-    ret.h0 = b.h0*alpha; 
-    ret.hs = b.hs*alpha;
-    ret.q = b.q*alpha;
-    ret.gam_bar = b.gam_bar*alpha;
-    //ret.hardening = b.hardening;
+bool CrystalPlastic::hardening = false;
 
-    ret.ddw = b.ddw*alpha;
-    ret.F0  = alpha*b.F0;
-    
-    return ret;
-}
-
-AMREX_FORCE_INLINE
-CrystalPlastic operator + (const CrystalPlastic a, const CrystalPlastic b)
-{
-    CrystalPlastic ret;
-    ret.curr = a.curr + b.curr;
-    ret.prev = a.prev + b.prev;
-
-    ret.DefineSlipSystem(0.,0.,0.);
-
-    for (int i = 0; i < 12; i++)
-    {
-        ret.m_exp[i] = a.m_exp[i] + b.m_exp[i];
-        ret.g_alpha[i] = a.g_alpha[i] + b.g_alpha[i];
-        ret.gam0dot[i] = a.gam0dot[i] + b.gam0dot[i] ;
-    }
-
-    ret.g0 = a.g0 + b.g0; 
-    ret.gs = a.gs + b.gs; 
-    ret.h0 = a.h0 + b.h0; 
-    ret.hs = a.hs + b.hs;
-    ret.q = a.q + b.q;
-    ret.gam_bar = a.gam_bar + b.gam_bar;
-    //ret.hardening = a.hardening && b.hardening;
-
-    ret.ddw = a.ddw + b.ddw;
-    ret.F0  = a.F0 + b.F0;
-    
-    return ret;
-}
-
-AMREX_FORCE_INLINE
-CrystalPlastic operator - (const CrystalPlastic a, const CrystalPlastic b)
-{
-    CrystalPlastic ret;
-    ret.curr = a.curr - b.curr;
-    ret.prev = a.prev - b.prev;
-    ret.DefineSlipSystem(0.,0.,0.);
-
-    for (int i = 0; i < 12; i++)
-    {
-        ret.m_exp[i] = a.m_exp[i] - b.m_exp[i];
-        ret.g_alpha[i] = a.g_alpha[i] - b.g_alpha[i];
-        ret.gam0dot[i] = a.gam0dot[i] - b.gam0dot[i] ;
-    }
-
-    ret.g0 = a.g0 - b.g0; 
-    ret.gs = a.gs - b.gs; 
-    ret.h0 = a.h0 - b.h0; 
-    ret.hs = a.hs - b.hs;
-    ret.q = a.q - b.q;
-    ret.gam_bar = a.gam_bar - b.gam_bar;
-    //ret.hardening = a.hardening && b.hardening;
-
-    ret.ddw = a.ddw - b.ddw;
-    ret.F0  = a.F0 - b.F0;
-    
-    return ret;
-}
-bool CrystalPlastic::hardening = true;
 }
 }
 }
