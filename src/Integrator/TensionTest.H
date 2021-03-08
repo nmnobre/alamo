@@ -14,6 +14,7 @@
 #include "IC/IC.H"
 #include "BC/BC.H"
 #include "BC/Operator/Elastic/Constant.H"
+#include "BC/Operator/Elastic/TensionTest.H"
 
 #include "IC/Ellipse.H"
 #include "Numeric/Stencil.H"
@@ -57,9 +58,20 @@ public:
                 elastic.models.push_back(tmp_model);
             }
             Util::Assert(INFO,TEST(elastic.models.size() > 0));
-
-            pp.queryclass("bc",elastic.bc);
             RegisterNodalFab(eta_mf, elastic.models.size(), 2, "eta",true);    
+
+            std::string bc_type = "constant";
+            pp.query("bc.type",bc_type);
+            if (bc_type == "constant")
+            {
+                elastic.bc = new BC::Operator::Elastic::Constant();
+                pp.queryclass("bc",static_cast<BC::Operator::Elastic::Constant*>(elastic.bc));
+            }
+            else if (bc_type == "tension_test")
+            {
+                elastic.bc = new BC::Operator::Elastic::TensionTest();
+                pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
+            }
             pp.query("solver.int",elastic.interval);
         }
         RegisterGeneralFab(model_mf, 1, 2);
@@ -74,6 +86,9 @@ public:
                 pp.queryclass("ellipse",static_cast<IC::Ellipse*>(ic));
             }
         }
+        #if AMREX_SPACEDIM==3
+        RegisterIntegratedVariable(&(trac_lo[0].data()[0]),"trac_lo_xx");
+        #endif
 
         {
             IO::ParmParse pp("plastic");
@@ -136,7 +151,7 @@ protected:
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     model(i,j,k) = MODEL::Zero();
                     if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
-                    for (int n = 0; n < elastic.models.size(); n++) 
+                    for (unsigned int n = 0; n < elastic.models.size(); n++) 
                         model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
                 });
             }
@@ -144,13 +159,13 @@ protected:
             Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
 
-        elastic.bc.SetTime(a_time);
-        elastic.bc.Init(rhs_mf,geom);
+        elastic.bc->SetTime(a_time);
+        elastic.bc->Init(rhs_mf,geom);
 
         amrex::LPInfo info;
         Operator::Elastic<MODEL::sym> elastic_op(Geom(0,finest_level), grids, DistributionMap(0,finest_level), info);
         elastic_op.SetUniform(false);
-        elastic_op.SetBC(&elastic.bc);
+        elastic_op.SetBC(elastic.bc);
 
         Set::Scalar tol_rel = 1E-8, tol_abs = 1E-8;
 
@@ -171,12 +186,26 @@ protected:
                 amrex::Array4<Set::Scalar>       const &strain  = strain_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const &disp  = disp_mf[lev]->array(mfi);
 
+
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX);
-                    Set::Matrix sigma = model(i,j,k).DW(gradu);
-                    Set::Matrix eps = 0.5*(gradu + gradu.transpose());
-                    Numeric::MatrixToField(stress,i,j,k,sigma);
-                    Numeric::MatrixToField(strain,i,j,k,eps);
+                    std::array<Numeric::StencilType,AMREX_SPACEDIM>
+					    sten = Numeric::GetStencil(i,j,k,bx);
+
+                    if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                    {
+                        Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                        Set::Matrix P = model(i,j,k).DW(F);
+                        Numeric::MatrixToField(stress,i,j,k,P);
+                        Numeric::MatrixToField(strain,i,j,k,F);
+                    }
+                    else
+                    {                    
+                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX);
+                        Set::Matrix sigma = model(i,j,k).DW(gradu);
+                        Set::Matrix eps = 0.5*(gradu + gradu.transpose());
+                        Numeric::MatrixToField(stress,i,j,k,sigma);
+                        Numeric::MatrixToField(strain,i,j,k,eps);
+                    }
                 });
             }
         }
@@ -210,6 +239,36 @@ protected:
             Util::RealFillBoundary(*plastic.strainp_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
         }
+    }
+    void Integrate(int amrlev, Set::Scalar /*time*/, int /*step*/,
+    				 const amrex::MFIter &mfi, const amrex::Box &box) override
+    {
+    	const amrex::Real *DX = geom[amrlev].CellSize();
+        amrex::Box domain = geom[amrlev].Domain();
+        domain.convert(amrex::IntVect::TheNodeVector());
+
+
+    	//Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);
+        #if AMREX_SPACEDIM == 3
+        Set::Vector da(AMREX_D_DECL(DX[1]*DX[2], DX[2]*DX[0], DX[0]*DX[1]));
+        #endif
+
+		const Dim3 lo= amrex::lbound(domain)/*, hi = amrex::ubound(domain)*/;
+		const Dim3 /*boxlo= amrex::lbound(box),*/ boxhi = amrex::ubound(box);
+
+    	amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
+    	//amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
+    	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+
+            #if AMREX_SPACEDIM == 3
+            if (i == lo.x && (j < boxhi.y && k < boxhi.z))
+            {
+                trac_lo[0](0) += 0.25 * (stress(i,j,k,0) + stress(i,j+1,k,0) + stress(i,j,k+1,0) + stress(i,j+1,k+1,0)) * da(0);
+            } 
+            #endif
+
+        });
+            
     }
 
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, amrex::Real /*time*/, int /*ngrow*/) override
@@ -252,6 +311,10 @@ private:
     Set::Field<Set::Scalar> stress_mf;
     Set::Field<Set::Scalar> strain_mf;
 
+    Set::Vector trac_lo[AMREX_SPACEDIM];
+    Set::Vector trac_hi[AMREX_SPACEDIM];
+
+
     Set::Field<MODEL> model_mf;
 
     IC::IC *ic = nullptr;          ///< Pointer to abstract IC object
@@ -260,7 +323,7 @@ private:
     struct {
         std::vector<MODEL> models;
         Solver::Nonlocal::Newton<MODEL> *solver;//(elastic.op);
-        BC::Operator::Elastic::Constant bc;
+        BC::Operator::Elastic::Elastic *bc;
         int interval=1;
     } elastic;
 

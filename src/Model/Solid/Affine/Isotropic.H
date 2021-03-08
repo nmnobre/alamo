@@ -3,7 +3,7 @@
 
 #include "AMReX.H"
 #include "IO/ParmParse.H"
-#include "Model/Solid/Solid.H"
+#include "Model/Solid/Affine/Affine.H"
 
 namespace Model
 {
@@ -11,12 +11,12 @@ namespace Solid
 {
 namespace Affine
 {
-class Isotropic : public Solid<Set::Sym::Isotropic>
+class Isotropic : public Affine<Set::Sym::Isotropic>
 {
 public:
 
 	Isotropic() {};
-    Isotropic(Solid<Set::Sym::Isotropic> base) : Solid<Set::Sym::Isotropic>(base) {};
+    Isotropic(Affine<Set::Sym::Isotropic> base) : Affine<Set::Sym::Isotropic>(base) {};
     Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
     {
         Define(a_mu,a_lambda,a_F0);
@@ -45,10 +45,6 @@ public:
     {
         return ddw;
     }
-	void SetF0(Set::Matrix a_F0) { F0 = a_F0; }
-public:
-    Set::Matrix F0;
-    KinematicVariable kinvar = KinematicVariable::gradu;
 
 public:
     static Isotropic Zero()

@@ -48,7 +48,7 @@ public:
 
     void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m)
     {
-        Affine::Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
+        Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
         
         // Set with default values
         DefineSlipSystem(16.0, 10.0, 0.001);
@@ -56,7 +56,7 @@ public:
     
     void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
     {
-        Affine::Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
+        Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
         DefineSlipSystem(a_g_alpha, a_exp, a_gam0dot);
     }
 
@@ -82,8 +82,8 @@ public:
             ,
             R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
         );
-        Set::Scalar f_dir = AMREX_D_PICK(1.0,1.0,INVSQ2);
-        Set::Scalar f_nor = AMREX_D_PICK(1.0, INVSQ2, INVSQ3);
+        Set::Scalar f_dir = AMREX_D_PICK(1.0,1.0,Set::Constant::INVSQ2);
+        Set::Scalar f_nor = AMREX_D_PICK(1.0, Set::Constant::INVSQ2, Set::Constant::INVSQ3);
         
         plane[0] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
         plane[1] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
@@ -215,9 +215,6 @@ public:
 
     void SetHardening(bool flag) { hardening = flag; }
 
-private: // this is to fix an issue with the intel compiler and constexpr
-  constexpr static Set::Scalar INVSQ2 = 0.70710678118654752440084436210484903928483593768847403658833986899536623923105351942519376716382078636750692311545614851246241802792536860632206074854996791570661133296375279637789997525057639103028574;
-  constexpr static Set::Scalar INVSQ3 = 0.57735026918962576450914878050195745564760175127012687601860232648397767230293334569371539558574952522520871380513556767665664836499965082627055183736479121617603107730076852735599160670036155830775501;
 public:
 
     // For now FCC is hardcoded in here.
@@ -227,9 +224,10 @@ public:
     std::array<Set::Scalar, 12> gam0dot;
     std::array<Set::Scalar, 12> g_alpha;
 
-    bool hardening = false;
     Set::Scalar g0, gs, h0, hs, q, gam_bar;
     Set::Matrix curr, prev;
+
+    static bool hardening;
 
 public:
     static CrystalPlastic Zero()
@@ -249,7 +247,7 @@ public:
 
     static void Parse(CrystalPlastic & value, IO::ParmParse & pp)
     {
-        Affine::Cubic::Parse(value,pp);
+        Cubic::Parse(value,pp);
         
         amrex::Vector<Set::Scalar> input_g_alpha;
         std::array<Set::Scalar,12> f_g_alpha;
@@ -372,7 +370,7 @@ public:
         ret.hs = hs*alpha;
         ret.q = q*alpha;
         ret.gam_bar = gam_bar*alpha;
-        ret.hardening = hardening;
+        //ret.hardening = hardening;
         ret.ddw = ddw*alpha;
         ret.F0  = alpha*F0;
     
@@ -402,7 +400,7 @@ CrystalPlastic operator * (const Set::Scalar alpha, const CrystalPlastic b)
     ret.hs = b.hs*alpha;
     ret.q = b.q*alpha;
     ret.gam_bar = b.gam_bar*alpha;
-    ret.hardening = b.hardening;
+    //ret.hardening = b.hardening;
 
     ret.ddw = b.ddw*alpha;
     ret.F0  = alpha*b.F0;
@@ -432,7 +430,7 @@ CrystalPlastic operator + (const CrystalPlastic a, const CrystalPlastic b)
     ret.hs = a.hs + b.hs;
     ret.q = a.q + b.q;
     ret.gam_bar = a.gam_bar + b.gam_bar;
-    ret.hardening = a.hardening && b.hardening;
+    //ret.hardening = a.hardening && b.hardening;
 
     ret.ddw = a.ddw + b.ddw;
     ret.F0  = a.F0 + b.F0;
@@ -461,14 +459,14 @@ CrystalPlastic operator - (const CrystalPlastic a, const CrystalPlastic b)
     ret.hs = a.hs - b.hs;
     ret.q = a.q - b.q;
     ret.gam_bar = a.gam_bar - b.gam_bar;
-    ret.hardening = a.hardening && b.hardening;
+    //ret.hardening = a.hardening && b.hardening;
 
     ret.ddw = a.ddw - b.ddw;
     ret.F0  = a.F0 - b.F0;
     
     return ret;
 }
-
+bool CrystalPlastic::hardening = true;
 }
 }
 }
