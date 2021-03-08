@@ -45,8 +45,7 @@ public:
     virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
 
 public:
-    mutable Set::Matrix4<AMREX_SPACEDIM,SYM> ddw;
-
+    Set::Matrix4<AMREX_SPACEDIM,SYM> ddw;
     static const KinematicVariable kinvar = KinematicVariable::F;
 
 
