@@ -82,8 +82,8 @@ public:
             ,
             R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
         );
-        Set::Scalar f_dir = AMREX_D_PICK(1.0,1.0,INVSQ2);
-        Set::Scalar f_nor = AMREX_D_PICK(1.0, INVSQ2, INVSQ3);
+        Set::Scalar f_dir = AMREX_D_PICK(1.0,1.0,Set::Constant::INVSQ2);
+        Set::Scalar f_nor = AMREX_D_PICK(1.0, Set::Constant::INVSQ2, Set::Constant::INVSQ3);
         
         plane[0] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
         plane[1] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
@@ -215,9 +215,6 @@ public:
 
     void SetHardening(bool flag) { hardening = flag; }
 
-private: // this is to fix an issue with the intel compiler and constexpr
-  constexpr static Set::Scalar INVSQ2 = 0.70710678118654752440084436210484903928483593768847403658833986899536623923105351942519376716382078636750692311545614851246241802792536860632206074854996791570661133296375279637789997525057639103028574;
-  constexpr static Set::Scalar INVSQ3 = 0.57735026918962576450914878050195745564760175127012687601860232648397767230293334569371539558574952522520871380513556767665664836499965082627055183736479121617603107730076852735599160670036155830775501;
 public:
 
     // For now FCC is hardcoded in here.
@@ -227,9 +224,10 @@ public:
     std::array<Set::Scalar, 12> gam0dot;
     std::array<Set::Scalar, 12> g_alpha;
 
-    bool hardening = false;
     Set::Scalar g0, gs, h0, hs, q, gam_bar;
     Set::Matrix curr, prev;
+
+    static hardening = false;
 
 public:
     static CrystalPlastic Zero()
