@@ -91,101 +91,101 @@ namespace Affine
 // }
 
 
-struct SlipSystem{
-    bool on;                ///< slip system active or not
-    Set::Vector s;          ///< slip plane normal
-    Set::Vector m;          ///< slip direction
-    Set::Scalar gam0dot;    ///< gamma0 dot 
-    Set::Scalar g_alpha;    ///< current strength
-    Set::Scalar m_exp;      ///< exponent
+// struct SlipSystem{
+//     bool on;                ///< slip system active or not
+//     Set::Vector s;          ///< slip plane normal
+//     Set::Vector m;          ///< slip direction
+//     Set::Scalar gam0dot;    ///< gamma0 dot 
+//     Set::Scalar g_alpha;    ///< current strength
+//     Set::Scalar m_exp;      ///< exponent
 
-    Set::Scalar g_alpha0;     ///< pristine material current strength
+//     Set::Scalar g_alpha0;     ///< pristine material current strength
 
-    void Equal (const SlipSystem &rhs)
-    {
-        s = rhs.s;
-        m = rhs.m;
-        gam0dot = rhs.gam0dot;
-        g_alpha = rhs.g_alpha;
-        g_alpha0 = rhs.g_alpha0;
-        m_exp = rhs.m_exp;
-    }
+//     void Equal (const SlipSystem &rhs)
+//     {
+//         s = rhs.s;
+//         m = rhs.m;
+//         gam0dot = rhs.gam0dot;
+//         g_alpha = rhs.g_alpha;
+//         g_alpha0 = rhs.g_alpha0;
+//         m_exp = rhs.m_exp;
+//     }
 
-//    AMREX_FORCE_INLINE
-//    void operator = (const SlipSystem &rhs)
-//    {
-//        n = rhs.n;
-//        s = rhs.s;
-//        tcrss = rhs.tcrss;
-//        tcrss0 = rhs.tcrss0;
-//        s_exp = rhs.s_exp;
-//        gam0dot = rhs.gam0dot;
-//    }
+// //    AMREX_FORCE_INLINE
+// //    void operator = (const SlipSystem &rhs)
+// //    {
+// //        n = rhs.n;
+// //        s = rhs.s;
+// //        tcrss = rhs.tcrss;
+// //        tcrss0 = rhs.tcrss0;
+// //        s_exp = rhs.s_exp;
+// //        gam0dot = rhs.gam0dot;
+// //    }
 
-    AMREX_FORCE_INLINE
-    void operator += (const SlipSystem &rhs)
-    {
-        s += rhs.s;
-        m += rhs.m;
-        g_alpha += rhs.g_alpha;
-        g_alpha0 += rhs.g_alpha0;
-        m_exp += rhs.m_exp;
-        gam0dot += rhs.gam0dot;
-    }
-    AMREX_FORCE_INLINE
-    SlipSystem operator * (const Set::Scalar alpha) const
-    {
-        SlipSystem ret;
-        ret.s = s*alpha;
-        ret.m = m*alpha;
-        ret.g_alpha = g_alpha*alpha;
-        ret.g_alpha0 = g_alpha0*alpha;
-        ret.m_exp = m_exp*alpha;
-        ret.gam0dot = gam0dot*alpha;
+//     AMREX_FORCE_INLINE
+//     void operator += (const SlipSystem &rhs)
+//     {
+//         s += rhs.s;
+//         m += rhs.m;
+//         g_alpha += rhs.g_alpha;
+//         g_alpha0 += rhs.g_alpha0;
+//         m_exp += rhs.m_exp;
+//         gam0dot += rhs.gam0dot;
+//     }
+//     AMREX_FORCE_INLINE
+//     SlipSystem operator * (const Set::Scalar alpha) const
+//     {
+//         SlipSystem ret;
+//         ret.s = s*alpha;
+//         ret.m = m*alpha;
+//         ret.g_alpha = g_alpha*alpha;
+//         ret.g_alpha0 = g_alpha0*alpha;
+//         ret.m_exp = m_exp*alpha;
+//         ret.gam0dot = gam0dot*alpha;
         
-        return ret;
-    }
-    friend SlipSystem operator * (const Set::Scalar alpha, const SlipSystem b);
-    friend SlipSystem operator + (const SlipSystem a, const SlipSystem b);
-    friend SlipSystem operator - (const SlipSystem a, const SlipSystem b);
-};
-AMREX_FORCE_INLINE
-SlipSystem operator * (const Set::Scalar alpha, const SlipSystem b)
-{
-    SlipSystem ret;
-    ret.s = b.s*alpha;
-    ret.m = b.m*alpha;
-    ret.g_alpha = b.g_alpha*alpha;
-    ret.g_alpha0 = b.g_alpha0*alpha;
-    ret.m_exp = b.m_exp*alpha;
-    ret.gam0dot = b.gam0dot*alpha;
+//         return ret;
+//     }
+//     friend SlipSystem operator * (const Set::Scalar alpha, const SlipSystem b);
+//     friend SlipSystem operator + (const SlipSystem a, const SlipSystem b);
+//     friend SlipSystem operator - (const SlipSystem a, const SlipSystem b);
+// };
+// AMREX_FORCE_INLINE
+// SlipSystem operator * (const Set::Scalar alpha, const SlipSystem b)
+// {
+//     SlipSystem ret;
+//     ret.s = b.s*alpha;
+//     ret.m = b.m*alpha;
+//     ret.g_alpha = b.g_alpha*alpha;
+//     ret.g_alpha0 = b.g_alpha0*alpha;
+//     ret.m_exp = b.m_exp*alpha;
+//     ret.gam0dot = b.gam0dot*alpha;
     
-    return ret;
-}
-AMREX_FORCE_INLINE
-SlipSystem operator + (const SlipSystem a, const SlipSystem b)
-{
-    SlipSystem ret;
-    ret.s = a.s + b.s;
-    ret.m = a.m + b.m;
-    ret.g_alpha = a.g_alpha + b.g_alpha;
-    ret.g_alpha0 = a.g_alpha0 + b.g_alpha0;
-    ret.m_exp = a.m_exp + b.m_exp;
-    ret.gam0dot = a.gam0dot + b.gam0dot;
-    return ret;
-}
-AMREX_FORCE_INLINE
-SlipSystem operator - (const SlipSystem a, const SlipSystem b)
-{
-    SlipSystem ret;
-    ret.s = a.s - b.s;
-    ret.m = a.m - b.m;
-    ret.g_alpha = a.g_alpha - b.g_alpha;
-    ret.g_alpha0 = a.g_alpha0 - b.g_alpha0;
-    ret.m_exp = a.m_exp - b.m_exp;
-    ret.gam0dot = a.gam0dot - b.gam0dot;
-    return ret;
-}
+//     return ret;
+// }
+// AMREX_FORCE_INLINE
+// SlipSystem operator + (const SlipSystem a, const SlipSystem b)
+// {
+//     SlipSystem ret;
+//     ret.s = a.s + b.s;
+//     ret.m = a.m + b.m;
+//     ret.g_alpha = a.g_alpha + b.g_alpha;
+//     ret.g_alpha0 = a.g_alpha0 + b.g_alpha0;
+//     ret.m_exp = a.m_exp + b.m_exp;
+//     ret.gam0dot = a.gam0dot + b.gam0dot;
+//     return ret;
+// }
+// AMREX_FORCE_INLINE
+// SlipSystem operator - (const SlipSystem a, const SlipSystem b)
+// {
+//     SlipSystem ret;
+//     ret.s = a.s - b.s;
+//     ret.m = a.m - b.m;
+//     ret.g_alpha = a.g_alpha - b.g_alpha;
+//     ret.g_alpha0 = a.g_alpha0 - b.g_alpha0;
+//     ret.m_exp = a.m_exp - b.m_exp;
+//     ret.gam0dot = a.gam0dot - b.gam0dot;
+//     return ret;
+// }
     
 //};
 }

@@ -60,6 +60,7 @@ public:
 
             pp.queryclass("bc",elastic.bc);
             RegisterNodalFab(eta_mf, elastic.models.size(), 2, "eta",true);    
+            pp.query("solevr.int",elastic.interval);
         }
         RegisterGeneralFab(model_mf, 1, 2);
 
@@ -112,8 +113,9 @@ protected:
         }
     }
 
-    void TimeStepBegin(Set::Scalar a_time, int) override
+    void TimeStepBegin(Set::Scalar a_time, int a_iter) override
     {
+        if(a_iter%elastic.interval) return;
         // Set linear elastic model
         
         for (int lev = 0; lev <= finest_level; ++lev)
@@ -259,6 +261,7 @@ private:
         std::vector<MODEL> models;
         Solver::Nonlocal::Newton<MODEL> *solver;//(elastic.op);
         BC::Operator::Elastic::Constant bc;
+        int interval=1;
     } elastic;
 
     struct{
