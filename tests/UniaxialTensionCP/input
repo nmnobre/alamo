@@ -54,21 +54,7 @@ elastic.solver.int = 10
 
 ### UNIAXIAL TENSION ###
 
-elastic.bc.val.xhi = 0.001 0.0 0.0
-elastic.bc.val.xhiylo = 0.001 0.0 0.0
-elastic.bc.val.xhiyhi = 0.001 0.0 0.0
-elastic.bc.val.zloxhi = 0.001 0.0 0.0
-elastic.bc.val.zhixhi = 0.001 0.0 0.0
-elastic.bc.val.xhiylozlo = 0.001 0.0 0.0
-elastic.bc.val.xhiylozhi = 0.001 0.0 0.0
-elastic.bc.val.xhiyhizlo = 0.001 0.0 0.0
-elastic.bc.val.xhiyhizhi = 0.001 0.0 0.0
-elastic.bc.type.yhi = trac trac trac
-elastic.bc.type.zhi = trac trac trac
-elastic.bc.type.ylo = trac trac trac
-elastic.bc.type.zlo = trac trac trac
-elastic.bc.type.yhizhi = trac trac trac
-elastic.bc.type.ylozhi = trac trac trac
-elastic.bc.type.yhizlo = trac trac trac
-elastic.bc.type.ylozlo = trac trac trac
+elastic.bc.type = tension_test
+elastic.bc.tension_test.type = uniaxial_stress_clamp
+elastic.bc.tension_test.disp = 0.001
 
