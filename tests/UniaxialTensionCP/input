@@ -13,6 +13,8 @@ amr.n_cell		    = 32 32 32
 amr.blocking_factor	    = 4
 amr.regrid_int		    = 1
 amr.grid_eff		    = 1.0
+amr.thermo.plot_int = 1
+amr.thermo.int = 1
 
 # geometry
 geometry.prob_lo	    = -8 -8 -8 
@@ -45,10 +47,10 @@ elastic.model1.exp = 10
 elastic.model1.gam0dot = 0.001
 
 
-elastic.solver.verbose = 2
+elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
-elastic.solver.int = 10
+#elastic.solver.int = 10
 
 ### UNIAXIAL TENSION ###
 

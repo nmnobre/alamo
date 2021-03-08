@@ -242,7 +242,36 @@ protected:
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
         }
     }
+    void Integrate(int amrlev, Set::Scalar /*time*/, int /*step*/,
+    				 const amrex::MFIter &mfi, const amrex::Box &box) override
+    {
+    	const amrex::Real *DX = geom[amrlev].CellSize();
+        amrex::Box domain = geom[amrlev].Domain();
+        domain.convert(amrex::IntVect::TheNodeVector());
 
+
+    	//Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);
+        #if AMREX_SPACEDIM == 3
+        Set::Vector da(AMREX_D_DECL(DX[1]*DX[2], DX[2]*DX[0], DX[0]*DX[1]));
+        #endif
+
+		const Dim3 lo= amrex::lbound(domain)/*, hi = amrex::ubound(domain)*/;
+		const Dim3 /*boxlo= amrex::lbound(box),*/ boxhi = amrex::ubound(box);
+
+    	amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
+    	//amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
+    	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+
+            #if AMREX_SPACEDIM == 3
+            if (i == lo.x && (j < boxhi.y && k < boxhi.z))
+            {
+                trac_lo[0](0) += 0.25 * (stress(i,j,k,0) + stress(i,j+1,k,0) + stress(i,j,k+1,0) + stress(i,j+1,k+1,0)) * da(0);
+            } 
+            #endif
+
+        });
+            
+    }
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, amrex::Real /*time*/, int /*ngrow*/) override
     {
         Set::Vector DX(geom[lev].CellSize());
