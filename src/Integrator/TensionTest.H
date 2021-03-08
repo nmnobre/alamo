@@ -72,7 +72,7 @@ public:
                 elastic.bc = new BC::Operator::Elastic::TensionTest();
                 pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
             }
-
+            pp.query("solver.int",elastic.interval);
         }
         RegisterGeneralFab(model_mf, 1, 2);
 
@@ -138,8 +138,6 @@ protected:
             rhs_mf[lev]->setVal(0.0);
 
             eta_mf[lev]->FillBoundary();
-
-            disp_mf[lev]->setVal(0.0);
 
             Set::Vector DX(geom[lev].CellSize());
 
@@ -272,6 +270,7 @@ protected:
         });
             
     }
+
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, amrex::Real /*time*/, int /*ngrow*/) override
     {
         Set::Vector DX(geom[lev].CellSize());

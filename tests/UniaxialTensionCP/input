@@ -50,7 +50,7 @@ elastic.model1.gam0dot = 0.001
 elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
-#elastic.solver.int = 10
+elastic.solver.int = 10
 
 ### UNIAXIAL TENSION ###
 

@@ -331,7 +331,7 @@ public:
     #define OP_CLASS CrystalPlastic
     #define OP_VARS X(curr) X(prev) X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) X(ddw) X(F0)
     #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(plane) X(dir) X(m_exp) X(g_alpha) X(gam0dot)
+    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
