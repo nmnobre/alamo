@@ -60,7 +60,7 @@ public:
 
             pp.queryclass("bc",elastic.bc);
             RegisterNodalFab(eta_mf, elastic.models.size(), 2, "eta",true);    
-            pp.query("solevr.int",elastic.interval);
+            pp.query("solver.int",elastic.interval);
         }
         RegisterGeneralFab(model_mf, 1, 2);
 

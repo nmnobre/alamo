@@ -4,10 +4,10 @@ plot_file		    = tests/UniaxialTensionCP/output
 # this is not a time integration, so do
 # exactly one timestep and then quit
 timestep		    = 1.e-6
-stop_time		    = 1.e-5
+stop_time		    = 1.e-4
 
 # amr parameters
-amr.plot_int		    = 1
+amr.plot_int		    = 10
 amr.max_level		    = 0
 amr.n_cell		    = 32 32 32
 amr.blocking_factor	    = 4
@@ -48,7 +48,7 @@ elastic.model1.gam0dot = 0.001
 elastic.solver.verbose = 2
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
-elastic.solver.int = 5
+elastic.solver.int = 10
 
 ### UNIAXIAL TENSION ###
 
