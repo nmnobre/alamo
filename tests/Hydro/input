@@ -5,7 +5,7 @@ alamo.program = hydro
 plot_file       = tests/Hydro/output  # The name of the output file 
 amr.plot_int        = 100             # How frequently to dump output
 
-amr.max_level       = 3               # How many levels of grid refinement are allowed
+amr.max_level       = 2               # How many levels of grid refinement are allowed
 amr.n_cell          = 30 10 2         # Number of cells in the x,y,z directions
 #amr.max_grid_size	= 50          # * Maximum allowable grid size
 amr.blocking_factor	= 1           # * Minimum size of each block
@@ -21,12 +21,6 @@ stop_time           = 10.0
 
 physics.gamma      = 1.4    # adiabatic gamma
 
-# ic.rho.type = constant
-# ic.rho.val = 1
-# ic.p.type = constant
-# ic.p.val = 1
-# ic.e.type = constant
-# ic.e.val = 1
 
 bc.rho.type.xlo = dirichlet
 bc.rho.type.xhi = dirichlet
