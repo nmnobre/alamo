@@ -43,8 +43,8 @@ void Hydro::Initialize(int lev)
 	e_mf[lev]->setVal(1.0);
 	e_old_mf[lev]->setVal(1.0);
 
-	u_mf[lev].get()->setVal(1.0);
-	
+	u_mf[lev].get()->setVal(0.0);
+	u_mf[lev].get()->setVal(1.0,0,1,0);
 }
 
 
