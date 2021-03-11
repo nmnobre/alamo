@@ -22,14 +22,14 @@ Hydro::Hydro() : Integrator()
 		}
 
 
-  RegisterNewFab(rho_mf,     rhoBC, 1, 0, "rho", true);
-  RegisterNewFab(rho_old_mf, rhoBC, 1, 0, "rho_old", false);
-  RegisterNodalFab(u_mf, 3, 0, "u", true);
-  RegisterNodalFab(u_old_mf, 3, 0, "u_old", false);
-  RegisterNewFab(p_mf,     pBC, 1, 0, "p", true);
-  RegisterNewFab(p_old_mf, pBC, 1, 0, "p_old", false);
-  RegisterNewFab(e_mf,     eBC, 1, 0, "e", true);
-  RegisterNewFab(e_old_mf, eBC, 1, 0, "e_old", false);
+  RegisterNewFab(rho_mf,     rhoBC, 1, 1, "rho", true);
+  RegisterNewFab(rho_old_mf, rhoBC, 1, 1, "rho_old", false);
+  RegisterNodalFab(u_mf, 3, 1, "u", true);
+  RegisterNodalFab(u_old_mf, 3, 1, "u_old", false);
+  RegisterNewFab(p_mf,     pBC, 1, 1, "p", true);
+  RegisterNewFab(p_old_mf, pBC, 1, 1, "p_old", false);
+  RegisterNewFab(e_mf,     eBC, 1, 1, "e", true);
+  RegisterNewFab(e_old_mf, eBC, 1, 1, "e_old", false);
 }
 
 void Hydro::Initialize(int lev)
@@ -43,8 +43,10 @@ void Hydro::Initialize(int lev)
 	e_mf[lev]->setVal(1.0);
 	e_old_mf[lev]->setVal(1.0);
 
-	u_mf[lev].get()->setVal(0.0);
-	u_mf[lev].get()->setVal(1.0,0,1,0);
+	u_mf[lev].get()->setVal(0.0,1);
+	u_old_mf[lev]->setVal(0.0,1);
+	u_mf[lev].get()->setVal(1.0,0,1,1);
+	u_old_mf[lev].get()->setVal(1.0,0,1,1);
 }
 
 
@@ -54,6 +56,11 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
   std::swap(u_old_mf[lev], u_mf[lev]);
   std::swap(p_old_mf[lev], p_mf[lev]);
   std::swap(e_old_mf[lev], e_mf[lev]);
+  
+  
+	amrex::Box domain(geom[lev].Domain());
+	domain.convert(amrex::IntVect::TheNodeVector());
+	const amrex::Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
 
   static amrex::IntVect AMREX_D_DECL(dx(AMREX_D_DECL(1,0,0)),
 				     dy(AMREX_D_DECL(0,1,0)),
@@ -63,7 +70,7 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 
   for (amrex::MFIter mfi(*rho_mf[lev],true); mfi.isValid(); ++mfi)
     {
-      const amrex::Box& bx = mfi.tilebox();
+      const amrex::Box& bx = mfi.nodaltilebox();
 
       amrex::Array4<Set::Scalar> const &rho		        = (*rho_mf[lev]).array(mfi);
       amrex::Array4<const Set::Scalar> const &rho_old   	= (*rho_old_mf[lev]).array(mfi);
@@ -84,51 +91,57 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 				Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
 				Set::Vector e_grad = Numeric::Gradient(e_old, i, j, k, 0, DX);
 
-				if (j == bx.loVect()[1] || j == bx.hiVect()[1] || k == bx.loVect()[2] || k == bx.hiVect()[2])
-				  {
-				    Set::Vector u1_grad(1.0, 0.0, 0.0);
-				    Set::Vector u2_grad = Set::Vector::Zero();
-				    Set::Vector u3_grad = Set::Vector::Zero();
+				if (j == lo.y || j == hi.y || k == lo.z || k == hi.z)
+				{
+					Set::Vector u1_grad(1.0, 0.0, 0.0);
+					Set::Vector u2_grad = Set::Vector::Zero();
+					Set::Vector u3_grad = Set::Vector::Zero();
 
-				    rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad(0)) + u_old(i, j, k, 1)*(rho_grad(1)) + u_old(i, j, k, 2)*(rho_grad(2)) + rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+					rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0) * (rho_grad(0)) + u_old(i, j, k, 1) * (rho_grad(1)) + u_old(i, j, k, 2) * (rho_grad(2)) + rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+					if (i == lo.x)
+					{
+						u(i, j, k, 0) = 0.0;
+						u(i, j, k, 1) = 0.0;
+						u(i, j, k, 2) = 0.0;
+					}
 
-				    if(i == bx.loVect()[0])
-				      {u(i, j, k, 0) = 0.0;
-				      u(i, j, k, 1) = 0.0;
-				      u(i, j, k, 2) = 0.0;}
+					else if (i == hi.x)
+					{
+						u(i, j, k, 0) = 1.0;
+						u(i, j, k, 1) = 0.0;
+						u(i, j, k, 2) = 0.0;
+					}
 
-				    else if(i == bx.hiVect()[0])
-				      {u(i, j, k, 0) = 1.0;
-				      u(i, j, k, 1) = 0.0;
-				      u(i, j, k, 2) = 0.0;}
+					else
+					{
+						u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(0))) * dt;
 
-				    else {
-				      u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0)*(u_old(i, j, k, 0)*(u1_grad(0)) + u_old(i, j, k, 1)*(u1_grad(1)) + u_old(i, j, k, 2)*(u1_grad(2))) + 1/rho_old(i, j, k)*(p_grad(0)))*dt;
-				
-				      u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1)*(u_old(i, j, k, 0)*(u2_grad(0)) + u_old(i, j, k, 1)*(u2_grad(1)) + u_old(i, j, k, 2)*(u2_grad(2))) + 1/rho_old(i, j, k)*(p_grad(1)))*dt;
-				
-				      u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2)*(u_old(i, j, k, 0)*(u3_grad(0)) + u_old(i, j, k, 1)*(u3_grad(1)) + u_old(i, j, k, 2)*(u3_grad(2))) + 1/rho_old(i, j, k)*(p_grad(2)))*dt;
-		       }
-				
-				    e(i,j,k) = e_old(i,j,k) - ((u_old(i, j, k, 0)*(e_grad(0)) + u_old(i, j, k, 1)*(e_grad(1)) + u_old(i, j, k, 2)*(e_grad(2))) + p_old(i, j, k)/rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
-				
-				    p(i, j, k) = (gamma - 1)*rho(i, j, k)*e(i, j, k);
-				  }
+						u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1) * (u_old(i, j, k, 0) * (u2_grad(0)) + u_old(i, j, k, 1) * (u2_grad(1)) + u_old(i, j, k, 2) * (u2_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(1))) * dt;
+
+						u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(2))) * dt;
+					}
+
+					e(i, j, k) = e_old(i, j, k) - ((u_old(i, j, k, 0) * (e_grad(0)) + u_old(i, j, k, 1) * (e_grad(1)) + u_old(i, j, k, 2) * (e_grad(2))) + p_old(i, j, k) / rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+
+					p(i, j, k) = (gamma - 1) * rho(i, j, k) * e(i, j, k);
+				}
 
 				else
 				  {
 				    Set::Vector u1_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
-				    Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
-				    Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
+				    Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 1, DX);
+				    Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 2, DX);
+					//Numeric::Interpolate::CellToNodeAverage() // take a cell fab and give the cooresponding nodal average
+					//Numeric::Interpolate::NodeToCellAverage() // vice versa
 
 				    rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad(0)) + u_old(i, j, k, 1)*(rho_grad(1)) + u_old(i, j, k, 2)*(rho_grad(2)) + rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
 
-				    if(i == bx.loVect()[0])
+				    if(i == lo.x)
 				      {u(i, j, k, 0) = 0.0;
 				      u(i, j, k, 1) = 0.0;
 				      u(i, j, k, 2) = 0.0;}
 
-				    else if(i == bx.hiVect()[0])
+				    else if(i == hi.x)
 				      {u(i, j, k, 0) = 1.0;
 				      u(i, j, k, 1) = 0.0;
 				      u(i, j, k, 2) = 0.0;}
