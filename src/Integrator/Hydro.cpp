@@ -96,7 +96,7 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 
 		amrex::ParallelFor(bx_node, [=] AMREX_GPU_DEVICE(int i, int j, int k)
 			{ 
-			  Set::Vector p_grad = Numeric::Gradient(Numeric::Interpolate::CellToNodeAverage(p_old,i,j,k,0), i, j, k, 0, DX);
+			  Set::Vector p_grad = Numeric::Gradient(Numeric::Interpolate::CellToNodeAverage(p_old,i,j,k,0), i, j, k, 0, DX); //TODO
 
 				if (j == lo.y || j == hi.y || k == lo.z || k == hi.z)
 				{
