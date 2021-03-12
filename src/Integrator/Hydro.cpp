@@ -77,8 +77,12 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 
   for (amrex::MFIter mfi(*rho_mf[lev],true); mfi.isValid(); ++mfi)
     {
+<<<<<<< HEAD
       const amrex::Box& bx_node = mfi.nodaltilebox();
       // const amrex::Box& bx_cell = mfi.tilebox();
+=======
+      const amrex::Box& bx = mfi.nodaltilebox();
+>>>>>>> f4817b11e128cbf70ce0cda669e5724307202cf9
 
       amrex::Array4<Set::Scalar> const &rho		        = (*rho_mf[lev]).array(mfi);
       amrex::Array4<const Set::Scalar> const &rho_old   	= (*rho_old_mf[lev]).array(mfi);
@@ -100,6 +104,7 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 					Set::Vector u2_grad = Set::Vector::Zero();
 					Set::Vector u3_grad = Set::Vector::Zero();
 
+<<<<<<< HEAD
 					if (i == lo.x)
 					{
 						u(i, j, k, 0) = 0.0;
@@ -110,10 +115,23 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 					else if (i == hi.x)
 					{
 						u(i, j, k, 0) = 1.0;
+=======
+				if (j == lo.y || j == hi.y || k == lo.z || k == hi.z)
+				{
+					Set::Vector u1_grad(1.0, 0.0, 0.0);
+					Set::Vector u2_grad = Set::Vector::Zero();
+					Set::Vector u3_grad = Set::Vector::Zero();
+
+					rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0) * (rho_grad(0)) + u_old(i, j, k, 1) * (rho_grad(1)) + u_old(i, j, k, 2) * (rho_grad(2)) + rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+					if (i == lo.x)
+					{
+						u(i, j, k, 0) = 0.0;
+>>>>>>> f4817b11e128cbf70ce0cda669e5724307202cf9
 						u(i, j, k, 1) = 0.0;
 						u(i, j, k, 2) = 0.0;
 					}
 
+<<<<<<< HEAD
 					else
 					{
 						u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(0))) * dt;
@@ -122,12 +140,41 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 
 						u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(2))) * dt;
 					}}
+=======
+					else if (i == hi.x)
+					{
+						u(i, j, k, 0) = 1.0;
+						u(i, j, k, 1) = 0.0;
+						u(i, j, k, 2) = 0.0;
+					}
+
+					else
+					{
+						u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(0))) * dt;
+
+						u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1) * (u_old(i, j, k, 0) * (u2_grad(0)) + u_old(i, j, k, 1) * (u2_grad(1)) + u_old(i, j, k, 2) * (u2_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(1))) * dt;
+
+						u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / rho_old(i, j, k) * (p_grad(2))) * dt;
+					}
+
+					e(i, j, k) = e_old(i, j, k) - ((u_old(i, j, k, 0) * (e_grad(0)) + u_old(i, j, k, 1) * (e_grad(1)) + u_old(i, j, k, 2) * (e_grad(2))) + p_old(i, j, k) / rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+
+					p(i, j, k) = (gamma - 1) * rho(i, j, k) * e(i, j, k);
+				}
+>>>>>>> f4817b11e128cbf70ce0cda669e5724307202cf9
 
 				else
 				  {
 				    Set::Vector u1_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
 				    Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 1, DX);
 				    Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 2, DX);
+<<<<<<< HEAD
+=======
+					//Numeric::Interpolate::CellToNodeAverage() // take a cell fab and give the cooresponding nodal average
+					//Numeric::Interpolate::NodeToCellAverage() // vice versa
+
+				    rho(i, j, k) = rho_old(i, j, k) - (u_old(i, j, k, 0)*(rho_grad(0)) + u_old(i, j, k, 1)*(rho_grad(1)) + u_old(i, j, k, 2)*(rho_grad(2)) + rho_old(i, j, k)*(u1_grad(0) + u2_grad(1) + u3_grad(2)))*dt;
+>>>>>>> f4817b11e128cbf70ce0cda669e5724307202cf9
 
 				    if(i == lo.x)
 				      {u(i, j, k, 0) = 0.0;
