@@ -532,6 +532,79 @@ Gradient(const amrex::Array4<const Set::Scalar> &f,
 }
 
 AMREX_FORCE_INLINE
+Set::Vector
+Gradient_CellToNode(const amrex::Array4<const Set::Scalar> &f_cell,
+		const int &i, const int &j, const int &k, const int &n,
+		const Set::Scalar dx[AMREX_SPACEDIM])
+{
+	Set::Vector ret;
+
+	#if   AMREX_SPACEDIM == 1
+	ret(0) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n)
+	    	  - f_cell(i-1,j  ,k  ,n))/dx[0];
+	#elif AMREX_SPACEDIM == 2
+	ret(0) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n) + f_cell(i  ,j-1,k  ,n)
+	    	  - f_cell(i-1,j  ,k  ,n) - f_cell(i-1,j-1,k  ,n))/dx[0];
+	ret(1) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n) + f_cell(i-1,j  ,k  ,n)
+	    	  - f_cell(i  ,j-1,k  ,n) - f_cell(i-1,j-1,k  ,n))/dx[1];
+	#elif AMREX_SPACEDIM == 3
+	ret(0) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n) + f_cell(i  ,j-1,k  ,n) + f_cell(i  ,j  ,k-1,n) + f_cell(i  ,j-1,k-1,n)
+	    	  - f_cell(i-1,j  ,k  ,n) - f_cell(i-1,j-1,k  ,n) - f_cell(i-1,j  ,k-1,n) - f_cell(i-1,j-1,k-1,n))/dx[0];
+	
+	ret(1) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n) + f_cell(i-1,j  ,k  ,n) + f_cell(i  ,j  ,k-1,n) + f_cell(i-1,j  ,k-1,n)
+	    	  - f_cell(i  ,j-1,k  ,n) - f_cell(i-1,j-1,k  ,n) - f_cell(i  ,j-1,k-1,n) - f_cell(i-1,j-1,k-1,n))/dx[1];
+	
+	ret(2) = 
+		0.25*(  f_cell(i  ,j  ,k  ,n) + f_cell(i-1,j  ,k  ,n) + f_cell(i  ,j-1,k  ,n) + f_cell(i-1,j-1,k  ,n)
+	    	  - f_cell(i  ,j  ,k-1,n) - f_cell(i-1,j  ,k-1,n) - f_cell(i  ,j-1,k-1,n) - f_cell(i-1,j-1,k-1,n))/dx[2];
+	#endif
+	
+	return ret;
+}
+
+AMREX_FORCE_INLINE
+Set::Vector
+Gradient_NodeToCell(const amrex::Array4<const Set::Scalar> &f_node,
+		const int &i, const int &j, const int &k, const int &n,
+		const Set::Scalar dx[AMREX_SPACEDIM])
+{
+	Set::Vector ret;
+
+	#if   AMREX_SPACEDIM == 1
+	ret(0) = 
+		0.25*(  f_node(i+1,j  ,k  ,n)
+	    	  - f_node(i  ,j  ,k  ,n))/dx[0];
+	#elif AMREX_SPACEDIM == 2
+	ret(0) = 
+		0.25*(  f_node(i+1,j  ,k  ,n) + f_node(i+1,j+1,k  ,n)
+	    	  - f_node(i  ,j  ,k  ,n) - f_node(i  ,j+1,k  ,n))/dx[0];
+	ret(1) = 
+		0.25*(  f_node(i  ,j+1,k  ,n) + f_node(i+1,j+1,k  ,n)
+	    	  - f_node(i  ,j  ,k  ,n) - f_node(i+1,j  ,k  ,n))/dx[1];
+	#elif AMREX_SPACEDIM == 3
+	ret(0) = 
+		0.25*(  f_node(i+1,j  ,k  ,n) + f_node(i+1,j+1,k  ,n) + f_node(i+1,j  ,k+1,n) + f_node(i+1,j+1,k+1,n)
+	    	  - f_node(i  ,j  ,k  ,n) - f_node(i  ,j+1,k  ,n) - f_node(i  ,j  ,k+1,n) - f_node(i  ,j+1,k+1,n))/dx[0];
+	
+	ret(1) = 
+		0.25*(  f_node(i  ,j+1,k  ,n) + f_node(i+1,j+1,k  ,n) + f_node(i  ,j+1,k+1,n) + f_node(i+1,j+1,k+1,n)
+	    	  - f_node(i  ,j  ,k  ,n) - f_node(i+1,j  ,k  ,n) - f_node(i  ,j  ,k+1,n) - f_node(i+1,j  ,k+1,n))/dx[1];
+	
+	ret(2) = 
+		0.25*(  f_node(i  ,j  ,k+1,n) + f_node(i+1,j  ,k+1,n) + f_node(i  ,j+1,k+1,n) + f_node(i+1,j+1,k+1,n)
+	    	  - f_node(i  ,j  ,k  ,n) - f_node(i+1,j  ,k  ,n) - f_node(i  ,j+1,k  ,n) - f_node(i+1,j+1,k  ,n))/dx[2];
+	#endif
+	
+	return ret;
+}
+
+
+AMREX_FORCE_INLINE
 Set::Matrix
 Gradient(const amrex::Array4<const Set::Scalar> &f,
 		const int &i, const int &j, const int &k,
