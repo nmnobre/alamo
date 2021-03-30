@@ -44,8 +44,8 @@ void Hydro::Initialize(int lev)
         rho_mf[lev]->setVal(1.0);
 	rho_old_mf[lev]->setVal(1.0);
 
-        p_mf[lev]->setVal(0.0);
-	p_old_mf[lev]->setVal(0.0);
+        p_mf[lev]->setVal(1.0);
+	p_old_mf[lev]->setVal(1.0);
 
 	e_mf[lev]->setVal(0.0);
 	e_old_mf[lev]->setVal(0.0);
@@ -93,6 +93,8 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 		amrex::ParallelFor(bx_node, [=] AMREX_GPU_DEVICE(int i, int j, int k)
 			{ 
 			  Set::Vector p_grad = Numeric::Gradient_CellToNode(p_old,i,j,k,0,DX);
+			  Set::Vector u2_grad = Set::Vector::Zero();
+			  Set::Vector u3_grad = Set::Vector::Zero();
 
 				if (i == lo.x)
 				  {
@@ -100,27 +102,38 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 				  u(i, j, k, 1) = 0.0;
 				  u(i, j, k, 2) = 0.0;
 				  }
-				
+
+				else if (i == hi.x)
+				  {
+				  Set::Vector u1_grad = Set::Vector::Zero();
+				    
+				  u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(0))) * dt;
+
+				  u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1) * (u_old(i, j, k, 0) * (u2_grad(0)) + u_old(i, j, k, 1) * (u2_grad(1)) + u_old(i, j, k, 2) * (u2_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(1))) * dt;
+
+				  u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(2))) * dt;
+				  }
+
 				else
 				  {
 				    if (j == lo.y || j == hi.y || k == lo.z || k == hi.z)
 					{
-					  Set::Vector u1_grad = Set::Vector::Zero();
-					  Set::Vector u2_grad = Set::Vector::Zero();
-					  Set::Vector u3_grad = Set::Vector::Zero();
+					  u(i, j, k, 0) = 0.0;
+					  u(i, j, k, 1) = 0.0;
+					  u(i, j, k, 2) = 0.0;
 					}
 
 				    else
 				      {
 					Set::Vector u1_grad = Numeric::Gradient(u_old, i, j, k, 0, DX);
-					Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 1, DX);
-					Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 2, DX);
+					// Set::Vector u2_grad = Numeric::Gradient(u_old, i, j, k, 1, DX);
+					// Set::Vector u3_grad = Numeric::Gradient(u_old, i, j, k, 2, DX);
 				    
-				    u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(0))) * dt;
+					u(i, j, k, 0) = u_old(i, j, k, 0) - (u_old(i, j, k, 0) * (u_old(i, j, k, 0) * (u1_grad(0)) + u_old(i, j, k, 1) * (u1_grad(1)) + u_old(i, j, k, 2) * (u1_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(0))) * dt;
 
-				    u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1) * (u_old(i, j, k, 0) * (u2_grad(0)) + u_old(i, j, k, 1) * (u2_grad(1)) + u_old(i, j, k, 2) * (u2_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(1))) * dt;
+					u(i, j, k, 1) = u_old(i, j, k, 1) - (u_old(i, j, k, 1) * (u_old(i, j, k, 0) * (u2_grad(0)) + u_old(i, j, k, 1) * (u2_grad(1)) + u_old(i, j, k, 2) * (u2_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(1))) * dt;
 
-				    u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(2))) * dt;
+					u(i, j, k, 2) = u_old(i, j, k, 2) - (u_old(i, j, k, 2) * (u_old(i, j, k, 0) * (u3_grad(0)) + u_old(i, j, k, 1) * (u3_grad(1)) + u_old(i, j, k, 2) * (u3_grad(2))) + 1 / Numeric::Interpolate::CellToNodeAverage(rho_old,i,j,k,0) * (p_grad(2))) * dt;
 				      }
 				  }	
 		  });
@@ -128,7 +141,7 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 		amrex::ParallelFor(bx_cell, [=] AMREX_GPU_DEVICE(int i, int j, int k)
 			{ 
 			  Set::Vector rho_grad = Numeric::Gradient(rho_old, i, j, k, 0, DX);
-			  Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
+			  // Set::Vector p_grad = Numeric::Gradient(p_old, i, j, k, 0, DX);
 			  Set::Vector e_grad = Numeric::Gradient(e_old, i, j, k, 0, DX);
 
 			  Set::Vector u_avg;
@@ -136,21 +149,28 @@ void Hydro::Advance (int lev, amrex::Real /*time*/, amrex::Real dt)
 			  u_avg(1) = Numeric::Interpolate::NodeToCellAverage<Set::Scalar>(u,i,j,k,1);
 			  u_avg(2) = Numeric::Interpolate::NodeToCellAverage<Set::Scalar>(u,i,j,k,2);
 					
-			  Set::Vector u1_grad = Numeric::Gradient_NodeToCell(u,i,j,k,0,DX);
-			  Set::Vector u2_grad = Numeric::Gradient_NodeToCell(u,i,j,k,1,DX);
-			  Set::Vector u3_grad = Numeric::Gradient_NodeToCell(u,i,j,k,2,DX);
-
-			  rho(i, j, k) = rho_old(i, j, k) - (u_avg.dot(rho_grad) + rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
-
-			  e(i, j, k) = e_old(i, j, k) - (u_avg.dot(e_grad) + p_old(i, j, k) / rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+			  // Set::Vector u1_grad = Numeric::Gradient_NodeToCell(u,i,j,k,0,DX);
+			  Set::Vector u2_grad = Set::Vector::Zero();
+			  Set::Vector u3_grad = Set::Vector::Zero();
 
 				if (i == hi.x)
 				  {	
-				    p(i, j, k) = 0.0;
+				    p(i, j, k) = 1.0;
+				    Set::Vector u1_grad = Set::Vector::Zero();
+
+				    rho(i, j, k) = rho_old(i, j, k) - (u_avg.dot(rho_grad) + rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+
+				    e(i, j, k) = e_old(i, j, k) - (u_avg.dot(e_grad) + p_old(i, j, k) / rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
 				  }
 
 				else
 				  {
+				    Set::Vector u1_grad = Numeric::Gradient_NodeToCell(u,i,j,k,0,DX);
+
+				    rho(i, j, k) = rho_old(i, j, k) - (u_avg.dot(rho_grad) + rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+
+				    e(i, j, k) = e_old(i, j, k) - (u_avg.dot(e_grad) + p_old(i, j, k) / rho_old(i, j, k) * (u1_grad(0) + u2_grad(1) + u3_grad(2))) * dt;
+				    
 				    p(i, j, k) = (gamma - 1)*rho(i, j, k)*e(i, j, k);
 				  }
 	

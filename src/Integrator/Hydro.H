@@ -42,15 +42,15 @@ private:
 	Set::Field<Set::Scalar> e_old_mf;
 
         BC::BC<Set::Scalar> *rhoBC;
-	// BC::BC<Set::Scalar> *u1BC;
-        // BC::BC<Set::Scalar> *u2BC;
-	// BC::BC<Set::Scalar> *u3BC;
+	BC::BC<Set::Scalar> *u1BC;
+        BC::BC<Set::Scalar> *u2BC;
+	BC::BC<Set::Scalar> *u3BC;
         BC::BC<Set::Scalar> *pBC;
 	BC::BC<Set::Scalar> *eBC;
  
-	IC::IC *rhoIC;
-	IC::IC *pIC;
-        IC::IC *eIC;
+	// IC::IC *rhoIC;
+	// IC::IC *pIC;
+        // IC::IC *eIC;
   // initial velocities are hard coded
 
 	amrex::Real gamma;                  // adiabatic gamma
