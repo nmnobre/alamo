@@ -60,7 +60,8 @@ public:
         }
         
 
-        pp_crack.queryclass("constant",crack.cracktype);
+        // pp_crack.queryclass("constant",crack.cracktype);
+        pp_crack.queryclass("sin",crack.cracktype);
 
         IO::ParmParse pp_crack_df("crack.df");
         pp_crack_df.query("mult_Gc", crack.mult_df_Gc);
@@ -98,7 +99,7 @@ public:
 
         RegisterNodalFab(crack.c_mf, 1, number_of_ghost_nodes, "crack", true);
         RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", false);
-        RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", false);
+        RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", true);
 
         RegisterIntegratedVariable(&(crack.driving_force_norm),"driving_force_norm");
         RegisterIntegratedVariable(&(crack.int_crack),"int_c");
@@ -431,89 +432,103 @@ protected:
                     Set::Scalar rhs = 0.0;
                     Set::Scalar Theta = 0.0;
 
-                    if (anisotropy.on)
+                    Set::Vector Dc = Numeric::Gradient(c_old, i, j, k, 0, DX);
+                    Set::Scalar normgrad = Dc.lpNorm<2>();
+                    if(normgrad > 1.e-4)
                     {
-                        Set::Vector Dc = Numeric::Gradient(c_old, i, j, k, 0, DX);
-                        Set::Scalar Theta = atan2(Dc(1),Dc(0));
-                    }
-                    
-
-                    Set::Scalar Gc = crack.cracktype.Gc(Theta);
-                    Set::Scalar Zeta = crack.cracktype.Zeta(Theta);
-                    Set::Scalar laplacian = Numeric::Laplacian(c_old,i,j,k,0,DX);
-                    
-                    Set::Scalar bilap = 
-                              Numeric::Stencil<Set::Scalar, 4, 0, 0>::D(c_old,i,j,k,0,DX) + 
-                        2.0 * Numeric::Stencil<Set::Scalar, 2, 2, 0>::D(c_old,i,j,k,0,DX) +
-                              Numeric::Stencil<Set::Scalar, 0, 4, 0>::D(c_old,i,j,k,0,DX); 
-                    
-                    
-                    Set::Scalar en_cell = energy(i,j,k,0);
-                    df(i,j,k,0) = crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
-                    rhs += crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
-
-                    Set::Scalar _temp_product = 1.0;
-                    for (int m = 0; m < number_of_materials; m++) _temp_product *= mat(i,j,k,m);
-                    if (number_of_materials > 1) Gc *= (1.0 - _temp_product*(1.-crack.mult_df_Gc)/0.25);
-
-                    df(i,j,k,1) = Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.0)/(4.0*Zeta);
-                    rhs += Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.)/(4.0*Zeta);
-
-                    df(i,j,k,2) = 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
-                    rhs -= 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
-
-                    if (anisotropy.on)
-                    {
-                        Set::Vector Dc = Numeric::Gradient(c_old, i, j, k, 0, DX);
-                        Set::Scalar normgrad = Dc.lpNorm<2>();
-                        Set::Matrix DDc = Numeric::Hessian(c_old, i, j, k, 0, DX);
-                        Set::Matrix4<AMREX_SPACEDIM, Set::Sym::Full> DDDDc = Numeric::DoubleHessian<AMREX_SPACEDIM>(c_old, i, j, k, 0, DX);
-
-                        Set::Scalar DGc = crack.cracktype.DGc(Theta);
-                        Set::Scalar DDGc = crack.cracktype.DDGc(Theta);
-                        Set::Scalar wc = crack.cracktype.w_phi(c_old(i,j,k,0),0.0);
-
-                        Set::Scalar sinTheta = sin(Theta);
-                        Set::Scalar cosTheta = cos(Theta);
-                        Set::Scalar sin2Theta = sin(2.0*Theta);
-                        Set::Scalar cos2Theta = cos(2.0*Theta);
-
-                        rhs -= ( (wc/4.0/Zeta) + Zeta*normgrad*normgrad )* (DDGc / normgrad / normgrad) * 
-                                (   (sinTheta*sinTheta*DDc(0,0)) +
-                                    (cosTheta*cosTheta*DDc(1,1)) -
-                                    (sin2Theta*DDc(0,1))
-                                );
+                        if (anisotropy.on)
+                        {
+                            Set::Scalar Theta = atan2(Dc(1),Dc(0));
+                        }
                         
-                        rhs -= ( (wc/4.0/Zeta) + Zeta*normgrad*normgrad )* (DGc / normgrad / normgrad) * 
-                                (   (sin2Theta*(DDc(0,0)-DDc(1,1))) -
-                                    (2.0*cos2Theta*DDc(0,1))
-                                );
+
+                        Set::Scalar Gc = crack.cracktype.Gc(Theta);
+                        Set::Scalar Zeta = crack.cracktype.Zeta(Theta);
+                        Set::Scalar laplacian = Numeric::Laplacian(c_old,i,j,k,0,DX);
                         
-                        rhs -= 2*Zeta*DGc * ( sin2Theta*(DDc(1,1)-DDc(0,0)) + 2.0*cos2Theta*DDc(0,1) );
+                        Set::Scalar bilap = 
+                                Numeric::Stencil<Set::Scalar, 4, 0, 0>::D(c_old,i,j,k,0,DX) + 
+                            2.0 * Numeric::Stencil<Set::Scalar, 2, 2, 0>::D(c_old,i,j,k,0,DX) +
+                                Numeric::Stencil<Set::Scalar, 0, 4, 0>::D(c_old,i,j,k,0,DX); 
+                        
+                        
+                        Set::Scalar en_cell = energy(i,j,k,0);
+                        df(i,j,k,0) = crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
+                        rhs += crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
 
-                        Set::Scalar Curvature_term =
-							DDDDc(0,0,0,0)*(    sinTheta*sinTheta*sinTheta*sinTheta) +
-							DDDDc(0,0,0,1)*(4.0*sinTheta*sinTheta*sinTheta*cosTheta) +
-							DDDDc(0,0,1,1)*(6.0*sinTheta*sinTheta*cosTheta*cosTheta) +
-							DDDDc(0,1,1,1)*(4.0*sinTheta*cosTheta*cosTheta*cosTheta) +
-							DDDDc(1,1,1,1)*(    cosTheta*cosTheta*cosTheta*cosTheta);
+                        Set::Scalar _temp_product = 1.0;
+                        for (int m = 0; m < number_of_materials; m++) _temp_product *= mat(i,j,k,m);
+                        if (number_of_materials > 1) Gc *= (1.0 - _temp_product*(1.-crack.mult_df_Gc)/0.25);
 
-                        rhs += anisotropy.gamma * Curvature_term;
+                        df(i,j,k,1) = Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.0)/(4.0*Zeta);
+                        rhs += Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.)/(4.0*Zeta);
+
+                        // df(i,j,k,2) = 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
+                        rhs -= 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
+
+                        if (anisotropy.on)
+                        {
+                            //Set::Vector Dc = Numeric::Gradient(c_old, i, j, k, 0, DX);
+                            // Set::Scalar normgrad = Dc.lpNorm<2>();
+                            Set::Matrix DDc = Numeric::Hessian(c_old, i, j, k, 0, DX);
+                            Set::Matrix4<AMREX_SPACEDIM, Set::Sym::Full> DDDDc = Numeric::DoubleHessian<AMREX_SPACEDIM>(c_old, i, j, k, 0, DX);
+
+                            Set::Scalar DGc = crack.cracktype.DGc(Theta);
+                            Set::Scalar DDGc = crack.cracktype.DDGc(Theta);
+                            Set::Scalar wc = crack.cracktype.w_phi(c_old(i,j,k,0),0.0);
+                            Set::Scalar wcdivnormgrad = wc/(normgrad*normgrad);
+
+                            Set::Scalar sinTheta = sin(Theta);
+                            Set::Scalar cosTheta = cos(Theta);
+                            Set::Scalar sin2Theta = sin(2.0*Theta);
+                            Set::Scalar cos2Theta = cos(2.0*Theta);
+
+                            rhs -= ( (wcdivnormgrad/4.0/Zeta) + Zeta )* (DDGc) * 
+                                    (   (sinTheta*sinTheta*DDc(0,0)) +
+                                        (cosTheta*cosTheta*DDc(1,1)) -
+                                        (sin2Theta*DDc(0,1))
+                                    );
+                            df(i,j,k,2) = ( (wcdivnormgrad/4.0/Zeta) + Zeta )* (DDGc) * 
+                                    (   (sinTheta*sinTheta*DDc(0,0)) +
+                                        (cosTheta*cosTheta*DDc(1,1)) -
+                                        (sin2Theta*DDc(0,1))
+                                    );
+                            
+                            rhs -= ( (wcdivnormgrad/4.0/Zeta) + Zeta )* (DGc) * 
+                                    (   (sin2Theta*(DDc(0,0)-DDc(1,1))) -
+                                        (2.0*cos2Theta*DDc(0,1))
+                                    );
+                            df(i,j,k,3) = ( (wcdivnormgrad/4.0/Zeta) + Zeta )* (DGc) * 
+                                    (   (sin2Theta*(DDc(0,0)-DDc(1,1))) -
+                                        (2.0*cos2Theta*DDc(0,1))
+                                    );
+                            
+                            rhs -= 2*Zeta*DGc * ( sin2Theta*(DDc(1,1)-DDc(0,0)) + 2.0*cos2Theta*DDc(0,1) );
+
+                            Set::Scalar Curvature_term =
+                                DDDDc(0,0,0,0)*(    sinTheta*sinTheta*sinTheta*sinTheta) +
+                                DDDDc(0,0,0,1)*(4.0*sinTheta*sinTheta*sinTheta*cosTheta) +
+                                DDDDc(0,0,1,1)*(6.0*sinTheta*sinTheta*cosTheta*cosTheta) +
+                                DDDDc(0,1,1,1)*(4.0*sinTheta*cosTheta*cosTheta*cosTheta) +
+                                DDDDc(1,1,1,1)*(    cosTheta*cosTheta*cosTheta*cosTheta);
+
+                            rhs += anisotropy.gamma * Curvature_term;
+                        }
+                        
+                        
+                        // df(i,j,k,3) = crack.beta*bilap;
+                        rhs += crack.beta * bilap;
+                        
+                        //if (!material.homogeneous) 
+                        //rhs *= crack.cracktype->g_phi(_temp,0.0);
+
+                        //if(std::isnan(rhs)) Util::Abort(INFO, "Dwphi = ", crack.cracktype->Dw_phi(c_old(i,j,k,0),0.0),". c_old(i,j,k,0) = ",c_old(i,j,k,0));
+                        df(i,j,k,4) =                    std::max(0.,rhs - crack.cracktype.DrivingForceThreshold(c_old(i,j,k,0)));
+                        c(i,j,k,0) = c_old(i,j,k,0) - dt*std::max(0.,rhs - crack.cracktype.DrivingForceThreshold(c_old(i,j,k,0)))*crack.cracktype.Mobility(c_old(i,j,k,0));
+
+                        if (c (i,j,k,0) < 0.0) c(i,j,k,0) = 0.0;
+                        if (c (i,j,k,0) > 1.0) c(i,j,k,0) = 1.0;
                     }
-                    
-                    
-                    df(i,j,k,3) = crack.beta*bilap;
-                    rhs += crack.beta * bilap;
-                    
-                    //if (!material.homogeneous) 
-                    //rhs *= crack.cracktype->g_phi(_temp,0.0);
-
-                    //if(std::isnan(rhs)) Util::Abort(INFO, "Dwphi = ", crack.cracktype->Dw_phi(c_old(i,j,k,0),0.0),". c_old(i,j,k,0) = ",c_old(i,j,k,0));
-                    df(i,j,k,4) =                    std::max(0.,rhs - crack.cracktype.DrivingForceThreshold(c_old(i,j,k,0)));
-                    c(i,j,k,0) = c_old(i,j,k,0) - dt*std::max(0.,rhs - crack.cracktype.DrivingForceThreshold(c_old(i,j,k,0)))*crack.cracktype.Mobility(c_old(i,j,k,0));
-
-                    if (c (i,j,k,0) < 0.0) c(i,j,k,0) = 0.0;
-                    if (c (i,j,k,0) > 1.0) c(i,j,k,0) = 1.0;
                 }
             });
         }
@@ -607,7 +622,7 @@ private:
 		Set::Scalar driving_force_tolerance_rel = 1E-4;
 		Set::Scalar driving_force_tolerance_abs = 0.0;
 
-        Model::Interface::Crack::Constant cracktype;                      ///< type of crack. See Crack/Constant or Crack/Sin
+        Model::Interface::Crack::Sin cracktype;                      ///< type of crack. See Crack/Constant or Crack/Sin
 		amrex::Vector<std::string> ic_type;                            ///< crack IC type. See IC/Notch and IC/Ellipsoid
 		amrex::Vector<IC::IC*> ic;                                     ///< crack IC. See IC/Notch and IC/Ellipsoid
         bool is_ic = false;
