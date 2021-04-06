@@ -71,6 +71,7 @@ parser.add_argument('--no-diff',dest='diff',default=True,action='store_false',he
 parser.add_argument('--profile',dest='profile',action='store_true',default=False,help="Enable tiny profiling in AMReX")
 parser.add_argument('--create-gfortran-link',dest='gfortranln',action='store_true',default=False,
                     help="Create a link to the gfortran library. (Unless you are CircleCI, you should probably not do this!)")
+parser.add_argument('--iamr',default=False,action='store_true',help='Dowload and compile against IAMR')
 parser.set_defaults(debug=False)
 args=parser.parse_args()
 
@@ -224,6 +225,24 @@ elif (args.amrex != ""):
     f.write("AMREX = " + args.amrex + "\n")
 else:
     warning("AMReX path not specified. This may cause compile errors.")
+
+if args.iamr:
+    if not os.path.isdir('./IAMR'):
+        message("IAMR-Clone","Cloning IAMR -- This may take a while",True)
+        p = subprocess.Popen(("git clone https://github.com/AMReX-Codes/IAMR.git").split(),
+                             stderr=subprocess.PIPE,stdout=subprocess.PIPE)
+        for line in iter(p.stderr.readline,b''): print (''.ljust(width)+ ">>> " + line.decode('ascii').replace('\n',''))
+        for line in iter(p.stdout.readline,b''): print (''.ljust(width)+ ">>> " + line.decode('ascii').replace('\n',''))
+    f.write('IAMR_SRC = $(shell find ./IAMR/Source/ -name "*.cpp")\n')
+    f.write('IAMR_OBJ = $(IAMR_SRC:.cpp=.o)\n')
+    f.write('IAMR_HDR = $(shell find ./IAMR/Source/ -name "*.H")\n')
+    f2.write('iamr: ${IAMR_OBJ}\n')
+    f2.write('\t@echo Done\n')
+    f2.write('./IAMR/Source/%.o: ./IAMR/Source/%.cpp\n')
+    f2.write('\t@echo $< $@\n')
+    f2.write('\t$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} -I./IAMR/Source/ -I./IAMR/Source/prob/\n')
+    #f2.write('\techo ${IAMR_HDR}\n')
+    
 
 #
 # EIGEN
