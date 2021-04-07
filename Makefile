@@ -40,7 +40,7 @@ CXX_COMPILE_FLAGS += -Winline -Wextra -Wall  -std=c++17 $(METADATA_FLAGS)
 LINKER_FLAGS += -Bsymbolic-functions
 
 INCLUDE = $(if ${EIGEN}, -isystem ${EIGEN})  $(if ${AMREX}, -isystem ${AMREX}/include/) -I./src/ $(for pth in ${CPLUS_INCLUDE_PATH}; do echo -I"$pth"; done)
-LIB     = -L${AMREX}/lib/ -lamrex -lpthread
+LIB     += -L${AMREX}/lib/ -lamrex -lpthread
 
 HDR_ALL = $(shell find src/ -name *.H)
 HDR_TEST = $(shell find src/ -name *Test.H)
@@ -112,7 +112,7 @@ bin/%-$(POSTFIX): ${OBJ_F} ${OBJ} obj/obj-$(POSTFIX)/%.cc.o
 	@printf '%9s' "($(CTR_EXE)/$(NUM_EXE)) " 
 	@printf "$(RESET)$@\n"
 	@mkdir -p bin/
-	@$(CC) -o $@ $^ ${LIB}  ${MPI_LIB}  ${LINKER_FLAGS}
+	$(CC) -o $@ $^ ${LIB}  ${MPI_LIB}  ${LINKER_FLAGS}
 
 obj/obj-$(POSTFIX)/test.cc.o: src/test.cc ${AMREX_TARGET}
 	$(eval CTR=$(shell echo $$(($(CTR)+1))))
@@ -136,7 +136,7 @@ obj/obj-$(POSTFIX)/%.cpp.o:
 	@printf '%9s' "($(CTR)/$(NUM)) " 
 	@printf "$(RESET)$<\n"
 	@mkdir -p $(dir $@)
-	@$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} 
+	$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} 
 
 obj/obj-$(POSTFIX)/%.cpp.d: src/%.cpp  ${AMREX_TARGET}
 	$(eval CTR_DEP=$(shell echo $$(($(CTR_DEP)+1))))

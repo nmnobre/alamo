@@ -233,14 +233,32 @@ if args.iamr:
                              stderr=subprocess.PIPE,stdout=subprocess.PIPE)
         for line in iter(p.stderr.readline,b''): print (''.ljust(width)+ ">>> " + line.decode('ascii').replace('\n',''))
         for line in iter(p.stdout.readline,b''): print (''.ljust(width)+ ">>> " + line.decode('ascii').replace('\n',''))
-    f.write('IAMR_SRC = $(shell find ./IAMR/Source/ -name "*.cpp")\n')
-    f.write('IAMR_OBJ = $(IAMR_SRC:.cpp=.o)\n')
-    f.write('IAMR_HDR = $(shell find ./IAMR/Source/ -name "*.H")\n')
-    f2.write('iamr: ${IAMR_OBJ}\n')
-    f2.write('\t@echo Done\n')
-    f2.write('./IAMR/Source/%.o: ./IAMR/Source/%.cpp\n')
-    f2.write('\t@echo $< $@\n')
-    f2.write('\t$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} -I./IAMR/Source/ -I./IAMR/Source/prob/\n')
+
+    iamr_dir = './IAMR/Exec/run{}d/'.format(args.dim)
+    if args.debug: iamr_build = '{}d.gnu.DEBUG.MPI.EXE'.format(args.dim)
+    else: iamr_build = '()d.gnu.MPI.EXE'.format(args.dim)
+    
+    make_args = []
+    make_args.append('DEBUG=TRUE') if args.debug else make_args.append('DEBUG=FALSE')
+        
+        
+    #f.write('IAMR_SRC = $(shell find ./IAMR/Source/ -name "*.cpp")\n')
+    #f.write('IAMR_LIB = $(addprefix {}/tmp_build_dir/o/{}/,$(IAMR_SRC:.cpp=.o))\n'.format(iamr_dir,iamr_build))
+    f.write('IAMR_LIB = $(filter-out shell find {}/tmp_build_dir/o/{}/main.o,$(shell find {}/tmp_build_dir/o/{}/ -name "*.o"))\n'.format(iamr_dir,iamr_build,iamr_dir,iamr_build))
+    #f.write('IAMR_OBJ_RAW = $(nodir  $(IAMR_OBJ))\n')
+    #f.write('IAMR_LIB = $(addprefix {}/tmp_build_dir/o/{}/,$(IAMR_OBJ_RAW:.cpp=.o))\n'.format(iamr_dir,iamr_build))
+    f.write('LIB += $(IAMR_LIB)\n')
+    f.write('CXX_COMPILE_FLAGS += -I./IAMR/Source/ -I./IAMR/Source/prob/\n')    
+    f.write('TARGETS += {}/tmp_build_dir/o/{}/\n'.format(iamr_dir,iamr_build))
+    
+    f2.write('{}/tmp_build_dir/o/{}/: \n'.format(iamr_dir,iamr_build))
+    f2.write('\t@$(MAKE) -C {} '.format(iamr_dir) + ' '.join(make_args) + '\n')
+
+    #f.write('IAMR_OBJ = $(IAMR_SRC:.cpp=.o)\n')
+    #f.write('IAMR_HDR = $(shell find ./IAMR/Source/ -name "*.H")\n')
+    #f2.write('./IAMR/Source/%.o: ./IAMR/Source/%.cpp\n')
+    #f2.write('\t@echo $< $@\n')
+    #f2.write('\t$(CC) -c $< -o $@ ${INCLUDE} ${CXX_COMPILE_FLAGS} -I./IAMR/Source/ -I./IAMR/Source/prob/ -I./amrex/Src/Base/\n')
     #f2.write('\techo ${IAMR_HDR}\n')
     
 
