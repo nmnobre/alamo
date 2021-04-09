@@ -438,7 +438,7 @@ protected:
                     {
                         if (anisotropy.on)
                         {
-                            Set::Scalar Theta = atan2(Dc(1),Dc(0));
+                            Theta = atan2(Dc(1),Dc(0));
                         }
                         
 
@@ -453,7 +453,7 @@ protected:
                         
                         
                         Set::Scalar en_cell = energy(i,j,k,0);
-                        df(i,j,k,0) = crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
+                        // df(i,j,k,0) = crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
                         rhs += crack.cracktype.Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
 
                         Set::Scalar _temp_product = 1.0;
@@ -463,7 +463,7 @@ protected:
                         df(i,j,k,1) = Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.0)/(4.0*Zeta);
                         rhs += Gc*crack.cracktype.Dw_phi(c_old(i,j,k,0),0.)/(4.0*Zeta);
 
-                        // df(i,j,k,2) = 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
+                        df(i,j,k,2) = 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
                         rhs -= 2.0*Zeta*Gc*laplacian*crack.mult_df_lap;
 
                         if (anisotropy.on)
@@ -488,6 +488,9 @@ protected:
                                         (cosTheta*cosTheta*DDc(1,1)) -
                                         (sin2Theta*DDc(0,1))
                                     );
+                            // df(i,j,k,0) = Dc(0);
+                            // df(i,j,k,1) = Dc(1);
+                            // df(i,j,k,2) = Theta;
                             df(i,j,k,2) = ( (wcdivnormgrad/4.0/Zeta) + Zeta )* (DDGc) * 
                                     (   (sinTheta*sinTheta*DDc(0,0)) +
                                         (cosTheta*cosTheta*DDc(1,1)) -
