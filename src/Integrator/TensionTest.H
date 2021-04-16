@@ -233,7 +233,9 @@ protected:
         if (plastic.on)
         {
             const Set::Scalar* DX = geom[lev].CellSize();
-            for ( amrex::MFIter mfi(*eta_mf[lev],true); mfi.isValid(); ++mfi )
+            Util::Warning(INFO,"Need to determine why tiling isn't working...");
+            //for ( amrex::MFIter mfi(*eta_mf[lev],true); mfi.isValid(); ++mfi )
+            for ( amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi )
             {
                 const amrex::Box& bx = mfi.nodaltilebox();
                 amrex::Array4<MODEL>        const &model = model_mf[lev]->array(mfi);

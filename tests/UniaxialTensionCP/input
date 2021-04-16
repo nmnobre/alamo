@@ -51,10 +51,11 @@ elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
 elastic.solver.int = 1
+elastic.solver.bottom_solver=smoother
 
 ### UNIAXIAL TENSION ###
 
 elastic.bc.type = tension_test
-elastic.bc.tension_test.type = uniaxial_stress_clamp
-elastic.bc.tension_test.disp = 0.005
+elastic.bc.tension_test.type = uniaxial_stress
+elastic.bc.tension_test.disp = 0.05
 
