@@ -120,8 +120,7 @@ public:
             gam0dot[i] = a_gam0dot[i];
         }
     
-        prev = Set::Matrix::Zero();
-        curr = Set::Matrix::Zero();
+        F0 = Set::Matrix::Zero();
     }
 
     Set::Scalar YieldSurface()
@@ -147,7 +146,7 @@ public:
                     R(j,k) = dir[i](j)*plane[i](k);
             yield += g_alpha[i]*R;
         }
-        return (yield.transpose()*curr).trace();
+        return (yield.transpose()*F0).trace();
     }
 
     // Hardening law
@@ -156,13 +155,8 @@ public:
     // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
     // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
     // q_{\alpha\beta} = 1 (if \alpha,\beta coplanar), q (else)
-
-    
     void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
-        curr = prev;
-        
-
         std::array<Set::Scalar, 12> gamdot;
 
         for (int i = 0; i < 12; i++)
@@ -177,7 +171,7 @@ public:
 
         for (int i = 0; i < 12; i++)
         {
-            curr += dt * gamdot[i] * (dir[i] * plane[i].transpose());
+            F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose());
             gam_bar += dt*std::abs(gamdot[i]);
         }
 
@@ -196,19 +190,16 @@ public:
                 g_alpha[i] += dt*gdotalpha;
             }
         }
-        prev = curr;
-        Cubic::SetF0(curr);
     }
 
     void SetPlasticStrains(Set::Matrix &a_state)
     {
-        prev = a_state;
-        curr = a_state;
+        F0 = a_state;
     }
 
     Set::Matrix GetPlasticState()
     {
-        return curr;
+        return F0;
     }
 
     void SetHardening(bool flag) { hardening = flag; }
@@ -223,7 +214,6 @@ public:
     std::array<Set::Scalar, 12> g_alpha;
 
     Set::Scalar g0, gs, h0, hs, q, gam_bar;
-    Set::Matrix curr, prev;
 
     static bool hardening;
 
@@ -327,7 +317,7 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(curr) X(prev) X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) X(ddw) X(F0)
+    #define OP_VARS X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) X(ddw) X(F0)
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"
