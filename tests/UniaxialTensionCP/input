@@ -34,14 +34,14 @@ elastic.model1.C12 = 121.40
 elastic.model1.C44 = 75.40
 
 plastic.on = 1
-plastic.hardening = 1
+plastic.hardening = 0
 
-elastic.model1.hardening.on = true
-elastic.model1.hardening.g0 = 0.016
-elastic.model1.hardening.gs = 0.0704
-elastic.model1.hardening.h0 = 0.132
-elastic.model1.hardening.hs = 0.008
-elastic.model1.hardening.q = 1.4
+elastic.model1.hardening.on = 0
+#elastic.model1.hardening.g0 = 0.016
+#elastic.model1.hardening.gs = 0.0704
+#elastic.model1.hardening.h0 = 0.132
+#elastic.model1.hardening.hs = 0.008
+#elastic.model1.hardening.q = 1.4
 
 elastic.model1.exp = 10
 elastic.model1.gam0dot = 0.001
@@ -57,5 +57,5 @@ elastic.solver.bottom_solver=smoother
 
 elastic.bc.type = tension_test
 elastic.bc.tension_test.type = uniaxial_stress
-elastic.bc.tension_test.disp = 0.05
+elastic.bc.tension_test.disp = 50.0
 

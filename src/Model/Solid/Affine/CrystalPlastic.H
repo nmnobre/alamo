@@ -161,7 +161,7 @@ public:
     void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
         curr = prev;
-        Set::Matrix R = Set::Matrix::Zero();
+        
 
         std::array<Set::Scalar, 12> gamdot;
 
@@ -171,16 +171,13 @@ public:
             Set::Scalar tau = dir[i].dot(sigma*plane[i]);
             Set::Scalar strength = g_alpha[i];
             if(fabs(tau) < fabs(strength)) continue;
-            gamdot[i] = gam0dot[i]*std::pow((tau/strength), m_exp[i]);
+            Set::Scalar incr_abs = gam0dot[i]*std::pow(fabs(tau/strength), m_exp[i]);
+            gamdot[i] = tau>0 ? +incr_abs : -incr_abs;
         }
 
         for (int i = 0; i < 12; i++)
         {
-            for (int j = 0; j < AMREX_SPACEDIM; j++)
-                for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = dir[i](j)*plane[i](k);
-
-            curr += dt*gamdot[i]*R;
+            curr += dt * gamdot[i] * (dir[i] * plane[i].transpose());
             gam_bar += dt*std::abs(gamdot[i]);
         }
 
