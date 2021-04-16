@@ -106,7 +106,7 @@ info:
 
 bin/%: bin/%-$(POSTFIX) ;
 
-bin/%-$(POSTFIX): ${OBJ_F} ${OBJ} obj/obj-$(POSTFIX)/%.cc.o 
+bin/%-$(POSTFIX): ${TARGETS} ${OBJ_F} ${OBJ} obj/obj-$(POSTFIX)/%.cc.o 
 	$(eval CTR_EXE=$(shell echo $$(($(CTR_EXE)+1))))
 	@printf "$(B_ON)$(FG_BLUE)LINKING$(RESET)$(FG_LIGHTBLUE)     " 
 	@printf '%9s' "($(CTR_EXE)/$(NUM_EXE)) " 

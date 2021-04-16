@@ -58,7 +58,7 @@ parser.add_argument('--comp', default="g++", help='Compiler. Options: [g++], cla
 parser.add_argument('--amrex', default="", help='Path to AMReX installation []')
 parser.add_argument('--build-amrex', dest="buildamrex",action='store_true',default=True, help='Download and build AMReX automatically')
 parser.add_argument('--build-amrex-branch',dest="buildamrexbranch",default="development", help='AMReX Branch (You probably don\'t need to change this!' )
-parser.add_argument('--build-amrex-tag',dest="buildamrextag",default="21.01", help='AMReX Branch (You probably don\'t need to change this!' )
+parser.add_argument('--build-amrex-tag',dest="buildamrextag",default="21.04", help='AMReX Branch (You probably don\'t need to change this!' )
 parser.add_argument('--eigen', default="", help='Path to Eigen installation []')
 parser.add_argument('--get-eigen', dest="geteigen",action='store_true',default=False, help='Download Eigen automatically')
 parser.add_argument('--debug', dest='debug', action='store_true', help='Compile in debug mode')
@@ -249,9 +249,9 @@ if args.iamr:
     #f.write('IAMR_LIB = $(addprefix {}/tmp_build_dir/o/{}/,$(IAMR_OBJ_RAW:.cpp=.o))\n'.format(iamr_dir,iamr_build))
     f.write('LIB += $(IAMR_LIB)\n')
     f.write('CXX_COMPILE_FLAGS += -I./IAMR/Source/ -I./IAMR/Source/prob/\n')    
-    f.write('TARGETS += {}/tmp_build_dir/o/{}/\n'.format(iamr_dir,iamr_build))
+    f.write('TARGETS += -L{}/tmp_build_dir/o/{}/\n'.format(iamr_dir,iamr_build))
     
-    f2.write('{}/tmp_build_dir/o/{}/: \n'.format(iamr_dir,iamr_build))
+    f2.write('-L{}/tmp_build_dir/o/{}/: \n'.format(iamr_dir,iamr_build))
     f2.write('\t@$(MAKE) -C {} '.format(iamr_dir) + ' '.join(make_args) + '\n')
 
     #f.write('IAMR_OBJ = $(IAMR_SRC:.cpp=.o)\n')
