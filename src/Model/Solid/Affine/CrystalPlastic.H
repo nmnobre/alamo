@@ -23,42 +23,6 @@ class CrystalPlastic : public Cubic
 {
 public:
     CrystalPlastic(){};
-    CrystalPlastic(Solid<Set::Sym::MajorMinor> base) : Cubic(base) {};
-    CrystalPlastic(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2)
-    {
-        Eigen::Matrix3d m;
-    	m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
-    		Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
-    	 	Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
-        Define(a_C11, a_C12, a_C44, m);
-    }
-    CrystalPlastic(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m)
-    {
-        Define(a_C11, a_C12, a_C44, m);
-    }
-
-    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2)
-    {
-        Eigen::Matrix3d m;
-    	m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
-    		Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
-    	 	Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
-        Define(a_C11, a_C12, a_C44, m);
-    }
-
-    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m)
-    {
-        Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
-        
-        // Set with default values
-        DefineSlipSystem(16.0, 10.0, 0.001);
-    }
-    
-    void Define (Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m, std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
-    {
-        Cubic::Define(a_C11, a_C12, a_C44, m, Set::Matrix::Zero());
-        DefineSlipSystem(a_g_alpha, a_exp, a_gam0dot);
-    }
 
     void DefineSlipSystem(Set::Scalar a_g_alpha, Set::Scalar a_exp, Set::Scalar a_gam0got)
     {
