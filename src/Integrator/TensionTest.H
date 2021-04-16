@@ -126,6 +126,21 @@ protected:
             plastic.strainp_mf[lev]->setVal(0.);
             plastic.strainp_eq_mf[lev]->setVal(0.0);
         }
+        
+        eta_mf[lev]->FillBoundary();
+        for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+        {
+            amrex::Box bx = mfi.grownnodaltilebox();
+            amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
+            amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
+            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                model(i,j,k) = MODEL::Zero();
+                if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
+                for (unsigned int n = 0; n < elastic.models.size(); n++) 
+                    model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
+            });
+        }
+        Util::RealFillBoundary(*model_mf[lev],geom[lev]);
     }
 
     void TimeStepBegin(Set::Scalar a_time, int a_iter) override
@@ -135,28 +150,30 @@ protected:
         
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            rhs_mf[lev]->setVal(0.0);
+//            rhs_mf[lev]->setVal(0.0);
+//
+//            eta_mf[lev]->FillBoundary();
+//
+//            Set::Vector DX(geom[lev].CellSize());
+//
+//            for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+//            {
+//                amrex::Box bx = mfi.grownnodaltilebox();
+//
+//                amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
+//                amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
+//
+//                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+//                    model(i,j,k) = MODEL::Zero();
+//                    if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
+//                    for (unsigned int n = 0; n < elastic.models.size(); n++) 
+//                        model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
+//                });
+//            }
 
-            eta_mf[lev]->FillBoundary();
+            disp_mf[lev]->setVal(0.0);
 
-            Set::Vector DX(geom[lev].CellSize());
-
-            for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
-            {
-                amrex::Box bx = mfi.grownnodaltilebox();
-
-                amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
-                amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
-
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    model(i,j,k) = MODEL::Zero();
-                    if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
-                    for (unsigned int n = 0; n < elastic.models.size(); n++) 
-                        model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
-                });
-            }
-
-            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            //Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
 
         elastic.bc->SetTime(a_time);
@@ -200,7 +217,7 @@ protected:
                     }
                     else
                     {                    
-                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX);
+                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
                         Set::Matrix sigma = model(i,j,k).DW(gradu);
                         Set::Matrix eps = 0.5*(gradu + gradu.transpose());
                         Numeric::MatrixToField(stress,i,j,k,sigma);

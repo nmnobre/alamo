@@ -7,7 +7,7 @@ timestep		    = 1.e-6
 stop_time		    = 1.e-4
 
 # amr parameters
-amr.plot_int		    = 10
+amr.plot_int		    = 1
 amr.max_level		    = 0
 amr.n_cell		    = 32 32 32
 amr.blocking_factor	    = 4
@@ -33,8 +33,8 @@ elastic.model1.C11 = 168.40
 elastic.model1.C12 = 121.40
 elastic.model1.C44 = 75.40
 
-plastic.on = true
-plastic.hardening = true
+plastic.on = 1
+plastic.hardening = 1
 
 elastic.model1.hardening.on = true
 elastic.model1.hardening.g0 = 0.016
@@ -50,11 +50,11 @@ elastic.model1.gam0dot = 0.001
 elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
-elastic.solver.int = 10
+elastic.solver.int = 1
 
 ### UNIAXIAL TENSION ###
 
 elastic.bc.type = tension_test
 elastic.bc.tension_test.type = uniaxial_stress_clamp
-elastic.bc.tension_test.disp = 0.001
+elastic.bc.tension_test.disp = 0.005
 

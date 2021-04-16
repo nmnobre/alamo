@@ -170,7 +170,7 @@ public:
             gamdot[i] = 0.0;
             Set::Scalar tau = dir[i].dot(sigma*plane[i]);
             Set::Scalar strength = g_alpha[i];
-            if(tau/strength < 1.0) continue;
+            if(fabs(tau) < fabs(strength)) continue;
             gamdot[i] = gam0dot[i]*std::pow((tau/strength), m_exp[i]);
         }
 
@@ -199,6 +199,7 @@ public:
                 g_alpha[i] += dt*gdotalpha;
             }
         }
+        prev = curr;
         Cubic::SetF0(curr);
     }
 
