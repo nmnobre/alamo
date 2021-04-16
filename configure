@@ -236,7 +236,7 @@ if args.iamr:
 
     iamr_dir = './IAMR/Exec/run{}d/'.format(args.dim)
     if args.debug: iamr_build = '{}d.gnu.DEBUG.MPI.EXE'.format(args.dim)
-    else: iamr_build = '()d.gnu.MPI.EXE'.format(args.dim)
+    else: iamr_build = '{}d.gnu.MPI.EXE'.format(args.dim)
     
     make_args = []
     make_args.append('DEBUG=TRUE') if args.debug else make_args.append('DEBUG=FALSE')
