@@ -122,15 +122,33 @@ public:
     void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
         std::array<Set::Scalar, 12> gamdot;
+        std::array<Set::Scalar, 12> temp_g_alpha;
 
         for (int i = 0; i < 12; i++)
         {
             gamdot[i] = 0.0;
-            Set::Scalar tau = dir[i].dot(sigma*plane[i]);
+            Set::Scalar tau = 0.0;
+            for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]);
+
             Set::Scalar strength = g_alpha[i];
+            temp_g_alpha[i] = g_alpha[i];
+
+            // if (fabs(strength) < 1.e-6) Util::Abort(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
+
             if(fabs(tau) < fabs(strength)) continue;
+
             Set::Scalar incr_abs = gam0dot[i]*std::pow(fabs(tau/strength), m_exp[i]);
             gamdot[i] = tau>0 ? +incr_abs : -incr_abs;
+
+            // if(gamdot[i] > 1.e10) 
+            // {
+            //     Util::Message(INFO, "strength = ", strength);
+            //     Util::Message(INFO, "tau = ", tau);
+            //     Util::Message(INFO, "gam0dot[",i,"] = ",gam0dot[i]);
+            //     Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
+            //     Util::Abort(INFO, "incr_abs = ", incr_abs);
+            // }
+            // Util::Message(INFO, "tau = ", tau, ". strength = ", strength, ". gamdot[",i,"] = ",gamdot[i]);
         }
 
         for (int i = 0; i < 12; i++)
@@ -138,6 +156,7 @@ public:
             F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose());
             gam_bar += dt*std::abs(gamdot[i]);
         }
+        // Util::Message(INFO,"gam_bar = ", gam_bar);
 
         if (hardening)
         {
@@ -153,6 +172,23 @@ public:
                 }
                 g_alpha[i] += dt*gdotalpha;
             }
+        }
+
+        if (F0.norm()>1.e6) //debugging
+        {
+            Set::Scalar tau = 0.0;
+            for (int i = 0; i< 12; i++)
+            {
+                for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]);
+                Util::Message(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
+                Util::Message(INFO, "temp_g_alpha[",i,"] = ", temp_g_alpha[i]);
+                Util::Message(INFO, "gamdot[",i,"] = ", gamdot[i]);
+                Util::Message(INFO, "gam0dot[",i,"] = ", gam0dot[i]);
+                Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
+            }
+            Util::Message(INFO, "tau = ", tau);
+            Util::Message(INFO, "gambar = ", gam_bar);
+            Util::Abort(INFO);
         }
     }
 
@@ -233,7 +269,7 @@ public:
                 }
             }
             else
-                for (int i = 0; i< 12; i++) f_g_alpha[i] = 16.0;
+                for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
         }
 
         amrex::Vector<Set::Scalar> input_exp;
