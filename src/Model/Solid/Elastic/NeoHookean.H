@@ -14,7 +14,7 @@ class NeoHookean : public Solid<Set::Sym::Major>
 {
 public:
 	NeoHookean() {};
-    NeoHookean(Solid<Set::Sym::Major> base) : Solid<Set::Sym::Major>(base) {};
+    //NeoHookean(Solid<Set::Sym::Major> base) : Solid<Set::Sym::Major>(base) {};
 	virtual ~NeoHookean() {};
 
     Set::Scalar W(const Set::Matrix & F) const override

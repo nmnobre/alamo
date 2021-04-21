@@ -15,7 +15,7 @@ class IsotropicDegradableTanh : public Isotropic
 {
 public:
 	IsotropicDegradableTanh() {};
-    IsotropicDegradableTanh(Solid<Set::Sym::Isotropic> base) : Isotropic(base) {};
+    //IsotropicDegradableTanh(Solid<Set::Sym::Isotropic> base) : Isotropic(base) {};
     IsotropicDegradableTanh(Isotropic base) : Isotropic(base) {};
     IsotropicDegradableTanh(Set::Scalar _lambda, Set::Scalar _mu)
     {

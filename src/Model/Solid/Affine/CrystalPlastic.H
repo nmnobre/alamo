@@ -38,44 +38,48 @@ public:
 
     void DefineSlipSystem(std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
     {
-        Set::Matrix R = Set::Matrix::Zero();
-        AMREX_D_TERM(
-            R(0,0) = m(0,0);
-            ,
-            R(0,1) = m(0,1); R(1,0) = m(1,0); R(1,1) = m(1,1);
-            ,
-            R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
-        );
-        Set::Scalar f_dir = AMREX_D_PICK(1.0,1.0,Set::Constant::INVSQ2);
-        Set::Scalar f_nor = AMREX_D_PICK(1.0, Set::Constant::INVSQ2, Set::Constant::INVSQ3);
+        //Set::Matrix R = Set::Matrix::Zero();
+        //AMREX_D_TERM(
+        //    R(0,0) = m(0,0);
+        //    ,
+        //    R(0,1) = m(0,1); R(1,0) = m(1,0); R(1,1) = m(1,1);
+        //    ,
+        //    R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
+        //);
+
+        Set::Matrix_3D R;
+        R = Model::Solid::Linear::Cubic::q.toRotationMatrix();
+
+        Set::Scalar f_dir = Set::Constant::INVSQ2;
+        Set::Scalar f_nor = Set::Constant::INVSQ3;
         
-        plane[0] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
-        plane[1] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
-        plane[2] = R*Set::Vector(AMREX_D_DECL(f_nor, f_nor, f_nor));
-        dir[0] = R*Set::Vector(AMREX_D_DECL(0.0, -f_dir, f_dir));
-        dir[1] = R*Set::Vector(AMREX_D_DECL(f_dir, 0.0, -f_dir));
-        dir[2] = R*Set::Vector(AMREX_D_DECL(-f_dir, f_dir, 0.0));
+        plane[0] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
+        plane[1] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
+        plane[2] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
+        dir[0]   = R*Set::Vector_3D(0.0, -f_dir, f_dir);
+        dir[1]   = R*Set::Vector_3D(f_dir, 0.0, -f_dir);
+        dir[2]   = R*Set::Vector_3D(-f_dir, f_dir, 0.0);
 
-        plane[3] = R*Set::Vector(AMREX_D_DECL(-f_nor, -f_nor, f_nor));
-        plane[4] = R*Set::Vector(AMREX_D_DECL(-f_nor, -f_nor, f_nor));
-        plane[5] = R*Set::Vector(AMREX_D_DECL(-f_nor, -f_nor, f_nor));
-        dir[3] = R*Set::Vector(AMREX_D_DECL(0.0, f_dir, f_dir));
-        dir[4] = R*Set::Vector(AMREX_D_DECL(-f_dir, 0.0, -f_dir));
-        dir[5] = R*Set::Vector(AMREX_D_DECL(f_dir, -f_dir, 0.0));
+        plane[3] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
+        plane[4] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
+        plane[5] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
+        dir[3]   = R*Set::Vector_3D(0.0, f_dir, f_dir);
+        dir[4]   = R*Set::Vector_3D(-f_dir, 0.0, -f_dir);
+        dir[5]   = R*Set::Vector_3D(f_dir, -f_dir, 0.0);
 
-        plane[6] = R*Set::Vector(AMREX_D_DECL(-f_nor, f_nor, f_nor));
-        plane[7] = R*Set::Vector(AMREX_D_DECL(-f_nor, f_nor, f_nor));
-        plane[8] = R*Set::Vector(AMREX_D_DECL(-f_nor, f_nor, f_nor));
-        dir[6] = R*Set::Vector(AMREX_D_DECL(0.0, -f_dir, f_dir));
-        dir[7] = R*Set::Vector(AMREX_D_DECL(-f_dir, 0.0, -f_dir));
-        dir[8] = R*Set::Vector(AMREX_D_DECL(f_dir, f_dir, 0.0));
+        plane[6] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
+        plane[7] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
+        plane[8] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
+        dir[6]   = R*Set::Vector_3D(0.0, -f_dir, f_dir);
+        dir[7]   = R*Set::Vector_3D(-f_dir, 0.0, -f_dir);
+        dir[8]   = R*Set::Vector_3D(f_dir, f_dir, 0.0);
 
-        plane[9] = R*Set::Vector(AMREX_D_DECL(f_nor, -f_nor, f_nor));
-        plane[10] = R*Set::Vector(AMREX_D_DECL(f_nor, -f_nor, f_nor));
-        plane[11] = R*Set::Vector(AMREX_D_DECL(f_nor, -f_nor, f_nor));
-        dir[9] = R*Set::Vector(AMREX_D_DECL(0.0, f_dir, f_dir));
-        dir[10] = R*Set::Vector(AMREX_D_DECL(f_dir, 0.0, -f_dir));
-        dir[11] = R*Set::Vector(AMREX_D_DECL(-f_dir, -f_dir, 0.0));
+        plane[9]  = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
+        plane[10] = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
+        plane[11] = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
+        dir[9]    = R*Set::Vector_3D(0.0, f_dir, f_dir);
+        dir[10]   = R*Set::Vector_3D(f_dir, 0.0, -f_dir);
+        dir[11]   = R*Set::Vector_3D(-f_dir, -f_dir, 0.0);
 
         for (int i = 0; i < 12; i++)
         {
@@ -207,8 +211,8 @@ public:
 public:
 
     // For now FCC is hardcoded in here.
-    std::array<Set::Vector, 12> plane;
-    std::array<Set::Vector, 12> dir;
+    std::array<Set::Vector_3D, 12> plane;
+    std::array<Set::Vector_3D, 12> dir;
     std::array<Set::Scalar, 12> m_exp;
     std::array<Set::Scalar, 12> gam0dot;
     std::array<Set::Scalar, 12> g_alpha;
@@ -317,7 +321,7 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) X(ddw) X(F0)
+    #define OP_VARS X(C11) X(C12) X(C44) X(Model::Solid::Linear::Cubic::q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) 
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"

@@ -16,19 +16,21 @@ class Cubic : public Linear::Cubic
 public:
 
 	Cubic() {};
-    Cubic(Solid<Set::Sym::MajorMinor> base) : Linear::Cubic(base) {};
+    Cubic(Linear::Cubic base) : Linear::Cubic(base) {};
 	virtual ~Cubic() {};
 
     void
     Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2,Set::Matrix a_F0=Set::Matrix::Zero())
     {
-        Linear::Cubic::Define(C11,C12,C44,phi1,Phi,phi2);
+        Util::Abort(INFO);
+        //Linear::Cubic::Define(C11,C12,C44,phi1,Phi,phi2);
         F0 = a_F0;
     }
     void
     Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R, Set::Matrix a_F0=Set::Matrix::Zero())
     {
-        Linear::Cubic::Define(C11,C12,C44,R);
+        Util::Abort(INFO,"Depricated");
+        //Linear::Cubic::Define(C11,C12,C44,R);
         F0 = a_F0;
     }
     Set::Scalar W(const Set::Matrix & gradu) const override
@@ -43,15 +45,16 @@ public:
     {
         return Linear::Cubic::DDW(gradu - F0);
     }
-    virtual void Print(std::ostream &out) const //override 
-    {
-        out << ddw;
-    }
+    //virtual void Print(std::ostream &out) const //override 
+    //{
+    //    out << ddw;
+    //}
     AMREX_FORCE_INLINE
     void SetF0 (Set::Matrix &a_F0) {F0 = a_F0;}
 
 public:
     Set::Matrix F0 = Set::Matrix::Zero();
+    
     static const KinematicVariable kinvar = KinematicVariable::gradu;
 
     static Cubic Zero()
@@ -81,20 +84,21 @@ public:
     static Cubic Combine(const std::vector<Cubic> &models, const std::vector<Set::Scalar> &eta)
     {
         Cubic ret;
-        ret.ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
-        ret.F0 = Set::Matrix::Zero();
-        Set::Scalar etasum = 0.;
-        for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
-        for (unsigned int n = 0 ; n < models.size(); n++)
-        {
-            ret.ddw += models[n].ddw * (eta[n] / etasum);
-            ret.F0  += models[n].F0  * (eta[n] / etasum);
-        }
+        Util::Abort(INFO,"Not implemented yet");
+        //ret.ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
+        //ret.F0 = Set::Matrix::Zero();
+        //Set::Scalar etasum = 0.;
+        //for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
+        //for (unsigned int n = 0 ; n < models.size(); n++)
+        //{
+        //    ret.ddw += models[n].ddw * (eta[n] / etasum);
+        //    ret.F0  += models[n].F0  * (eta[n] / etasum);
+        //}
         return ret;
     }
 
     #define OP_CLASS Cubic
-    #define OP_VARS  X(ddw) X(F0)
+    #define OP_VARS  X(C11) X(C12) X(C44) X(q.coeffs()) X(F0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
