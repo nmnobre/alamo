@@ -225,7 +225,8 @@ public:
     static CrystalPlastic Zero()
     {
         CrystalPlastic ret;
-        ret.Define(0.0,0.0,0.0,0.0,0.0,0.0);
+        ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
+        ret.F0 = Set::Matrix::Zero();
         ret.DefineSlipSystem(0.,0.,0.);
         ret.hardening = false;
         ret.g0 = 0.0;

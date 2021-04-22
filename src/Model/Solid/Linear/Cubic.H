@@ -94,15 +94,14 @@ public:
 
     static void Parse(Cubic & value, IO::ParmParse & pp)
     {
-        Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
-        pp.query("C11",C11);
-        pp.query("C12",C12);
-        pp.query("C44",C44);
+        //Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
+        pp.query("C11",value.C11);
+        pp.query("C12",value.C12);
+        pp.query("C44",value.C44);
 
         if (pp.contains("random"))
         {
-            value = Cubic::Random(C11,C12,C44);
-            return;
+            value.q = Eigen::Quaterniond::UnitRandom();
         }
 
         if (pp.contains("phi1") || pp.contains("Phi") || pp.contains("phi2"))

@@ -19,20 +19,20 @@ public:
     Cubic(Linear::Cubic base) : Linear::Cubic(base) {};
 	virtual ~Cubic() {};
 
-    void
-    Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2,Set::Matrix a_F0=Set::Matrix::Zero())
-    {
-        Util::Abort(INFO);
-        //Linear::Cubic::Define(C11,C12,C44,phi1,Phi,phi2);
-        F0 = a_F0;
-    }
-    void
-    Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R, Set::Matrix a_F0=Set::Matrix::Zero())
-    {
-        Util::Abort(INFO,"Depricated");
-        //Linear::Cubic::Define(C11,C12,C44,R);
-        F0 = a_F0;
-    }
+    //void
+    //Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2,Set::Matrix a_F0=Set::Matrix::Zero())
+    //{
+    //    Util::Abort(INFO);
+    //    //Linear::Cubic::Define(C11,C12,C44,phi1,Phi,phi2);
+    //    F0 = a_F0;
+    //}
+    //void
+    //Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R, Set::Matrix a_F0=Set::Matrix::Zero())
+    //{
+    //    Util::Abort(INFO,"Depricated");
+    //    //Linear::Cubic::Define(C11,C12,C44,R);
+    //    F0 = a_F0;
+    //}
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
         return Linear::Cubic::W(gradu - F0);
@@ -60,7 +60,10 @@ public:
     static Cubic Zero()
     {
         Cubic ret;
-        ret.Define(0.0,0.0,0.0,0.0,0.0,0.0);
+        ret.C11 = 0.0;
+        ret.C12 = 0.0;
+        ret.C44 = 0.0;
+        ret.F0 = Set::Matrix::Zero();
         return ret;
     }
 
