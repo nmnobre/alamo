@@ -173,7 +173,7 @@ protected:
 
             disp_mf[lev]->setVal(0.0);
 
-            //Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
 
         elastic.bc->SetTime(a_time);
@@ -225,6 +225,8 @@ protected:
                     }
                 });
             }
+            Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
         }
     }
 

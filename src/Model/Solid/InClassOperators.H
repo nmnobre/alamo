@@ -28,7 +28,7 @@ OP_CLASS operator * (const Set::Scalar alpha) const
 	for (int i = 0; i < OP_LOOP_NUM; i++)
 	{
 		#define X(name)\
-		ret.name[i] += name[i]*alpha;
+		ret.name[i] = name[i]*alpha;
 		OP_LOOP_VARS
 		#undef X
 	}

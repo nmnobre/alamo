@@ -31,7 +31,7 @@ OP_CLASS operator + (const OP_CLASS a, const OP_CLASS b)
     #ifdef OP_LOOP_VARS
 	for (int i = 0; i < OP_LOOP_NUM; i++)
 	{
-		#define X(name) ret.name[i] = ret.name[i] = a.name[i] + b.name[i];
+		#define X(name) ret.name[i] = a.name[i] + b.name[i];
 		OP_LOOP_VARS
 		#undef X
 	}
@@ -51,7 +51,7 @@ OP_CLASS operator - (const OP_CLASS a, const OP_CLASS b)
     #ifdef OP_LOOP_VARS
 	for (int i = 0; i < OP_LOOP_NUM; i++)
 	{
-		#define X(name) ret.name[i] = ret.name[i] = a.name[i] - b.name[i];
+		#define X(name) ret.name[i] = a.name[i] - b.name[i];
 		OP_LOOP_VARS
 		#undef X
 	}
