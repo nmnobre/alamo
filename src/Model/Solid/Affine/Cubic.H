@@ -19,20 +19,6 @@ public:
     Cubic(Linear::Cubic base) : Linear::Cubic(base) {};
 	virtual ~Cubic() {};
 
-    //void
-    //Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2,Set::Matrix a_F0=Set::Matrix::Zero())
-    //{
-    //    Util::Abort(INFO);
-    //    //Linear::Cubic::Define(C11,C12,C44,phi1,Phi,phi2);
-    //    F0 = a_F0;
-    //}
-    //void
-    //Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R, Set::Matrix a_F0=Set::Matrix::Zero())
-    //{
-    //    Util::Abort(INFO,"Depricated");
-    //    //Linear::Cubic::Define(C11,C12,C44,R);
-    //    F0 = a_F0;
-    //}
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
         return Linear::Cubic::W(gradu - F0);
@@ -45,16 +31,11 @@ public:
     {
         return Linear::Cubic::DDW(gradu - F0);
     }
-    //virtual void Print(std::ostream &out) const //override 
-    //{
-    //    out << ddw;
-    //}
     AMREX_FORCE_INLINE
     void SetF0 (Set::Matrix &a_F0) {F0 = a_F0;}
 
 public:
     Set::Matrix F0 = Set::Matrix::Zero();
-    
     static const KinematicVariable kinvar = KinematicVariable::gradu;
 
     static Cubic Zero()
@@ -64,6 +45,7 @@ public:
         ret.C12 = 0.0;
         ret.C44 = 0.0;
         ret.F0 = Set::Matrix::Zero();
+        ret.q.coeffs() *= 0;
         return ret;
     }
 
@@ -86,17 +68,13 @@ public:
     AMREX_FORCE_INLINE
     static Cubic Combine(const std::vector<Cubic> &models, const std::vector<Set::Scalar> &eta)
     {
-        Cubic ret;
-        Util::Abort(INFO,"Not implemented yet");
-        //ret.ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
-        //ret.F0 = Set::Matrix::Zero();
-        //Set::Scalar etasum = 0.;
-        //for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
-        //for (unsigned int n = 0 ; n < models.size(); n++)
-        //{
-        //    ret.ddw += models[n].ddw * (eta[n] / etasum);
-        //    ret.F0  += models[n].F0  * (eta[n] / etasum);
-        //}
+        Cubic ret = Cubic::Zero();
+        Set::Scalar etasum = 0.;
+        for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
+        for (unsigned int n = 0 ; n < models.size(); n++)
+        {
+            ret += models[n] * (eta[n] / etasum);
+        }
         return ret;
     }
 

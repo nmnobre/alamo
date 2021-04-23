@@ -26,6 +26,7 @@ using Vector_3D   = Eigen::Matrix<amrex::Real,3,1>;
 using Covector_3D = Eigen::Matrix<amrex::Real,1,3>;
 using Matrix_3D   = Eigen::Matrix<amrex::Real,3,3>;
 
+using Quaternion = Eigen::Quaterniond;
 
 AMREX_FORCE_INLINE
 Vector Position(const int &i, const int &j, const int &k, const amrex::Geometry &geom, const amrex::IndexType &ixType)

@@ -38,15 +38,6 @@ public:
 
     void DefineSlipSystem(std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
     {
-        //Set::Matrix R = Set::Matrix::Zero();
-        //AMREX_D_TERM(
-        //    R(0,0) = m(0,0);
-        //    ,
-        //    R(0,1) = m(0,1); R(1,0) = m(1,0); R(1,1) = m(1,1);
-        //    ,
-        //    R(0,2) = m(0,2); R(1,2) = m(1,2); R(2,0) = m(2,0); R(2,1) = m(2,1); R(2,2) = m(2,2);
-        //);
-
         Set::Matrix_3D R;
         R = Model::Solid::Linear::Cubic::q.toRotationMatrix();
 
@@ -119,10 +110,10 @@ public:
 
     // Hardening law
     // \dot{g}^{\alpha} = \sum_{\beta=1}^N h_{\alpha\beta} |\dot{\gamma}^\beta|
-    // h_{\alpha\beta} = q_{\alpha\beta} h(\bar{\gamma})
+    // h_{\alpha\beta} = qh_{\alpha\beta} h(\bar{\gamma})
     // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
     // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
-    // q_{\alpha\beta} = 1 (if \alpha,\beta coplanar), q (else)
+    // qh_{\alpha\beta} = 1 (if \alpha,\beta coplanar), qh (else)
     void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
         std::array<Set::Scalar, 12> gamdot;
@@ -171,7 +162,7 @@ public:
                 Set::Scalar gdotalpha = 0;
                 for (int j = 0; j < 12; j++)
                 {
-                    Set::Scalar h_ab = ((plane[i] == plane[j]) ? 1.0 : q) * h_gambar;
+                    Set::Scalar h_ab = ((plane[i] == plane[j]) ? 1.0 : qh) * h_gambar;
                     gdotalpha += h_ab*std::abs(gamdot[j]);
                 }
                 g_alpha[i] += dt*gdotalpha;
@@ -217,7 +208,7 @@ public:
     std::array<Set::Scalar, 12> gam0dot;
     std::array<Set::Scalar, 12> g_alpha;
 
-    Set::Scalar g0, gs, h0, hs, q, gam_bar;
+    Set::Scalar g0, gs, h0, hs, qh, gam_bar;
 
     static bool hardening;
 
@@ -225,6 +216,7 @@ public:
     static CrystalPlastic Zero()
     {
         CrystalPlastic ret;
+        ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
         ret.F0 = Set::Matrix::Zero();
         ret.DefineSlipSystem(0.,0.,0.);
@@ -233,7 +225,7 @@ public:
         ret.gs = 0.0;
         ret.h0 = 0.0;
         ret.hs = 0.0;
-        ret.q = 0.0;
+        ret.qh = 0.0;
         ret.gam_bar = 0.0;
         return ret;
     }
@@ -252,7 +244,7 @@ public:
             pp.query("hardening.gs",value.gs);
             pp.query("hardening.h0",value.h0);
             pp.query("hardening.hs",value.hs);
-            pp.query("hardening.q",value.q);
+            pp.query("hardening.qh",value.qh);
             value.gam_bar = 0.0;
             for (int i = 0; i< 12; i++) f_g_alpha[i] = value.g0;
         }
@@ -322,7 +314,7 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(Model::Solid::Linear::Cubic::q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(q) X(gam_bar) 
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) 
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"

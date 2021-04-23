@@ -16,7 +16,6 @@ class Isotropic : public Affine<Set::Sym::Isotropic>
 public:
 
 	Isotropic() {};
-    //Isotropic(Affine<Set::Sym::Isotropic> base) : Affine<Set::Sym::Isotropic>(base) {};
     Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
     {
         Define(a_mu,a_lambda,a_F0);

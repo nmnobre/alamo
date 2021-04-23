@@ -68,16 +68,13 @@ public:
     AMREX_FORCE_INLINE
     static Cubic Combine(const std::vector<Cubic> &models, const std::vector<Set::Scalar> &eta)
     {
-        Cubic ret;
-        Util::Abort(INFO,"not implemented yet");
-        //Eigen::Quaterniond::Identity();
-        //ret.q = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
-        //Set::Scalar etasum = 0.;
-        //for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
-        //for (unsigned int n = 0 ; n < models.size(); n++)
-        //{
-        //    ret.ddw += models[n].ddw * (eta[n] / etasum);
-        //}
+        Cubic ret = Cubic::Zero();
+        Set::Scalar etasum = 0.;
+        for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
+        for (unsigned int n = 0 ; n < models.size(); n++)
+        {
+            ret += models[n] * (eta[n] / etasum);
+        }
         return ret;
     }
 
@@ -88,8 +85,18 @@ public:
     static Cubic Random(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44)
     {
         Cubic ret;
+        ret.C11 = C11; ret.C12 = C12; ret.C44 = C44;
         ret.q = Eigen::Quaterniond::UnitRandom();
 	    return ret;
+    }
+    static Cubic Zero()
+    {
+        Cubic ret;
+        ret.q.coeffs() *= 0.0; 
+        ret.C11 = 0.0;
+        ret.C12 = 0.0;
+        ret.C44 = 0.0;
+        return ret;
     }
 
     static void Parse(Cubic & value, IO::ParmParse & pp)
@@ -118,24 +125,6 @@ public:
             value.q = Eigen::Quaterniond(R);
         }        
     }
-//
-//    AMREX_FORCE_INLINE
-//	void operator += (const Cubic &rhs)
-//    {
-//        C11 += rhs.C11; C12 += rhs.C12; C44 += rhs.C44;
-//        q.w += rhs.q.w; q.x += rhs.q.x; q.y += rhs.q.y; q.z += rhs.q.z;
-//	}    
-//    AMREX_FORCE_INLINE
-//   	Cubic operator * (const Set::Scalar alpha) const
-//	{
-//        Cubic ret;
-//        ret.C11 = C11*alpha; ret.C12 = C12*alpha; ret.C44 = C44*alpha;
-//        ret.q.w = q.w*alpha; ret.q.x = q.x*alpha; ret.q.y = q.y*alpha; ret.q.z = q.z*alpha;        
-//        return ret;
-//	}    
-//    friend Cubic operator * (const Set::Scalar alpha, const Cubic b);
-//    friend Cubic operator + (const Cubic a, const Cubic b);
-//    friend Cubic operator - (const Cubic a, const Cubic b);
 
     #define OP_CLASS Cubic
     #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs())
@@ -144,30 +133,6 @@ public:
     
 };
 #include "Model/Solid/ExtClassOperators.H"
-//AMREX_FORCE_INLINE
-//Cubic operator * (const Set::Scalar alpha, const Cubic b)
-//{
-//    Cubic ret;
-//    ret.C11 = b.C11*alpha; ret.C12 = b.C12*alpha; ret.C44 = b.C44*alpha;
-//    ret.q.w = b.q.w*alpha; ret.q.x = b.q.x*alpha; ret.q.y = b.q.y*alpha; ret.q.x = b.q.z*alpha;
-//    return ret;
-//}    
-//AMREX_FORCE_INLINE
-//Cubic operator + (const Cubic a, const Cubic b)
-//{
-//    Cubic ret;
-//    ret.C11 = a.C11+b.C11; ret.C12 = a.C12+b.C12; ret.C44 = a.C44+b.C44;
-//    ret.q.w = a.q.w+b.q.w; ret.q.x = a.q.x+b.q.x; ret.q.y = a.q.y+b.q.y; ret.q.z = a.q.z+b.q.z;
-//    return ret;
-//}    
-//AMREX_FORCE_INLINE
-//Cubic operator - (const Cubic a, const Cubic b)
-//{
-//    Cubic ret;
-//    ret.C11 = a.C11-b.C11; ret.C12 = a.C12-b.C12; ret.C44 = a.C44-b.C44;
-//    ret.q.w = a.q.w-b.q.w; ret.q.x = a.q.x-b.q.x; ret.q.y = a.q.y-b.q.y; ret.q.z = a.q.z-b.q.z;
-//    return ret;
-//}
 
 }
 }
