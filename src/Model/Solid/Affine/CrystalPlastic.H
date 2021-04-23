@@ -39,38 +39,10 @@ public:
     void DefineSlipSystem(std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
     {
         Set::Matrix_3D R;
-        R = Model::Solid::Linear::Cubic::q.toRotationMatrix();
+        R = q.normalized().toRotationMatrix();
 
         Set::Scalar f_dir = Set::Constant::INVSQ2;
         Set::Scalar f_nor = Set::Constant::INVSQ3;
-        
-        plane[0] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
-        plane[1] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
-        plane[2] = R*Set::Vector_3D(f_nor, f_nor, f_nor);
-        dir[0]   = R*Set::Vector_3D(0.0, -f_dir, f_dir);
-        dir[1]   = R*Set::Vector_3D(f_dir, 0.0, -f_dir);
-        dir[2]   = R*Set::Vector_3D(-f_dir, f_dir, 0.0);
-
-        plane[3] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
-        plane[4] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
-        plane[5] = R*Set::Vector_3D(-f_nor, -f_nor, f_nor);
-        dir[3]   = R*Set::Vector_3D(0.0, f_dir, f_dir);
-        dir[4]   = R*Set::Vector_3D(-f_dir, 0.0, -f_dir);
-        dir[5]   = R*Set::Vector_3D(f_dir, -f_dir, 0.0);
-
-        plane[6] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
-        plane[7] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
-        plane[8] = R*Set::Vector_3D(-f_nor, f_nor, f_nor);
-        dir[6]   = R*Set::Vector_3D(0.0, -f_dir, f_dir);
-        dir[7]   = R*Set::Vector_3D(-f_dir, 0.0, -f_dir);
-        dir[8]   = R*Set::Vector_3D(f_dir, f_dir, 0.0);
-
-        plane[9]  = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
-        plane[10] = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
-        plane[11] = R*Set::Vector_3D(f_nor, -f_nor, f_nor);
-        dir[9]    = R*Set::Vector_3D(0.0, f_dir, f_dir);
-        dir[10]   = R*Set::Vector_3D(f_dir, 0.0, -f_dir);
-        dir[11]   = R*Set::Vector_3D(-f_dir, -f_dir, 0.0);
 
         for (int i = 0; i < 12; i++)
         {
@@ -87,9 +59,9 @@ public:
         Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
         for(int i=0; i<12; i++)
         {
-            for (int j = 0; j < AMREX_SPACEDIM; j++)
-                for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = dir[i](j)*plane[i](k);
+            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
+            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
+            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
             yield += g_alpha[i]*R;
         }
         return yield.norm();
@@ -100,9 +72,9 @@ public:
         Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
         for(int i=0; i<12; i++)
         {
-            for (int j = 0; j < AMREX_SPACEDIM; j++)
-                for (int k = 0; k < AMREX_SPACEDIM; k++)
-                    R(j,k) = dir[i](j)*plane[i](k);
+            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
+            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
+            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
             yield += g_alpha[i]*R;
         }
         return (yield.transpose()*F0).trace();
@@ -123,13 +95,16 @@ public:
         {
             gamdot[i] = 0.0;
             Set::Scalar tau = 0.0;
-            for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]);
+            Util::Message(INFO,"sigma=",sigma);
+            Util::Message(INFO,"plane=",plane[i]);
+            // for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]); // TODO
 
             Set::Scalar strength = g_alpha[i];
             temp_g_alpha[i] = g_alpha[i];
 
             // if (fabs(strength) < 1.e-6) Util::Abort(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
 
+            Util::Message(INFO,tau," ",strength);
             if(fabs(tau) < fabs(strength)) continue;
 
             Set::Scalar incr_abs = gam0dot[i]*std::pow(fabs(tau/strength), m_exp[i]);
@@ -148,7 +123,7 @@ public:
 
         for (int i = 0; i < 12; i++)
         {
-            F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose());
+            //F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose()); // TODO
             gam_bar += dt*std::abs(gamdot[i]);
         }
         // Util::Message(INFO,"gam_bar = ", gam_bar);
@@ -174,7 +149,7 @@ public:
             Set::Scalar tau = 0.0;
             for (int i = 0; i< 12; i++)
             {
-                for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]);
+                //for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]); // TODO
                 Util::Message(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
                 Util::Message(INFO, "temp_g_alpha[",i,"] = ", temp_g_alpha[i]);
                 Util::Message(INFO, "gamdot[",i,"] = ", gamdot[i]);
@@ -202,8 +177,21 @@ public:
 public:
 
     // For now FCC is hardcoded in here.
-    std::array<Set::Vector_3D, 12> plane;
-    std::array<Set::Vector_3D, 12> dir;
+    inline static const std::array<Set::Vector_3D, 4> plane = 
+    {
+        Set::Vector_3D(1,1,1).normalized(),
+        Set::Vector_3D(1,1,1).normalized(),
+        Set::Vector_3D(1,1,1).normalized(),
+        Set::Vector_3D(1,1,1).normalized()
+    };
+    inline static const std::array<std::array<Set::Vector_3D,3>,4> dir = 
+    {
+        Set::Vector_3D(0,-1,1).normalized(), Set::Vector_3D(1,0,-1).normalized(), Set::Vector_3D(-1,1,0).normalized(),
+        Set::Vector_3D(0,1,1).normalized(), Set::Vector_3D(-1,0,-1).normalized(), Set::Vector_3D(1,-1,0).normalized(),
+        Set::Vector_3D(0,-1,1).normalized(), Set::Vector_3D(-1,0,-1).normalized(), Set::Vector_3D(1,1,0).normalized(),
+        Set::Vector_3D(0,1,1).normalized(), Set::Vector_3D(1,0,-1).normalized(), Set::Vector_3D(-1,-1,0).normalized()
+    };
+    //std::array<Set::Vector_3D, 12> dir;
     std::array<Set::Scalar, 12> m_exp;
     std::array<Set::Scalar, 12> gam0dot;
     std::array<Set::Scalar, 12> g_alpha;
@@ -316,12 +304,22 @@ public:
     #define OP_CLASS CrystalPlastic
     #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) 
     #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(plane) X(dir) X(m_exp) X(g_alpha) X(gam0dot)
+    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
 
 bool CrystalPlastic::hardening = false;
+
+//static constexpr std::array<Set::Vector_3D, 4> CrystalPlastic::plane = 
+//{
+//    Set::Vector_3D(1,1,1).normalized(),
+//    Set::Vector_3D(1,1,1).normalized(),
+//    Set::Vector_3D(1,1,1).normalized(),
+//    Set::Vector_3D(1,1,1).normalized()
+//}
+
+
 
 }
 }
