@@ -15,34 +15,23 @@ class Cubic : public Solid<Set::Sym::MajorMinor>
 public:
 
 	Cubic() {};
-    Cubic(Solid<Set::Sym::MajorMinor> base) : Solid<Set::Sym::MajorMinor>(base) {};
 	virtual ~Cubic() {};
-
-    void
-    Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Set::Scalar phi1, Set::Scalar Phi, Set::Scalar phi2)
+    
+    Set::Scalar W(const Set::Matrix & gradu) const override
     {
-    	m =     Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
-    		Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
-    	 	Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
-    	Define(C11,C12,C44,m);
+        return ( 0.5 * gradu.transpose() * (DDW(gradu)*gradu) ).trace();
     }
-    void
-    Define(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44, Eigen::Matrix3d R)
+    Set::Matrix DW(const Set::Matrix & gradu) const override
     {
-        m = R;
-    	amrex::Real Ctmp[3][3][3][3];
-    	ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
+        return DDW(gradu)*gradu;
+    }
+    Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor> DDW(const Set::Matrix & /*gradu*/) const override
+    {
+        Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor> ddw;
 
-    	for(int i = 0; i < 3; i++) 
-    		for(int j = 0; j < 3; j++) 
-    			for(int k = 0; k < 3; k++) 
-    				for(int l = 0; l < 3; l++)
-    				{
-    					if(i == j && j == k && k == l)  Ctmp[i][j][k][l] = C11;
-    					else if (i==k && j==l) Ctmp[i][j][k][l] = C44;
-    					else if (i==j && k==l) Ctmp[i][j][k][l] = C12;
-    					else Ctmp[i][j][k][l] = 0.0;
-    				}
+
+        Eigen::Matrix3d R = q.normalized().toRotationMatrix();
+
     	for(int p = 0; p < AMREX_SPACEDIM; p++) 
     		for(int q = 0; q < AMREX_SPACEDIM; q++) 
     			for(int s = 0; s < AMREX_SPACEDIM; s++) 
@@ -53,28 +42,25 @@ public:
     						for(int j = 0; j < 3; j++) 
     							for(int k = 0; k < 3; k++) 
     								for(int l = 0; l < 3; l++) 
-    									ddw(p,q,s,t) += R(p,i)*R(s,k)*Ctmp[i][j][k][l]*R(q,j)*R(t,l);
+                                    {
+                    					if(i == j && j == k && k == l) ddw(p,q,s,t) += R(p,i)*R(s,k)*C11*R(q,j)*R(t,l);
+                    					else if (i==k && j==l)         ddw(p,q,s,t) += R(p,i)*R(s,k)*C44*R(q,j)*R(t,l);
+                    					else if (i==j && k==l)         ddw(p,q,s,t) += R(p,i)*R(s,k)*C12*R(q,j)*R(t,l);
+                    					else continue;
+                                    }
     				}
-    }
-    Set::Scalar W(const Set::Matrix & gradu) const override
-    {
-        return ( 0.5 * gradu.transpose() * (ddw*gradu) ).trace();
-    }
-    Set::Matrix DW(const Set::Matrix & gradu) const override
-    {
-        return ddw*gradu;
-    }
-    Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor> DDW(const Set::Matrix & /*gradu*/) const override
-    {
         return ddw;
     }
+
     virtual void Print(std::ostream &out) const //override 
     {
-        out << ddw;
+        out << "C11=" << C11 << ", C12=" << C12 << ", C44=" << C44 << " R=" << q.toRotationMatrix();;
     }
 
 protected:
-    Eigen::Matrix3d m;
+
+    Set::Scalar C11=NAN, C12=NAN, C44=NAN;
+    Eigen::Quaterniond q;    
 
 public:
     static const KinematicVariable kinvar = KinematicVariable::gradu;
@@ -82,13 +68,12 @@ public:
     AMREX_FORCE_INLINE
     static Cubic Combine(const std::vector<Cubic> &models, const std::vector<Set::Scalar> &eta)
     {
-        Cubic ret;
-        ret.ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::MajorMinor>::Zero();
+        Cubic ret = Cubic::Zero();
         Set::Scalar etasum = 0.;
         for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
         for (unsigned int n = 0 ; n < models.size(); n++)
         {
-            ret.ddw += models[n].ddw * (eta[n] / etasum);
+            ret += models[n] * (eta[n] / etasum);
         }
         return ret;
     }
@@ -100,70 +85,54 @@ public:
     static Cubic Random(Set::Scalar C11, Set::Scalar C12, Set::Scalar C44)
     {
         Cubic ret;
-	    Set::Scalar phi1 = 2.0*Set::Constant::Pi * Util::Random();
-	    Set::Scalar Phi  = 2.0*Set::Constant::Pi * Util::Random();
-	    Set::Scalar phi2 = 2.0*Set::Constant::Pi * Util::Random();
-        ret.Define(C11,C12,C44,phi1,Phi,phi2);
+        ret.C11 = C11; ret.C12 = C12; ret.C44 = C44;
+        ret.q = Eigen::Quaterniond::UnitRandom();
+	    return ret;
+    }
+    static Cubic Zero()
+    {
+        Cubic ret;
+        ret.q.coeffs() *= 0.0; 
+        ret.C11 = 0.0;
+        ret.C12 = 0.0;
+        ret.C44 = 0.0;
         return ret;
     }
 
     static void Parse(Cubic & value, IO::ParmParse & pp)
     {
-        Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
-        pp.query("C11",C11);
-        pp.query("C12",C12);
-        pp.query("C44",C44);
+        //Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
+        pp.query("C11",value.C11);
+        pp.query("C12",value.C12);
+        pp.query("C44",value.C44);
 
         if (pp.contains("random"))
         {
-            value = Cubic::Random(C11,C12,C44);
-            return;
+            value.q = Eigen::Quaterniond::UnitRandom();
         }
 
-        Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
-        pp.query("phi1",phi1);
-        pp.query("Phi",Phi);
-        pp.query("phi2",phi2);
-        value.Define(C11,C12,C44,phi1,Phi,phi2);
+        if (pp.contains("phi1") || pp.contains("Phi") || pp.contains("phi2"))
+        {
+            Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
+            pp.query("phi1",phi1);
+            pp.query("Phi",Phi);
+            pp.query("phi2",phi2);
+
+            Eigen::Matrix3d R;
+            R = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
+    		    Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
+    	 	    Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
+            value.q = Eigen::Quaterniond(R);
+        }        
     }
 
-    AMREX_FORCE_INLINE
-	void operator += (const Cubic &rhs)
-    {
-        ddw += rhs.ddw;
-	}    
-    AMREX_FORCE_INLINE
-   	Cubic operator * (const Set::Scalar alpha) const
-	{
-        Cubic ret;
-        ret.ddw = ddw*alpha;
-        return ret;
-	}    
-    friend Cubic operator * (const Set::Scalar alpha, const Cubic b);
-    friend Cubic operator + (const Cubic a, const Cubic b);
-    friend Cubic operator - (const Cubic a, const Cubic b);
+    #define OP_CLASS Cubic
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs())
+    #include "Model/Solid/InClassOperators.H"
+    
+    
 };
-AMREX_FORCE_INLINE
-Cubic operator * (const Set::Scalar alpha, const Cubic b)
-{
-    Cubic ret;
-    ret.ddw = b.ddw*alpha;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-Cubic operator + (const Cubic a, const Cubic b)
-{
-    Cubic ret;
-    ret.ddw = a.ddw + b.ddw;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-Cubic operator - (const Cubic a, const Cubic b)
-{
-    Cubic ret;
-    ret.ddw = a.ddw - b.ddw;
-    return ret;
-}
+#include "Model/Solid/ExtClassOperators.H"
 
 }
 }

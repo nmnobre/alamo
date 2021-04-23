@@ -25,7 +25,6 @@ class Laplacian : public Model::Solid::Solid<Set::Sym::Diagonal>
 {
 public:
 	Laplacian() { Define(); } ;
-    Laplacian(Solid<Set::Sym::Diagonal> base) : Solid<Set::Sym::Diagonal>(base) {};
 	~Laplacian() {} ;
 	void Define()
 	{
@@ -43,7 +42,7 @@ public:
     {
         return ddw;
     }
-	using Model::Solid::Solid<Set::Sym::Diagonal>::operator();
+    Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Diagonal> ddw;
 public:
 	void Randomize() {}
     static const KinematicVariable kinvar = KinematicVariable::gradu;
