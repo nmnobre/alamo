@@ -241,17 +241,36 @@ protected:
             {
                 const amrex::Box& bx = mfi.nodaltilebox();
                 amrex::Array4<MODEL>        const &model = model_mf[lev]->array(mfi);
-                amrex::Array4<const Set::Scalar> const& stress = stress_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar> const& stress = stress_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const& strain = strain_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar> const& strainp = plastic.strainp_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar> const &disp  = disp_mf[lev]->array(mfi);
 
                 amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+
                     Set::Matrix sigma = Numeric::FieldToMatrix(stress,i,j,k);
                     Set::Matrix eps = Numeric::FieldToMatrix(strain,i,j,k);
                     Set::Matrix3 eps_grad = Numeric::GradientMatrix(strain,i,j,k,DX);
+                    
                     model(i,j,k).Advance(sigma,eps,eps_grad,dt);
                     Set::Matrix epsp = model(i,j,k).GetPlasticState();
+
+                    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten = Numeric::GetStencil(i,j,k,bx);
+                    if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                    {
+                        Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                        Set::Matrix P = model(i,j,k).DW(F);
+                        Numeric::MatrixToField(stress,i,j,k,P);
+                        Numeric::MatrixToField(strain,i,j,k,F);
+                    }
+                    else
+                    {
+                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                        sigma = model(i,j,k).DW(gradu);
+                        Numeric::MatrixToField(stress,i,j,k,sigma);
+                    }
+
                     Numeric::MatrixToField(strainp,i,j,k,epsp);
                     strainp_eq(i,j,k) = epsp.norm();
                 });
@@ -259,6 +278,7 @@ protected:
             Util::RealFillBoundary(*model_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
         }
     }
     void Integrate(int amrlev, Set::Scalar /*time*/, int /*step*/,

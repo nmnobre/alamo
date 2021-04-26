@@ -123,7 +123,9 @@ public:
     		    Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
     	 	    Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
             value.q = Eigen::Quaterniond(R);
-        }        
+        }
+        // std::cout << "q = " << value.q.w() << " + " << value.q.vec() << std::endl;
+        // std::cout << "R = " << std::endl << value.q.normalized().toRotationMatrix() << std::endl;
     }
 
     #define OP_CLASS Cubic

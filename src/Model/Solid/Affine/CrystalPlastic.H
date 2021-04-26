@@ -124,7 +124,7 @@ public:
             {
                 gamdot[3*i + j] = 0.0;
                 
-                Set::Scalar strength = g_alpha[3*i + 4];
+                Set::Scalar strength = g_alpha[3*i + j];
                 tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
@@ -133,6 +133,13 @@ public:
 
                 F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
                 gam_bar += dt*std::abs(gamdot[3*i + j]);
+
+                if(std::isnan(F0.norm()) || std::isnan(gam_bar))
+                {
+                    Util::Message(INFO, "tau = ", tau, ". gamdot [", 3*i+j, "] = ", gamdot[3*i + j], ". gambar = ", gam_bar, ". incr_abs = ", incr_abs);
+                    Util::Message(INFO, "gam0dot[",3*i+j,"] = ",gam0dot[3*i+j], ". strength = ", strength, ". m_exp[",3*i+j,"] = ",m_exp[3*i+j]);
+                    Util::Abort(INFO, "Nans detected");
+                }
             }
         }
 
@@ -300,6 +307,8 @@ public:
             }
             else
                 for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
+
+            for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
         }
 
         amrex::Vector<Set::Scalar> input_exp;
