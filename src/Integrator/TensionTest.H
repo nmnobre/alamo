@@ -24,6 +24,7 @@
 #include "Solver/Nonlocal/Newton.H"
 #include "Model/Solid/Affine/Isotropic.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
+#include "Model/Solid/Affine/J2Plastic.H"
 
 #include "Operator/Operator.H"
 
