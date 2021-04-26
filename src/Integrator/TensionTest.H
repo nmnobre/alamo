@@ -262,7 +262,7 @@ protected:
                         Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
                         Set::Matrix P = model(i,j,k).DW(F);
                         Numeric::MatrixToField(stress,i,j,k,P);
-                        Numeric::MatrixToField(strain,i,j,k,F);
+                        //Numeric::MatrixToField(strain,i,j,k,F);
                     }
                     else
                     {
