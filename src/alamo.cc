@@ -52,7 +52,7 @@ int main (int argc, char* argv[])
 	}
 	else if (program == "j2plastictensiontest")
 	{
-		Integrator::Integrator *j2_tt = new Integrator::TensionTest<Model::Solid::Affine::J2Plastic>();
+		Integrator::Integrator *j2_tt = new Integrator::TensionTest<Model::Solid::Affine::J2PlasticDegradable>();
 		j2_tt->InitData();
 		j2_tt->Evolve();		
 		delete j2_tt;

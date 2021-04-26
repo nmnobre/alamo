@@ -85,7 +85,6 @@ public:
 #include "Model/Solid/ExtClassOperators.H"
 
 
-
 }
 }
 }
