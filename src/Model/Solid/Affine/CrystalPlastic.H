@@ -287,6 +287,8 @@ public:
             pp.query("hardening.qh",value.qh);
             value.gam_bar = 0.0;
             for (int i = 0; i< 12; i++) f_g_alpha[i] = value.g0;
+
+            // for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
         }
         else
         {
@@ -308,7 +310,7 @@ public:
             else
                 for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
 
-            for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
+            // for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
         }
 
         amrex::Vector<Set::Scalar> input_exp;
