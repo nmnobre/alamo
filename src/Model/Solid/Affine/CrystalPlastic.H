@@ -38,12 +38,6 @@ public:
 
     void DefineSlipSystem(std::array<Set::Scalar, 12> &a_g_alpha, std::array<Set::Scalar, 12> &a_exp, std::array<Set::Scalar, 12> &a_gam0dot)
     {
-        Set::Matrix_3D R;
-        R = q.normalized().toRotationMatrix();
-
-        Set::Scalar f_dir = Set::Constant::INVSQ2;
-        Set::Scalar f_nor = Set::Constant::INVSQ3;
-
         for (int i = 0; i < 12; i++)
         {
             g_alpha[i] = a_g_alpha[i];
@@ -56,15 +50,18 @@ public:
 
     Set::Scalar YieldSurface()
     {
-        Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
+        Set::Matrix_3D R_crystal;
+        R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+
+        Set::Matrix_3D yield = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
         for (int i=0; i<4; i++)
         {
             for (int j=0; j<3; j++)
             {
                 for (int k=0; k<3; k++)
                 {
-                    for (int l=0; l<3; l++)
-                        R(k,l) = plane[i](k)*dir[i][j](l);
+                    for (int l=0; l<3; l++) 
+                        R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
                 }
                 yield += g_alpha[3*i + j]*R;
             }
@@ -81,7 +78,10 @@ public:
 
     Set::Scalar PlasticEnergy()
     {
-        Set::Matrix yield = Set::Matrix::Zero(), R = Set::Matrix::Zero();
+        Set::Matrix_3D R_crystal;
+        R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+
+        Set::Matrix_3D yield = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
         for (int i=0; i<4; i++)
         {
             for (int j=0; j<3; j++)
@@ -89,7 +89,7 @@ public:
                 for (int k=0; k<3; k++)
                 {
                     for (int l=0; l<3; l++)
-                        R(k,l) = plane[i](k)*dir[i][j](l);
+                        R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
                 }
                 yield += g_alpha[3*i + j]*R;
             }
@@ -112,9 +112,11 @@ public:
     // qh_{\alpha\beta} = 1 (if \alpha,\beta coplanar), qh (else)
     void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
-        std::array<Set::Scalar, 12> gamdot;
-        //std::array<Set::Scalar, 12> temp_g_alpha;
+        Set::Matrix_3D R_crystal;
+        R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
 
+        std::array<Set::Scalar, 12> gamdot;
+        
         for (int i=0; i< 4; i++)
         {
             Set::Scalar tau = 0.0;
@@ -123,13 +125,13 @@ public:
                 gamdot[3*i + j] = 0.0;
                 
                 Set::Scalar strength = g_alpha[3*i + 4];
-                tau = dir[i][j].dot(sigma*plane[i]);
+                tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
                 Set::Scalar incr_abs = gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
 
-                F0 += dt * gamdot[3*i + j] * (dir[i][j] * plane[i].transpose());
+                F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
                 gam_bar += dt*std::abs(gamdot[3*i + j]);
             }
         }
