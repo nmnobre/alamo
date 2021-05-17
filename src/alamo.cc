@@ -43,6 +43,20 @@ int main (int argc, char* argv[])
 		eshelby->Evolve();		
 		delete eshelby;
 	}
+	else if (program == "crystalplastictensiontest")
+	{
+		Integrator::Integrator *cp_tt = new Integrator::TensionTest<Model::Solid::Affine::CrystalPlastic>();
+		cp_tt->InitData();
+		cp_tt->Evolve();		
+		delete cp_tt;
+	}
+	else if (program == "j2plastictensiontest")
+	{
+		Integrator::Integrator *j2_tt = new Integrator::TensionTest<Model::Solid::Affine::J2PlasticDegradable>();
+		j2_tt->InitData();
+		j2_tt->Evolve();		
+		delete j2_tt;
+	}
 	else if (program == "finitekinematics")
 	{
 		//Integrator::Integrator *fk = new Integrator::FiniteKinematics();

@@ -24,25 +24,16 @@ public:
 
     static constexpr Set::Sym sym = SYM;
 
-    AMREX_FORCE_INLINE
-	virtual Set::Matrix operator () (Set::Matrix &F, bool /*a_homogeneous=true*/=true) const
-    {
-        return ddw*F;
-    };
 
-    AMREX_FORCE_INLINE
-	virtual Set::Vector operator () (Set::Matrix3 &gradF, bool /*a_homogeneous=true*/=true)
-    {
-        return ddw*gradF;
-    };
-
-    virtual Set::Scalar W(const Set::Matrix &) const          {Util::Abort(INFO,"W not implemented"); return 0.0;};
-    virtual Set::Matrix DW(const Set::Matrix &) const         {Util::Abort(INFO,"DW not implemented"); return Set::Matrix::Zero();};
-    virtual Set::Matrix4<AMREX_SPACEDIM,SYM> DDW(const Set::Matrix &) const {Util::Abort(INFO,"DDW not implemented"); return ddw;};
+    virtual Set::Scalar W(const Set::Matrix &) const = 0; //          {Util::Abort(INFO,"W not implemented"); return 0.0;};
+    virtual Set::Matrix DW(const Set::Matrix &) const = 0; //         {Util::Abort(INFO,"DW not implemented"); return Set::Matrix::Zero();};
+    virtual Set::Matrix4<AMREX_SPACEDIM,SYM> DDW(const Set::Matrix &) const = 0; // {Util::Abort(INFO,"DDW not implemented"); return ddw;};
 	
+    virtual void Advance(const Set::Matrix &, const Set::Matrix &, const Set::Matrix3 &, const Set::Scalar /*dt*/) {return;}
+    virtual void SetHardening(const bool /*flag*/) {return;}
+    virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
+
 public:
-    Set::Matrix4<AMREX_SPACEDIM,SYM> ddw;
-    static const KinematicVariable kinvar = KinematicVariable::F;
 
 
    	friend std::ostream& operator<<(std::ostream &out, const Solid &a)

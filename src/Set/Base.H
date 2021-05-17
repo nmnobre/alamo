@@ -22,6 +22,12 @@ using Covector = Eigen::Matrix<amrex::Real,1,AMREX_SPACEDIM>;
 using Matrix   = Eigen::Matrix<amrex::Real,AMREX_SPACEDIM,AMREX_SPACEDIM>;
 using iMatrix  = Eigen::Matrix<int,AMREX_SPACEDIM,AMREX_SPACEDIM>;
 
+using Vector_3D   = Eigen::Matrix<amrex::Real,3,1>;
+using Covector_3D = Eigen::Matrix<amrex::Real,1,3>;
+using Matrix_3D   = Eigen::Matrix<amrex::Real,3,3>;
+
+using Quaternion = Eigen::Quaterniond;
+
 AMREX_FORCE_INLINE
 Vector Position(const int &i, const int &j, const int &k, const amrex::Geometry &geom, const amrex::IndexType &ixType)
 {

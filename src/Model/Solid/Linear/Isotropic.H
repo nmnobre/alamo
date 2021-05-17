@@ -15,7 +15,6 @@ class Isotropic : public Solid<Set::Sym::Isotropic>
 public:
 
 	Isotropic() {};
-    Isotropic(Solid<Set::Sym::Isotropic> base) : Solid<Set::Sym::Isotropic>(base) {};
     Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda) 
     {
         Define(a_mu,a_lambda);
@@ -46,6 +45,7 @@ public:
 
 public:
     static const KinematicVariable kinvar = KinematicVariable::gradu;
+    Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic> ddw;
 
 public:
     static Isotropic Random()
@@ -83,7 +83,6 @@ public:
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
-
 
 
 }
