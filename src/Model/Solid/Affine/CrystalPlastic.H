@@ -94,14 +94,18 @@ public:
                 yield += g_alpha[3*i + j]*R;
             }
         }
-        //for(int i=0; i<12; i++)
-        //{
-            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
-            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
-            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
-            //yield += g_alpha[i]*R;
-        //}
-        return (yield.transpose()*F0).trace();
+        Set::Matrix_3D _F0 = Set::Matrix_3D::Zero();
+
+        #if AMREX_SPACEDIM==1
+            _F0(0,0) = F0(0,0);
+        #elif AMREX_SPACEDIM==2
+            _F0(0,0) = F0(0,0); _F0(0,1) = F0(0,1);
+            _F0(1,0) = F0(1,0); _F0(1,1) = F0(1,1);
+        #elif AMREX_SPACEDIM==3
+            _F0 = F0;
+        #endif
+        
+        return (yield.transpose()*_F0).trace();
     }
 
     // Hardening law
@@ -114,6 +118,20 @@ public:
     {
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+        Set::Matrix_3D _sigma = Set::Matrix_3D::Zero(), _F0 = Set::Matrix_3D::Zero();
+
+        #if AMREX_SPACEDIM==1
+            _sigma(0,0) = sigma(0,0);
+            _F0(0,0) = F0(0,0);
+        #elif AMREX_SPACEDIM==2
+            _sigma(0,0) = sigma(0,0); _sigma(0,1) = sigma(0,1);
+            _sigma(1,0) = sigma(1,0); _sigma(1,1) = sigma(1,1);
+            _F0(0,0) = F0(0,0); _F0(0,1) = F0(0,1);
+            _F0(1,0) = F0(1,0); _F0(1,1) = F0(1,1);
+        #elif AMREX_SPACEDIM==3
+            _sigma = sigma;
+            _F0 = F0;
+        #endif
 
         std::array<Set::Scalar, 12> gamdot;
         
@@ -125,13 +143,13 @@ public:
                 gamdot[3*i + j] = 0.0;
                 
                 Set::Scalar strength = g_alpha[3*i + j];
-                tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
+                tau = (R_crystal*dir[i][j]).dot(_sigma*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
                 Set::Scalar incr_abs = gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
 
-                F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                _F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
                 gam_bar += dt*std::abs(gamdot[3*i + j]);
 
                 if(std::isnan(F0.norm()) || std::isnan(gam_bar))
@@ -142,42 +160,6 @@ public:
                 }
             }
         }
-
-        // for (int i = 0; i < 12; i++)
-        // {
-        //     gamdot[i] = 0.0;
-        //     Set::Scalar tau = 0.0;
-        //     Util::Message(INFO,"sigma=",sigma);
-        //     Util::Message(INFO,"plane=",plane[i]);
-
-        //     Set::Scalar strength = g_alpha[i];
-        //     temp_g_alpha[i] = g_alpha[i];
-
-        //     // if (fabs(strength) < 1.e-6) Util::Abort(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
-
-        //     Util::Message(INFO,tau," ",strength);
-        //     if(fabs(tau) < fabs(strength)) continue;
-
-        //     Set::Scalar incr_abs = gam0dot[i]*std::pow(fabs(tau/strength), m_exp[i]);
-        //     gamdot[i] = tau>0 ? +incr_abs : -incr_abs;
-
-        //     // if(gamdot[i] > 1.e10) 
-        //     // {
-        //     //     Util::Message(INFO, "strength = ", strength);
-        //     //     Util::Message(INFO, "tau = ", tau);
-        //     //     Util::Message(INFO, "gam0dot[",i,"] = ",gam0dot[i]);
-        //     //     Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
-        //     //     Util::Abort(INFO, "incr_abs = ", incr_abs);
-        //     // }
-        //     // Util::Message(INFO, "tau = ", tau, ". strength = ", strength, ". gamdot[",i,"] = ",gamdot[i]);
-        // }
-
-        // for (int i = 0; i < 12; i++)
-        // {
-        //     //F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose()); // TODO
-        //     gam_bar += dt*std::abs(gamdot[i]);
-        // }
-        // Util::Message(INFO,"gam_bar = ", gam_bar);
 
         if (hardening)
         {
@@ -196,22 +178,14 @@ public:
             }
         }
 
-        // if (F0.norm()>1.e6) //debugging
-        // {
-        //     Set::Scalar tau = 0.0;
-        //     for (int i = 0; i< 12; i++)
-        //     {
-        //         //for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]); // TODO
-        //         Util::Message(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
-        //         Util::Message(INFO, "temp_g_alpha[",i,"] = ", temp_g_alpha[i]);
-        //         Util::Message(INFO, "gamdot[",i,"] = ", gamdot[i]);
-        //         Util::Message(INFO, "gam0dot[",i,"] = ", gam0dot[i]);
-        //         Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
-        //     }
-        //     Util::Message(INFO, "tau = ", tau);
-        //     Util::Message(INFO, "gambar = ", gam_bar);
-        //     Util::Abort(INFO);
-        // }
+        #if AMREX_SPACEDIM==1
+            F0(0,0) = _F0(0,0);
+        #elif AMREX_SPACEDIM==2
+            F0(0,0) = _F0(0,0); F0(0,1) = _F0(0,1);
+            F0(1,0) = _F0(1,0); F0(1,1) = _F0(1,1);
+        #elif AMREX_SPACEDIM==3
+            F0 = _F0;
+        #endif
     }
 
     void SetPlasticStrains(Set::Matrix &a_state)

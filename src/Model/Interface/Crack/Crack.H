@@ -112,6 +112,35 @@ class Crack
 		m_d_exponent = m;
 	}
 
+	static void Parse(Crack & value, IO::ParmParse & pp)
+    {
+		std::string gtype = "";
+        std::string wtype = "";
+        pp.query("gtype", gtype);
+        pp.query("wtype", wtype);
+
+		std::map<std::string,Model::Interface::Crack::Crack::GType>  g_map;
+	    g_map["square"] = Model::Interface::Crack::Crack::GType::GSQUARE;
+	    g_map["multiwell"] = Model::Interface::Crack::Crack::GType::GMULTIWELL;
+        g_map["4c3"] = Model::Interface::Crack::Crack::GType::GPHI4C3;
+        g_map["squarep"] = Model::Interface::Crack::Crack::GType::GSQUAREP;
+	    g_map["squarepexp"] = Model::Interface::Crack::Crack::GType::GSQUAREPM;
+        g_map["cubicm"] = Model::Interface::Crack::Crack::GType::GCUBICM;
+
+        std::map<std::string,Model::Interface::Crack::Crack::WType>  w_map;
+        w_map["square"] = Model::Interface::Crack::Crack::WType::WSQUARE;
+	    w_map["multiwell"] = Model::Interface::Crack::Crack::WType::WMULTIWELL;
+        w_map["multiwell2"] = Model::Interface::Crack::Crack::WType::WMULTIWELL2;
+        w_map["4c3"] = Model::Interface::Crack::Crack::WType::WPHI4C3;
+
+        value.g_type = g_map[gtype];
+        value.w_type = w_map[wtype];
+
+		Set::Scalar ductile_exponent = 1.;
+        if(gtype == "squarepexp"|| gtype == "cubicm") pp.query("exponent",ductile_exponent);
+		value.m_d_exponent = ductile_exponent;
+	}
+
 protected:
 	static constexpr amrex::Real pi = 3.14159265359;
 	GType g_type = GType::GSQUARE;

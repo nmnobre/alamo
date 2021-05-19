@@ -36,8 +36,10 @@ public:
 		pp.query("zeta",value.zeta);
 		pp.query("mobility",value.mobility);
 		pp.query("threshold", value.threshold);
+
+        Crack::Parse(value,pp);
         
-        std::string gtype = "";
+        /*std::string gtype = "";
         std::string wtype = "";
         pp.query("gtype", gtype);
         pp.query("wtype", wtype);
@@ -62,7 +64,7 @@ public:
         value.SetGType(g_map[gtype]);
         value.SetWType(w_map[wtype]);
 
-        value.SetDuctileExponent(ductile_exponent);
+        value.SetDuctileExponent(ductile_exponent);*/
     }
 };
 }

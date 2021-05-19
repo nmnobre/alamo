@@ -1,138 +1,83 @@
-alamo.program = suturecrack
-
-timestep = 1e-2
-stop_time = 1.e-1
-plot_file = tests/SutureCrack/output
-
-amr.plot_int = 1
-amr.max_level = 5
-amr.n_cell = 64 64 
+alamo.program = fracture
+timestep = 1e-4
+stop_time = 2.e0
+amr.plot_int = 100
+amr.max_level = 6
+amr.n_cell = 64 64
 amr.blocking_factor = 16
 amr.regrid_int = 10
 amr.grid_eff = 1.0
-
 amr.thermo.int = 1
 
-geometry.prob_lo = -1.0 -1.0
-geometry.prob_hi = 1.0 1.0
-geometry.is_periodic= 0 0
+plot_file = tests/SutureCrack/output
 
-crack.modulus_scaling_max = 0.02
+geometry.prob_lo = -0.01 -0.01
+geometry.prob_hi = 0.01 0.01
+geometry.is_periodic = 0 0
+
+crack.modulus_scaling_max = 5.e-4
 crack.refinement_threshold = 0.01
 
-crack.constant1.G_c = 5.e2
-crack.constant1.zeta = 2.e-3
-crack.constant1.mobility = 1.0e-6
-crack.constant1.eta_epsilon = 0.01
-crack.constant1.gtype = 4c3
-crack.constant1.wtype = square
-crack.constant1.exponent = 1.e-3
-crack.constant1.threshold = 0.0
+crack.df.tol_rel = 0.01
+crack.df.tol_abs = 0.0
+crack.df.mult_Lap = 1.0
+crack.df.mult_Gc = 0.55
+crack.df.beta = 0.0
 
-crack.constant2.G_c = 5.e2
-crack.constant2.zeta = 2.e-3
-crack.constant2.mobility = 1.0e-6
-crack.constant2.eta_epsilon = 0.01
-crack.constant2.gtype = 4c3
-crack.constant2.wtype = square
-crack.constant2.exponent = 1.e-3
-crack.constant2.threshold = 0.0
-
-crack.df.mult_Gc = 1.0e0
-crack.df.mult_Lap = 1.0e0
-
-crack.ic.notch.center = 0.0 0.0
+crack.ic.type = notch
+crack.ic.notch.center = -0.01 0.0
 crack.ic.notch.orientation = 1.0 0.0
-crack.ic.notch.length = 0.1
-crack.ic.notch.thickness = 1.e-2
-crack.ic.notch.eps = 5.e-3
+crack.ic.notch.thickness = 3.e-4
+crack.ic.notch.length = 2.e-3
+crack.ic.notch.eps = 4.e-5
 crack.ic.notch.mollifier = erf
-
-crack.bc.type.xlo = NEUMANN
-crack.bc.type.xhi = NEUMANN
-crack.bc.type.ylo = NEUMANN
-crack.bc.type.yhi = NEUMANN
-
-crack.bc.val.xlo = 0.0 
-crack.bc.val.xhi = 0.0 
-crack.bc.val.ylo = 0.0 
-crack.bc.val.yhi = 0.0 
-
-crack.bc_df.type.xlo = NEUMANN NEUMANN NEUMANN NEUMANN
-crack.bc_df.type.xhi = NEUMANN NEUMANN NEUMANN NEUMANN
-crack.bc_df.type.ylo = NEUMANN NEUMANN NEUMANN NEUMANN
-crack.bc_df.type.yhi = NEUMANN NEUMANN NEUMANN NEUMANN
-
-crack.bc_df.val.xlo = 0.0 0.0 0.0 0.0
-crack.bc_df.val.xhi = 0.0 0.0 0.0 0.0
-crack.bc_df.val.ylo = 0.0 0.0 0.0 0.0
-crack.bc_df.val.yhi = 0.0 0.0 0.0 0.0
-
-material1.isotropic.E = 370
-material1.isotropic.nu = 0.30
-#material1.isotropic.lambda = 580
-#material1.isotropic.mu = 370
-
-material2.isotropic.E = 207
-material2.isotropic.nu = 0.31
-#material2.isotropic.lambda = 780
-#material2.isotropic.mu = 270
-
-elastic.df_mult = 1.e9
 
 material.ic.type         = bmp
 material.ic.bmp.filename = tests/SutureCrack/Interface_Blur1.bmp
 material.ic.bmp.fit      = fitwidth
 material.ic.bmp.channel  = g
 
-solver.bottom_solver 	=	bicgstab
-solver.int             = 100
-solver.composite_solve	=	1
-solver.verbose			=	2
-solver.cg_verbose 		=	0
-solver.max_iter		=	10000
-solver.max_fmg_iter 	=	10000
-solver.bottom_max_iter =	500
-solver.max_fixed_iter 	=	500
-solver.linop_maxorder 	=	2
-solver.max_coarsening_level = 100000
-solver.agglomeration 	=	1
-solver.consolidation 	=	1
-solver.tol_rel			=	1.0e-6
-solver.tol_abs			= 	1.0e-6
-solver.cg_tol_rel 		=	1.0e-6
-solver.cg_tol_abs 		=	1.0e-6
-solver.use_fsmooth 	=	1
+crack.model1.type = constant
+crack.model1.constant.G_c = 2.7e3
+crack.model1.constant.zeta = 1.e-5
+crack.model1.constant.mobility = 1.0e-5
+crack.model1.constant.gtype = square
+crack.model1.constant.wtype = square
+crack.model1.constant.threshold = 0.0
 
+crack.model2.type = constant
+crack.model2.constant.G_c = 2.7e3
+crack.model2.constant.zeta = 1.e-5
+crack.model2.constant.mobility = 1.0e-5
+crack.model2.constant.gtype = square
+crack.model2.constant.wtype = square
+crack.model2.constant.threshold = 0.0
 
-loading.body_force		=	0.0 0.0 0.0
+material.model1.type = isotropic
+material.model1.isotropic.E = 200.0
+material.model1.isotropic.nu = 0.3
+
+material.model2.type = isotropic
+material.model2.isotropic.E = 124.0
+material.model2.isotropic.nu = 0.34
+
+elastic.df_mult = 1.e9
+
+material.refinement_threshold = 1.e-1
+
+elastic.int = 100
+elastic.omega = 0.08
+elastic.solver.bottom_solver = smoother
+elastic.solver.verbose = 2
+elastic.solver.max_iter = 10000
+elastic.solver.max_fmg_iter = 0
+elastic.solver.bottom_max_iter = 1
+elastic.solver.fixed_iter = 2000
+elastic.solver.tol_rel = 1.0e-7
+elastic.solver.tol_abs = 1.0e-7
+elastic.solver.bottom_tol_rel = 1.0e-7
+elastic.solver.bottom_tol_abs = 1.0e-7
+elastic.solver.pre_smooth = 4
+elastic.solver.post_smooth = 4
+loading.body_force = 0.0 0.0 0.0
 loading.val = 2.e-2
-
-
-elastic.bc.type.xlo = trac trac
-elastic.bc.type.xhi = trac trac
-
-#elastic.bc.type.xlo = disp disp
-#elastic.bc.type.xlo = disp disp
-
-# Mode I
-#elastic.bc.type.ylo = trac disp
-#elastic.bc.type.xloylo = trac disp
-#elastic.bc.type.xhiylo = trac disp
-
-elastic.bc.type.ylo = disp disp
-elastic.bc.type.xloylo = disp disp
-elastic.bc.type.xhiylo = disp disp
-
-# Mode I - displacement
-#elastic.bc.type.yhi = trac disp
-#elastic.bc.type.xloyhi = trac disp
-#elastic.bc.type.xhiyhi = trac disp
-
-elastic.bc.type.yhi = disp disp
-elastic.bc.type.xloyhi = disp disp
-elastic.bc.type.xhiyhi = disp disp
-
-elastic.bc.val.yhi = 0.0 0.02
-elastic.bc.val.xloyhi = 0.0 0.02
-elastic.bc.val.xhiyhi = 0.0 0.02
