@@ -89,31 +89,33 @@ public:
                     Set::Scalar fQ21 = ((Set::Scalar)(bmp(I+1,J  )[channel]) - min) / (max - min);
                     Set::Scalar fQ22 = ((Set::Scalar)(bmp(I+1,J+1)[channel]) - min) / (max - min);
 
-                    field(i,j,k) =
+                    field(i,j,k,0) =
                         (fQ11*(x2-img_x)*(y2-img_y) + fQ21*(img_x-x1)*(y2-img_y) + fQ12*(x2-img_x)*(img_y-y1) + fQ22*(img_x-x1)*(img_y-y1)) / (img_dx * img_dy);
                 }
                 else if (I == bmp.nx-1 && J <  bmp.ny - 1)
                 {
                     Set::Scalar fQ11 = ((Set::Scalar)(bmp(I  ,J  )[channel]) - min) / (max - min);
                     Set::Scalar fQ12 = ((Set::Scalar)(bmp(I  ,J+1)[channel]) - min) / (max - min);
-                    field(i,j,k) = fQ11 + (fQ12-fQ11) * (img_y - y1);
+                    field(i,j,k,0) = fQ11 + (fQ12-fQ11) * (img_y - y1);
                 }
                 else if (I <  bmp.nx-1 && J == bmp.ny - 1)
                 {
                     Set::Scalar fQ11 = ((Set::Scalar)(bmp(I  ,J  )[channel]) - min) / (max - min);
                     Set::Scalar fQ21 = ((Set::Scalar)(bmp(I+1,J  )[channel]) - min) / (max - min);
-                    field(i,j,k) = fQ11 + (fQ21-fQ11) * (img_x - x1);
+                    field(i,j,k,0) = fQ11 + (fQ21-fQ11) * (img_x - x1);
                 }
                 else if (I ==  bmp.nx-1 && J == bmp.ny - 1)
                 {
                     Set::Scalar fQ11 = ((Set::Scalar)(bmp(I  ,J  )[channel]) - min) / (max - min);
-                    field(i,j,k) = fQ11;
+                    field(i,j,k,0) = fQ11;
                 }
                 else
                 {
-                    field(i,j,k) = 0.0;
+                    field(i,j,k,0) = 0.0;
                 }
-
+                field(i,j,k,1) = 1.0 - field(i,j,k,0);
+                if (field(i,j,k,1) < 0.0) field(i,j,k,1) = 0.0;
+                if (field(i,j,k,1) > 1.0) field(i,j,k,1) = 1.0;
 			});
 		}
         a_field[lev]->FillBoundary();

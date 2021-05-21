@@ -93,7 +93,7 @@ public:
 
         RegisterNodalFab(crack.c_mf, 1, number_of_ghost_nodes, "crack", true);
         RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", false);
-        RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", false);
+        RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", true);
 
         RegisterIntegratedVariable(&(crack.driving_force_norm),"driving_force_norm");
         RegisterIntegratedVariable(&(crack.int_crack),"int_c");
@@ -203,7 +203,7 @@ public:
 
         nlevels = maxLevel() + 1;
         RegisterNodalFab(elastic.disp_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "disp", true);
-        RegisterNodalFab(elastic.rhs_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "rhs", false);
+        RegisterNodalFab(elastic.rhs_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "rhs", true);
         RegisterNodalFab(elastic.residual_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "res", false);
         RegisterNodalFab(elastic.strain_mf,  AMREX_SPACEDIM*AMREX_SPACEDIM, number_of_ghost_nodes, "strain", false);
         RegisterNodalFab(elastic.stress_mf,  AMREX_SPACEDIM*AMREX_SPACEDIM, number_of_ghost_nodes, "stress", true);
