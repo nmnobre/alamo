@@ -66,13 +66,6 @@ public:
                 yield += g_alpha[3*i + j]*R;
             }
         }
-        // for(int i=0; i<12; i++)
-        //{
-            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
-            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
-            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
-            //yield += g_alpha[i]*R;
-        //}
         return yield.norm();
     }
 
@@ -94,13 +87,6 @@ public:
                 yield += g_alpha[3*i + j]*R;
             }
         }
-        //for(int i=0; i<12; i++)
-        //{
-            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
-            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
-            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
-            //yield += g_alpha[i]*R;
-        //}
         return (yield.transpose()*F0).trace();
     }
 
@@ -143,42 +129,6 @@ public:
             }
         }
 
-        // for (int i = 0; i < 12; i++)
-        // {
-        //     gamdot[i] = 0.0;
-        //     Set::Scalar tau = 0.0;
-        //     Util::Message(INFO,"sigma=",sigma);
-        //     Util::Message(INFO,"plane=",plane[i]);
-
-        //     Set::Scalar strength = g_alpha[i];
-        //     temp_g_alpha[i] = g_alpha[i];
-
-        //     // if (fabs(strength) < 1.e-6) Util::Abort(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
-
-        //     Util::Message(INFO,tau," ",strength);
-        //     if(fabs(tau) < fabs(strength)) continue;
-
-        //     Set::Scalar incr_abs = gam0dot[i]*std::pow(fabs(tau/strength), m_exp[i]);
-        //     gamdot[i] = tau>0 ? +incr_abs : -incr_abs;
-
-        //     // if(gamdot[i] > 1.e10) 
-        //     // {
-        //     //     Util::Message(INFO, "strength = ", strength);
-        //     //     Util::Message(INFO, "tau = ", tau);
-        //     //     Util::Message(INFO, "gam0dot[",i,"] = ",gam0dot[i]);
-        //     //     Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
-        //     //     Util::Abort(INFO, "incr_abs = ", incr_abs);
-        //     // }
-        //     // Util::Message(INFO, "tau = ", tau, ". strength = ", strength, ". gamdot[",i,"] = ",gamdot[i]);
-        // }
-
-        // for (int i = 0; i < 12; i++)
-        // {
-        //     //F0 += dt * gamdot[i] * (dir[i] * plane[i].transpose()); // TODO
-        //     gam_bar += dt*std::abs(gamdot[i]);
-        // }
-        // Util::Message(INFO,"gam_bar = ", gam_bar);
-
         if (hardening)
         {
             Set::Scalar sech_gambar = 1.0/(std::cosh(((h0-hs)/(gs-g0))*gam_bar));
@@ -195,23 +145,6 @@ public:
                 g_alpha[i] += dt*gdotalpha;
             }
         }
-
-        // if (F0.norm()>1.e6) //debugging
-        // {
-        //     Set::Scalar tau = 0.0;
-        //     for (int i = 0; i< 12; i++)
-        //     {
-        //         //for (int j = 0; j < 12;  j++) tau += dir[i].dot(sigma*plane[j]); // TODO
-        //         Util::Message(INFO, "g_alpha[",i,"] = ", g_alpha[i]);
-        //         Util::Message(INFO, "temp_g_alpha[",i,"] = ", temp_g_alpha[i]);
-        //         Util::Message(INFO, "gamdot[",i,"] = ", gamdot[i]);
-        //         Util::Message(INFO, "gam0dot[",i,"] = ", gam0dot[i]);
-        //         Util::Message(INFO, "m_exp[",i,"] = ", m_exp[i]);
-        //     }
-        //     Util::Message(INFO, "tau = ", tau);
-        //     Util::Message(INFO, "gambar = ", gam_bar);
-        //     Util::Abort(INFO);
-        // }
     }
 
     void SetPlasticStrains(Set::Matrix &a_state)
@@ -309,8 +242,6 @@ public:
             }
             else
                 for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
-
-            // for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
         }
 
         amrex::Vector<Set::Scalar> input_exp;
