@@ -48,11 +48,12 @@ public:
         }
     }
 
-    void ComputePlasticStrainRate(  const Set::Matrix sigma, 
-                                    const std::array<Set::Vector, 12> &gamdotgrad, 
-                                    const std::array<Set::Vector, 12> &gamgrad,
-                                    const std::array<Set::Matrix, 12> &gamdotgradgrad,
-                                    const std::array<Set::Matrix, 12> &gamgradgrad)
+    void ComputePlasticStrainRate(  Set::Matrix sigma, 
+                                    std::array<Set::Vector, 12> &gamdotgrad, 
+                                    std::array<Set::Vector, 12> &gamgrad,
+                                    std::array<Set::Matrix, 12> &gamdotgradgrad,
+                                    std::array<Set::Matrix, 12> &gamgradgrad,
+                                    Set::Scalar dt)
     {
         Set::Scalar tol = 1.e-10;
         Set::Matrix_3D R_crystal;
@@ -88,7 +89,7 @@ public:
                                             taue*(Ld[3*i+j]*Ld[3*i+j]*(gamdotgradgrad[3*i+j]*R_crystal*dir[i][j]).dot(R_crystal*dir[i][j]))/gamedot - 
                                             taue*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))*(gamedotgrad.dot(R_crystal*dir[i][j]))/(gamedot*gamedot);
 
-                gamdotalpha[3*i+j] -= visc*(qbar - tau - grad_zietilde_s - grad_ziebar_s);
+                gamdotalpha[3*i+j] -= visc*dt*(qbar - tau - grad_zietilde_s - grad_ziebar_s);
             }
         }
     }

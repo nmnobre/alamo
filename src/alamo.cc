@@ -13,6 +13,7 @@
 #include "Integrator/CahnHilliard.H"
 #include "Integrator/PhaseFieldMicrostructure.H"
 #include "Integrator/TensionTest.H"
+#include "Integrator/TensionTestSGCP.H"
 #include "Integrator/FiniteKinematics.H"
 #include "Integrator/Flame.H"
 #include "Integrator/PolymerDegradation.H"
@@ -49,6 +50,13 @@ int main (int argc, char* argv[])
 		cp_tt->InitData();
 		cp_tt->Evolve();		
 		delete cp_tt;
+	}
+	else if (program == "sgcptensiontest")
+	{
+		Integrator::Integrator *sgcp_tt = new Integrator::TensionTestSGCP<Model::Solid::Affine::StrainGradientCrystalPlastic>();
+		sgcp_tt->InitData();
+		sgcp_tt->Evolve();		
+		delete sgcp_tt;
 	}
 	else if (program == "j2plastictensiontest")
 	{
