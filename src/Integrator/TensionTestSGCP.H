@@ -352,7 +352,7 @@ protected:
             #if AMREX_SPACEDIM == 3
 
             for (int m = 0; m<12; m++)
-                plastic.gamdot_int += gamdotalpha(i,j,k,m);
+                plastic.gamdot_int += gamdotalpha(i,j,k,m)*gamdotalpha(i,j,k,m)*dv;
 
             if (i == lo.x && (j < boxhi.y && k < boxhi.z))
             {
@@ -399,7 +399,7 @@ protected:
 
     void TimeStepComplete(amrex::Real /*time*/,int /*iter*/)
     {
-        if (elastic.do_elastic_solve)
+        if (elastic.do_elastic_solve && plastic.gamdot_int > 0)
             plastic.gamdot_int_ref = plastic.gamdot_int;
         
         elastic.do_elastic_solve = false;
