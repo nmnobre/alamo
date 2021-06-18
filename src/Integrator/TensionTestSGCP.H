@@ -99,6 +99,7 @@ public:
                 // Hardcoded FCC in here..
                 RegisterNodalFab(plastic.gamalpha_mf, 12, 2, "gamalpha", true);
                 RegisterNodalFab(plastic.gamdotalpha_mf, 12, 2, "gamdotalpha", true);
+                RegisterNodalFab(plastic.gamdotalpha_old_mf, 12, 2, "gamdotalpha_old", true);
                 RegisterIntegratedVariable(&(plastic.gamdot_int),"gamdot_int");
 
                 RegisterNodalFab(plastic.strainp_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp",true);
@@ -132,6 +133,7 @@ protected:
             plastic.strainp_eq_mf[lev]->setVal(0.0);
             plastic.gamalpha_mf[lev]->setVal(0.0);
             plastic.gamdotalpha_mf[lev]->setVal(0.0);
+            plastic.gamdotalpha_old_mf[lev]->setVal(0.0);
         }
         
         eta_mf[lev]->FillBoundary();
@@ -155,7 +157,7 @@ protected:
         Util::Message(INFO,plastic.gamdot_int," ",plastic.gamdot_int_ref," ",plastic.gamdot_rel);
 
         // Has gamma dot calculation converged?
-        if (plastic.on && plastic.gamdot_int/plastic.gamdot_int_ref < plastic.gamdot_rel)
+        if (plastic.on && plastic.gamdot_int > 0.0 && plastic.gamdot_int < plastic.gamdot_rel)
             elastic.do_elastic_solve = true;
 
         if (!elastic.do_elastic_solve) return;
@@ -254,6 +256,7 @@ protected:
 
             if (!elastic.do_elastic_solve)
             {
+                std::swap(plastic.gamdotalpha_mf[lev],plastic.gamdotalpha_old_mf[lev]);
                 for (amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi)
                 {
                     const amrex::Box& bx = mfi.nodaltilebox();
@@ -346,13 +349,14 @@ protected:
 
     	amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const& gamdotalpha = plastic.gamdotalpha_mf[amrlev]->array(mfi);
+        amrex::Array4<const Set::Scalar> const& gamdotalpha_old = plastic.gamdotalpha_old_mf[amrlev]->array(mfi);
     	//amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
     	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
             #if AMREX_SPACEDIM == 3
 
             for (int m = 0; m<12; m++)
-                plastic.gamdot_int += gamdotalpha(i,j,k,m);
+                plastic.gamdot_int += (gamdotalpha_old(i,j,k,m) - gamdotalpha(i,j,k,m))*(gamdotalpha_old(i,j,k,m) - gamdotalpha(i,j,k,m))*dv;
 
             if (i == lo.x && (j < boxhi.y && k < boxhi.z))
             {
@@ -437,6 +441,7 @@ private:
         Set::Scalar gamdot_rel = 1.E-4;
         Set::Field<Set::Scalar> gamalpha_mf;
         Set::Field<Set::Scalar> gamdotalpha_mf;
+        Set::Field<Set::Scalar> gamdotalpha_old_mf;
         Set::Field<Set::Scalar> strainp_mf;
         Set::Field<Set::Scalar> strainp_eq_mf;
     } plastic;

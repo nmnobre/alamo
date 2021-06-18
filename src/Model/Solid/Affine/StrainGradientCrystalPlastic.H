@@ -78,14 +78,15 @@ public:
                 }
 
                 Set::Scalar taue = g_alpha[3*i+j]*std::pow((gamedot/gam0dot[3*i+j]),m_exp[3*i+j]);
-                Set::Vector tauegrad = g_alpha[3*i+j]*m_exp[3*i+j]*gamedotgrad*std::pow(gamedot,m_exp[3*i+j]-1)*std::pow(gam0dot[3*i+j],m_exp[3*i+j]);
+                Set::Vector tauegrad = Set::Vector::Zero();
+                if (std::abs(gamedot) > tol) tauegrad = g_alpha[3*i+j]*m_exp[3*i+j]*gamedotgrad*std::pow(gamedot,m_exp[3*i+j]-1)*std::pow(gam0dot[3*i+j],m_exp[3*i+j]);
 
-                Set::Scalar qbar = taue*gamdotalpha[3*i+j]/gamedot;
+                Set::Scalar qbar = std::abs(gamedot) < tol ? 0.0 : taue*gamdotalpha[3*i+j]/gamedot;
                 //Set::Scalar ziebar = taue*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))/gamedot;
                 //Set::Scalar zietilde = C44*Le[3*i+j]*Le[3*i+j]*gamgrad[3*i+j].dot(R_crystal*dir[i][j]);
 
-                Set::Scalar grad_zietilde_s = C44*Le[3*i+j]*Le[3*i+j]*(gamgradgrad[3*i+j]*(R_crystal*dir[i][j])).dot(R_crystal*dir[i][j]);
-                Set::Scalar grad_ziebar_s = (tauegrad.dot(R_crystal*dir[i][j]))*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))/gamedot +
+                Set::Scalar grad_zietilde_s = std::abs(gamedot) < tol ? 0.0 : C44*Le[3*i+j]*Le[3*i+j]*(gamgradgrad[3*i+j]*(R_crystal*dir[i][j])).dot(R_crystal*dir[i][j]);
+                Set::Scalar grad_ziebar_s = std::abs(gamedot) < tol ? 0.0 : (tauegrad.dot(R_crystal*dir[i][j]))*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))/gamedot +
                                             taue*(Ld[3*i+j]*Ld[3*i+j]*(gamdotgradgrad[3*i+j]*R_crystal*dir[i][j]).dot(R_crystal*dir[i][j]))/gamedot - 
                                             taue*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))*(gamedotgrad.dot(R_crystal*dir[i][j]))/(gamedot*gamedot);
 
