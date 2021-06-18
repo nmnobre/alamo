@@ -403,7 +403,7 @@ protected:
 
     void TimeStepComplete(amrex::Real /*time*/,int /*iter*/)
     {
-        if (elastic.do_elastic_solve)
+        if (elastic.do_elastic_solve && plastic.gamdot_int > 0)
             plastic.gamdot_int_ref = plastic.gamdot_int;
         
         elastic.do_elastic_solve = false;
