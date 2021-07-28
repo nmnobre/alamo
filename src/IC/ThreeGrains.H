@@ -1,5 +1,5 @@
-#ifndef IC_PERTURBEDINTERFACE_H_
-#define IC_PERTURBEDINTERFACE_H_
+#ifndef IC_THREEGRAINS_H_
+#define IC_THREEGRAINS_H_
 
 #include "IC/IC.H"
 #include "Util/Util.H"
@@ -23,11 +23,11 @@
 /// Grain 1 is defined as being above \f$y(x,z)\f$, Grain 2 is defined as being below.
 namespace IC
 {
-class PerturbedInterface : public IC
+class ThreeGrains : public IC
 {
 public:
 	enum Mollifier {Dirac, Gaussian};
-	PerturbedInterface (amrex::Vector<amrex::Geometry> &_geom) :
+	ThreeGrains (amrex::Vector<amrex::Geometry> &_geom) :
 		IC(_geom)
 	{
 	}
@@ -36,7 +36,7 @@ public:
 	{
 		Set::Scalar AMREX_D_DECL(L1 = geom[lev].ProbHi()[0] - geom[lev].ProbLo()[0],
 								 L2 = geom[lev].ProbHi()[1] - geom[lev].ProbLo()[1],
-								 L3 = geom[lev].ProbHi()[2] - geom[lev].ProbLo()[2]);
+								 L3 = geom[lev].ProbHi()[2] - geom[lev].ProbLo()[2]); // what are L1 L2 and L3 ?
 
 		for (amrex::MFIter mfi(*a_field[lev],true); mfi.isValid(); ++mfi)
 		{
@@ -62,8 +62,8 @@ public:
 				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
 				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
                 }
-		x(0) = x(0)*2; //testing testing!
-		
+                //x(0) = x(0)*2; //testing the change
+
 				Set::Scalar bdry = 0.;
 #if AMREX_SPACEDIM == 2				
 				Set::Scalar s1=NAN, l1=NAN;
@@ -77,7 +77,7 @@ public:
 				Set::Scalar s1=NAN, s2=NAN, l1=NAN, l2=NAN;
 				if (normal==Direction::X) {s1 = x(1); s2 = x(2); l1 = L2; l2 = L3;}
 				if (normal==Direction::Y) {s1 = x(2); s2 = x(0); l1 = L3; l2 = L1;}
-				if (normal==Direction::Z) {s1 = x(0); s2 = x(0); l1 = L1; l2 = L2;}
+      
 				for (int n = 0; n < wave_numbers.size(); n++)
 					bdry += wave_amplitudes[n]
 						* ( fabs(std::cos(phis[n]))*std::cos(wave_numbers[n].real()*Set::Constant::Pi*s1 / l1) +
@@ -86,39 +86,84 @@ public:
 					 	    fabs(std::sin(phis[n]))*std::sin(wave_numbers[n].imag()*Set::Constant::Pi*s2 / l2))
 					;
 #endif
-				if (mol == Mollifier::Dirac)
-				{
+				// if (mol == Mollifier::Dirac)
+				// {
 					// Util::Message(INFO);
-					if ((normal == Direction::X && x(0) < bdry + offset)||
-						(normal == Direction::Y && x(1) < bdry + offset)||
-						(normal == Direction::Z && x(2) < bdry + offset))
-					{
-						field(i,j,k,reverse) = 1.;     
-						field(i,j,k,1-reverse) = 0.;     
-					}
-					else
-					{
-						field(i,j,k,reverse) = 0.;     
-						field(i,j,k,1-reverse) = 1.;     
-					}
-				}
-				else
+					// if ((normal == Direction::X && x(0) < bdry + offset)||
+						// (normal == Direction::Y && x(1) < bdry + offset)||
+						// (normal == Direction::Z && x(2) < bdry + offset))
+					// {
+						// field(i,j,k,reverse) = 1.;     
+						// field(i,j,k,1-reverse) = 0.;     
+					// }
+					// else
+					// {
+						// field(i,j,k,reverse) = 0.;     
+						// field(i,j,k,1-reverse) = 1.;     
+					// }
+				// }
+				
+				// BR very simple case
+				// if (x(1) >= 0)
+				// {
+					// field(i,j,k,0) = 1.0; // set eta_1 to 1
+					// field(i,j,k,1) = 0.0; // set eta_2 to 0
+				// }
+				// else
+				// {
+					// field(i,j,k,0) = 0.0;
+					// field(i,j,k,1) = 1.0;
+				// }
+				
+				// three grains work in progress
+				Set::Scalar theta = 0.0;
+				Set::Scalar theta1 = 30.0;
+				Set::Scalar theta2 = 130.0;
+				Set::Scalar theta3 = 250.0;
+				// if theta is less than 0 then subtract from 360 for positive angle 
+				theta = (atan(x(1)/x(0)))*(180/M_PI);
+				if (theta < 0)
 				{
-					Set::Scalar t = 0.0;
-					if (normal == Direction::X) t = x(0) - bdry - offset;
-					else if (normal == Direction::Y) t = x(1) - bdry - offset;
-					else if (normal == Direction::Z) t = x(2) - bdry - offset;
-
-					Set::Scalar value = 0.5 + 0.5*std::erf(t/eps);
-					// Util::Message(INFO, "value = ", value);
-					field(i,j,k,reverse) = value;
-					field(i,j,k,1-reverse) = 1. - value;
-
-					if (field(i,j,k,0) < 0.0) field(i,j,k,reverse) = 0.0;
-					if (field(i,j,k,0) > 1.0) field(i,j,k,reverse) = 1.0;
-					if (field(i,j,k,1) < 0.0) field(i,j,k,1-reverse) = 0.0;
-					if (field(i,j,k,1) > 1.0) field(i,j,k,1-reverse) = 1.0;
+					theta = 360 + theta;
 				}
+				// three grains
+				if (theta1 < theta && theta < theta2)
+                               {
+					field(i,j,k,0) = 1.0; // set eta_1 to 1
+					field(i,j,k,1) = 0.0; // set eta_2 to 0
+					field(i,j,k,2) = 0.0; // set eta_3 to 0
+				}	
+				else if (theta2 < theta && theta < theta3)
+                               {
+					field(i,j,k,0) = 0.0; // set eta_1 to 0 
+					field(i,j,k,1) = 1.0; // set eta_2 to 1
+					field(i,j,k,2) = 0.0; // set eta_3 to 0
+				}
+				else  
+                               {
+					field(i,j,k,0) = 0.0; // set eta_1 to 0
+					field(i,j,k,1) = 0.0; // set eta_2 to 0
+					field(i,j,k,2) = 1.0; // set eta_3 to 1
+				}	
+				
+				
+				// else
+				// {
+					// Set::Scalar t = 0.0;
+					// if (normal == Direction::X) t = x(0) - bdry - offset;
+					// else if (normal == Direction::Y) t = x(1) - bdry - offset;
+					// else if (normal == Direction::Z) t = x(2) - bdry - offset;
+
+					// Set::Scalar value = 0.5 + 0.5*std::erf(t/eps);
+					// Util::Message(INFO, "value = ", value);
+					// field(i,j,k,reverse) = value;
+					// field(i,j,k,1-reverse) = 1. - value;
+
+					// if (field(i,j,k,0) < 0.0) field(i,j,k,reverse) = 0.0;
+					// if (field(i,j,k,0) > 1.0) field(i,j,k,reverse) = 1.0;
+					// if (field(i,j,k,1) < 0.0) field(i,j,k,1-reverse) = 0.0;
+					// if (field(i,j,k,1) > 1.0) field(i,j,k,1-reverse) = 1.0;
+				// }
 			});
 		}
 
@@ -133,10 +178,16 @@ private:
 	std::vector<Set::Scalar> phis;
 	Mollifier mol = Mollifier::Gaussian;
 	Set::Scalar eps;
+	// set theta1, theta2, theta3, r (distance of current point to origin)
+	// set t(1), t(2), t(3) (triple point coordinates)
 	int reverse = 0;
+	// Set::Vector t;
+	Set::Scalar r = 20;
+	
+	
 
 public:
-	static void Parse(PerturbedInterface & value, IO::ParmParse & pp)
+	static void Parse(ThreeGrains & value, IO::ParmParse & pp)
     {
 		std::vector<std::string> wave_numbers_str;
 		pp.queryarr("wave_numbers",wave_numbers_str);

@@ -24,6 +24,7 @@
 #include "Solver/Nonlocal/Newton.H"
 #include "IC/Trig.H"
 #include "Model/Solid/Composite.H"
+#include "IC/ThreeGrains.H"
 
 #include "Util/MPI.H"
 
@@ -193,7 +194,8 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 		}
 	}
 
-	{
+	
+	{ // TODO
 		IO::ParmParse pp("ic"); // Phase-field model parameters
 		pp.query("type", ic_type);
 		if (ic_type == "perturbed_interface") 
@@ -223,6 +225,11 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 			ic = new IC::Sphere(geom);
 			pp.queryclass("sphere",static_cast<IC::Sphere*>(ic));
 		}
+		else if (ic_type == "three_grains")
+		{
+		        ic = new IC::ThreeGrains(geom);
+			pp.queryclass(static_cast<IC::ThreeGrains*>(ic));
+		}
 		else
 			Util::Abort(INFO, "No valid initial condition specified");
 	}
@@ -244,7 +251,6 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 	RegisterIntegratedVariable(&elastic.strainenergy, "strainenergy");
 	RegisterIntegratedVariable(&elastic.force, "force");
 	RegisterIntegratedVariable(&elastic.disp, "disp");
-
 	RegisterGeneralFab(model_mf,1,2);
 
 	// Elasticity
@@ -675,6 +681,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 	// Manual Disconnection Nucleation
 	//
 
+	// TODO - update to calulate more than one kind of disconnection for more than two grains
 	if (disconnection.on && time > disconnection.tstart && !(iter % disconnection.interval))
 	{
 		disconnection.sitex.clear();
@@ -733,6 +740,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 			}
 		}
 		
+		// TODO - update the implementation of the disconnection nucleation
 		if (disconnection.sitex.size() > 0)
 		{
 			// Now that we all know the nucleation locations, perform the nucleation
@@ -880,7 +888,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 
 				for (int n = 0; n < number_of_grains; n++)
 				{
-					elasticdf(i,j,k,n) = model(i,j,k).DWDeta(gradu,n);
+				  elasticdf(i,j,k,n) = model(i,j,k).DWDeta(gradu,n); // TODO - update this to work for more than two grains (check out Model/Solid/Composite.H)((
 				}
 				
                 Numeric::MatrixToField(strain,i,j,k,gradu);
