@@ -117,9 +117,9 @@ public:
 				
 				// three grains work in progress
 				Set::Scalar theta = 0.0;
-				Set::Scalar theta1 = 30.0;
-				Set::Scalar theta2 = 130.0;
-				Set::Scalar theta3 = 250.0;
+				Set::Scalar theta1 = 60.0;
+				Set::Scalar theta2 = 100.0;
+				Set::Scalar theta3 = 270.0;
 				// if theta is less than 0 then subtract from 360 for positive angle 
 				theta = (atan(x(1)/x(0)))*(180/M_PI);
 				if (theta < 0)
