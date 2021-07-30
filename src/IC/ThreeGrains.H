@@ -118,8 +118,8 @@ public:
 				// three grains work in progress
 				Set::Scalar theta = 0.0;
 				Set::Scalar theta1 = 60.0;
-				Set::Scalar theta2 = 100.0;
-				Set::Scalar theta3 = 270.0;
+				Set::Scalar theta2 = 150.0;
+				Set::Scalar theta3 = 330.0;
 				// if theta is less than 0 then subtract from 360 for positive angle 
 				theta = (atan(x(1)/x(0)))*(180/M_PI);
 				if (theta < 0)
@@ -129,18 +129,21 @@ public:
 				// three grains
 				if (theta1 < theta && theta < theta2)
                                {
+                               	Util::Message(INFO,"IN GRAIN 1");
 					field(i,j,k,0) = 1.0; // set eta_1 to 1
 					field(i,j,k,1) = 0.0; // set eta_2 to 0
 					field(i,j,k,2) = 0.0; // set eta_3 to 0
 				}	
 				else if (theta2 < theta && theta < theta3)
                                {
+                               	Util::Message(INFO,"IN GRAIN 2");
 					field(i,j,k,0) = 0.0; // set eta_1 to 0 
 					field(i,j,k,1) = 1.0; // set eta_2 to 1
 					field(i,j,k,2) = 0.0; // set eta_3 to 0
 				}
 				else  
                                {
+                               	Util::Message(INFO,"IN GRAIN 3");
 					field(i,j,k,0) = 0.0; // set eta_1 to 0
 					field(i,j,k,1) = 0.0; // set eta_2 to 0
 					field(i,j,k,2) = 1.0; // set eta_3 to 1

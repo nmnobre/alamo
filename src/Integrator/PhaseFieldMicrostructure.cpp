@@ -706,7 +706,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 					Set::Scalar p = std::exp(-E0/(disconnection.K_b*disconnection.temp));
 					Set::Scalar P = 1.0 - std::pow(1.0 - p,exponent);
 
-					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0) P = 0.0;
+					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0 || eta(i,j,k,2) < 0 || eta(i,j,k,2) > 1.0 ) P = 0.0;
 
 					Set::Scalar q = 0.0;
 					q = disconnection.unif_dist(disconnection.rand_num_gen);
