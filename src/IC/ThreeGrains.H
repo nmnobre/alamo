@@ -122,10 +122,23 @@ public:
 				Set::Scalar theta3 = 330.0;
 				// if theta is less than 0 then subtract from 360 for positive angle 
 				theta = (atan(x(1)/x(0)))*(180/M_PI);
+				
 				if (theta < 0)
 				{
 					theta = 360 + theta;
+					if (x(0) < 0) 
+					{
+						theta = theta - 180;
+					}
 				}
+				
+				else if (x(0) < 0) 
+				{	
+					Util::Message(INFO, "INCREMENTING THETA BY 180");
+					theta = theta + 180;
+				}
+				
+				Util::Message(INFO,"THETA IS ", theta);
 				// three grains
 				if (theta1 < theta && theta < theta2)
                                {
