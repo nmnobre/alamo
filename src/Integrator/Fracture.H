@@ -93,11 +93,15 @@ public:
 
         RegisterNodalFab(crack.c_mf, 1, number_of_ghost_nodes, "crack", true);
         RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", false);
+        RegisterNodalFab(crack.c_conv_mf, 1, number_of_ghost_nodes, "crack_old", true);
         RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", true);
 
         RegisterIntegratedVariable(&(crack.driving_force_norm),"driving_force_norm");
         RegisterIntegratedVariable(&(crack.int_crack),"int_c");
         RegisterIntegratedVariable(&(elastic.int_energy),"int_W");
+        RegisterIntegratedVariable(&(crack.err_crack),"err_c");
+        RegisterIntegratedVariable(&(elastic.err_disp),"err_disp");
+        RegisterIntegratedVariable(&(material.vol),"vol");
 
         IO::ParmParse pp_material("material");
         pp_material.query("refinement_threshold",material.refinement_threshold);
@@ -192,7 +196,7 @@ public:
         
         IO::ParmParse pp_load("loading");
         if (pp_load.countval("body_force")) pp_load.queryarr("body_force",loading.body_force);
-        pp_load.query("val", loading.val);
+        //pp_load.query("val", loading.val);
 
         IO::ParmParse pp_elastic("elastic");
         pp_elastic.query("df_mult", elastic.df_mult);
@@ -203,8 +207,9 @@ public:
 
         nlevels = maxLevel() + 1;
         RegisterNodalFab(elastic.disp_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "disp", true);
-        RegisterNodalFab(elastic.rhs_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "rhs", true);
-        RegisterNodalFab(elastic.residual_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "res", false);
+        RegisterNodalFab(elastic.disp_old_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "disp", false);
+        RegisterNodalFab(elastic.rhs_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "rhs", false);
+        RegisterNodalFab(elastic.residual_mf,  AMREX_SPACEDIM, number_of_ghost_nodes, "res", true);
         RegisterNodalFab(elastic.strain_mf,  AMREX_SPACEDIM*AMREX_SPACEDIM, number_of_ghost_nodes, "strain", false);
         RegisterNodalFab(elastic.stress_mf,  AMREX_SPACEDIM*AMREX_SPACEDIM, number_of_ghost_nodes, "stress", true);
         RegisterNodalFab(elastic.energy_mf, 1, number_of_ghost_nodes, "energy", false);
@@ -219,6 +224,7 @@ protected:
     void Initialize(int ilev) override
     {
         elastic.disp_mf[ilev]->setVal(0.0);
+        elastic.disp_old_mf[ilev]->setVal(0.0);
         elastic.strain_mf[ilev]->setVal(0.0);
         elastic.stress_mf[ilev]->setVal(0.0);
         elastic.rhs_mf[ilev]->setVal(0.0);
@@ -231,26 +237,29 @@ protected:
         {
             crack.c_mf[ilev]->setVal(1.0);
             crack.c_old_mf[ilev]->setVal(1.0);
+            crack.c_conv_mf[ilev]->setVal(1.0);
 
             for (int i = 0; i < crack.ic.size(); i++)
             {
                 crack.ic[i]->Add(ilev,crack.c_mf);
                 crack.ic[i]->Add(ilev,crack.c_old_mf);
+                crack.ic[i]->Add(ilev,crack.c_conv_mf);
             }
         }
         else
         {
             crack.c_mf[ilev]->setVal(1.0);
             crack.c_old_mf[ilev]->setVal(1.0);
+            crack.c_conv_mf[ilev]->setVal(1.0);
         }
 
         if(material.is_ic) material.ic->Initialize(ilev,material.material_mf);
         else material.material_mf[ilev]->setVal(1.0);
     }
 
-    void TimeStepBegin(Set::Scalar /*time*/, int /*iter*/) override
+    void TimeStepBegin(Set::Scalar /*a_time*/, int /*iter*/) override
     {
-        Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel);
+        //Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel);
         if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel)
             elastic.do_solve_now = true;
         if (crack.driving_force_norm < crack.driving_force_tolerance_abs)
@@ -265,9 +274,10 @@ protected:
         
         for (int ilev = 0; ilev < nlevels; ++ilev)
         {
-            //material.model_mf[ilev]->setVal(material.brittlemodeltype[0]);
             Util::RealFillBoundary(*material.material_mf[ilev],geom[ilev]);
             std::swap(elastic.energy_pristine_old_mf[ilev], elastic.energy_pristine_mf[ilev]);
+            std::swap(elastic.disp_mf[ilev], elastic.disp_old_mf[ilev]);
+            std::swap(crack.c_mf[ilev],crack.c_conv_mf[ilev]);
             
             for (MFIter mfi(*material.material_mf[ilev], false); mfi.isValid(); ++mfi)
             {
@@ -332,6 +342,7 @@ protected:
                     elastic.rhs_mf[ilev]->setVal(loading.body_force(2)*volume,2,1););
         }
 
+	    elastic.brittlebc.SetTime(loading.step);
         elastic.brittlebc.Init(elastic.rhs_mf,geom);
 
         //
@@ -396,11 +407,6 @@ protected:
                         if(eValues(n) > 0.0) epsp += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
                         else epsn += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
                     }
-                    // brittle_fracture_model_type_test _tmpmodel(0.0,0.0);
-                    // for (int p = 0; p < number_of_materials; p++)
-                    //     _tmpmodel += mat(i,j,k,p)*material.brittlemodeltype[p];
-
-
                     for (int p = 0; p < number_of_materials; p++)
                         energy(i,j,k) += mat(i,j,k,p)*material.brittlemodeltype[p].W(epsp);
 
@@ -417,11 +423,6 @@ protected:
     void Advance(int lev, Set::Scalar /*time*/, Set::Scalar dt) override
     {
         std::swap(crack.c_old_mf[lev], crack.c_mf[lev]);
-
-        //Util::RealFillBoundary(*crack.c_old_mf[lev],geom[lev]);
-        //Util::RealFillBoundary(*crack.c_mf[lev],geom[lev]);
-        //Util::RealFillBoundary(*material.material_mf[lev],geom[lev]);
-        //Util::RealFillBoundary(*elastic.energy_pristine_mf[lev],geom[lev]);
 
         const Set::Scalar* DX = geom[lev].CellSize();
         amrex::Box domain(geom[lev].Domain());
@@ -521,7 +522,7 @@ protected:
         {
             const amrex::Box 							bx 	= mfi.tilebox() & domain.grow(-1);
             amrex::Array4<char> const 					&tags 	= a_tags.array(mfi);
-            amrex::Array4<const Set::Scalar> const 		&c 	= (*crack.c_mf[lev]).array(mfi);
+            amrex::Array4<const Set::Scalar> const 		&c 	= (*crack.c_old_mf[lev]).array(mfi);
             amrex::Array4<const Set::Scalar> const 		&mat 	= (*material.material_mf[lev]).array(mfi);
             
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
@@ -540,23 +541,54 @@ protected:
 
         amrex::Array4<const Set::Scalar> const &df = (*crack.driving_force_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &c_new = (*crack.c_mf[amrlev]).array(mfi);
+        amrex::Array4<const Set::Scalar> const &c_conv = (*crack.c_conv_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &energy = (*elastic.energy_mf[amrlev]).array(mfi);
+        amrex::Array4<const Set::Scalar> const &disp = (*elastic.disp_mf[amrlev]).array(mfi);
+        amrex::Array4<const Set::Scalar> const &disp_old = (*elastic.disp_old_mf[amrlev]).array(mfi);
         
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
         {
+            material.vol += DV;
             crack.driving_force_norm += df(i,j,k,4) * DV;
             crack.int_crack += c_new(i,j,k) * DV;
+            crack.err_crack += (c_conv(i,j,k) - c_new(i,j,k))*(c_conv(i,j,k) - c_new(i,j,k))*DV;
             elastic.int_energy += energy(i,j,k) * DV;
+            Set::Vector u_new = Numeric::FieldToVector(disp,i,j,k);
+            Set::Vector u_old = Numeric::FieldToVector(disp_old,i,j,k);
+            elastic.err_disp += (u_new-u_old).squaredNorm()*DV;
         });
     }
 
-    void TimeStepComplete(amrex::Real /*time*/,int /*iter*/)
+    void TimeStepComplete(amrex::Real /*time*/,int iter)
     {
-        if (elastic.do_solve_now)
-            crack.driving_force_reference = crack.driving_force_norm;
-            //crack.driving_force_reference = crack.driving_force_norminf;
+        Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel, " ", crack.driving_force_tolerance_abs);
+        Util::Message(INFO,"Err_disp/vol = ", elastic.err_disp/material.vol, ", err_crack/vol = ",crack.err_crack/material.vol);
 
-        elastic.do_solve_now = false;
+        if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel
+            && crack.driving_force_norm < crack.driving_force_tolerance_abs)   //This means that crack had converged
+        {
+            // This means that the crack gradient descent converged.
+            // This also means that the elastic solve was performed.
+            // Now we need to check if they both converged together.
+
+            Util::Message(INFO,"step = ", loading.step, 
+                                ", err_disp = ", elastic.err_disp,
+                                ", err_crack/vol = ",crack.err_crack/material.vol);
+            
+            if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
+            {
+                loading.step += 0.5;
+                elastic.do_solve_now = true;
+            }
+            else elastic.do_solve_now = false;
+
+            crack.driving_force_reference = crack.driving_force_norm;
+        }
+        else if (elastic.do_solve_now)
+        {
+            elastic.do_solve_now = false;
+            crack.driving_force_reference = crack.driving_force_norm;
+        }
     }
 
 private:
@@ -567,6 +599,7 @@ private:
 
     struct{
         Set::Field<Set::Scalar> disp_mf;             ///< displacement field
+        Set::Field<Set::Scalar> disp_old_mf;        ///< old displacement field
         Set::Field<Set::Scalar> strain_mf;           ///< total strain field (gradient of displacement)
         Set::Field<Set::Scalar> stress_mf;           ///< stress field
         Set::Field<Set::Scalar> rhs_mf;              ///< rhs fab for elastic solution
@@ -574,7 +607,9 @@ private:
         Set::Field<Set::Scalar> energy_mf;           ///< total elastic energy
         Set::Field<Set::Scalar> energy_pristine_mf;      ///< energy of the prisitne material as if no crack is present
         Set::Field<Set::Scalar> energy_pristine_old_mf;  ///< energy of the pristine material for previous time step.
+        
         Set::Scalar int_energy = 0.0;               ///< integrated energy over the entire domain.
+        Set::Scalar err_disp = 0.0;                 ///< error in displacement field
 
         BC::Operator::Elastic::Constant 	brittlebc;  ///< elastic BC if using brittle fracture
 		Set::Scalar df_mult = 1.0;              ///< mulitplier for elastic driving force.
@@ -588,10 +623,16 @@ private:
     struct{
         Set::Field<Set::Scalar> c_mf;                ///< crack field at current time step
         Set::Field<Set::Scalar> c_old_mf;            ///< crack field at previous time step
+        Set::Field<Set::Scalar> c_conv_mf;          ///< converged crack field 
+        
         Set::Field<Set::Scalar> driving_force_mf;         ///< crack driving forces.
         Set::Scalar int_crack = 0.0;                    ///< integrated crack field over the entire domain.
+        
+        Set::Scalar err_crack =  1.0;               ///< L2 error in crack field
+        Set::Scalar err_tol = 1.e-6;                ///< tolerance in crack errors
+
         Set::Scalar driving_force_reference = 1.0;
-        Set::Scalar driving_force_norm = 0.0;
+        Set::Scalar driving_force_norm = 0.0;               ///< norm of driving forces
         Set::Scalar driving_force_norminf = 0.0;
 		Set::Scalar driving_force_tolerance_rel = 1E-4;
 		Set::Scalar driving_force_tolerance_abs = 0.0;
@@ -615,6 +656,7 @@ private:
         Set::Field<brittle_fracture_model_type_test> model_mf;
         std::string input_material = "isotropic";
         Set::Scalar refinement_threshold = 0.1;
+        Set::Scalar vol = 0.0;
         
         IC::IC *ic;
         std::string ic_type;
@@ -623,7 +665,7 @@ private:
 
     struct{
         Set::Vector body_force 				= Set::Vector::Zero();
-        Set::Scalar val 					= 0.;
+        Set::Scalar step 					= 0;
     } loading;
 
 };
