@@ -163,6 +163,10 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 			pp.queryarr("fixed.sitex",disconnection.fixed.sitex);
 			pp.queryarr("fixed.sitey",disconnection.fixed.sitey);
 			pp.queryarr("fixed.phases",disconnection.fixed.phases);
+
+                        pp.queryarr("fixed.phase1",disconnection.fixed.phase1);
+			pp.queryarr("fixed.phase2",disconnection.fixed.phase2);
+			
 			pp.queryarr("fixed.time",disconnection.fixed.time);
 			Util::Assert(INFO,TEST(disconnection.fixed.sitex.size() == disconnection.fixed.sitey.size()));
 			Util::Assert(INFO,TEST(disconnection.fixed.sitex.size() == disconnection.fixed.phases.size()));
@@ -289,6 +293,9 @@ PhaseFieldMicrostructure::PhaseFieldMicrostructure() : Integrator()
 	}
 }
 
+  //comment yay
+  
+
 #define ETA(i, j, k, n) eta_old(amrex::IntVect(AMREX_D_DECL(i, j, k)), n)
 
 void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt)
@@ -299,7 +306,7 @@ void PhaseFieldMicrostructure::Advance(int lev, amrex::Real time, amrex::Real dt
 	std::swap(eta_old_mf[lev], eta_new_mf[lev]);
 	const amrex::Real *DX = geom[lev].CellSize();
 
-	Model::Interface::GB::SH gbmodel(0.0, 0.0, anisotropy.sigma0, anisotropy.sigma1);
+   	Model::Interface::GB::SH gbmodel(0.0, 0.0, anisotropy.sigma0, anisotropy.sigma1);
 
 	for (amrex::MFIter mfi(*eta_new_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
 	{
@@ -686,7 +693,9 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 	{
 		disconnection.sitex.clear();
 		disconnection.sitey.clear();
-		disconnection.phases.clear();			
+		disconnection.phases.clear();
+		disconnection.phase1.clear();
+		disconnection.phase2.clear();
 			
 		int lev = max_level;
 		const Set::Scalar *DX = geom[lev].CellSize();
@@ -702,9 +711,16 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 				amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
 				{
 					Set::Scalar E0 = 2.0*disconnection.nucleation_energy;
-					E0 /= disconnection.epsilon + 256.0*eta(i,j,k,0)*eta(i,j,k,0)*eta(i,j,k,0)*eta(i,j,k,0)*eta(i,j,k,1)*eta(i,j,k,1)*eta(i,j,k,1)*eta(i,j,k,1);
-					Set::Scalar p = std::exp(-E0/(disconnection.K_b*disconnection.temp));
+					for (int g1 = 0; g1 <= 2; g1++) {
+					  for (int g2 = 0; g1 <= 2; g1++) {
+					    if (g1 != g2) {
+					      E0 /= disconnection.epsilon + 256.0*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2);
+					    }
+					  }
+					}
+				        Set::Scalar p = std::exp(-E0/(disconnection.K_b*disconnection.temp));
 					Set::Scalar P = 1.0 - std::pow(1.0 - p,exponent);
+					// P is the probability of disconnection starting there, I think
 
 					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0 || eta(i,j,k,2) < 0 || eta(i,j,k,2) > 1.0 ) P = 0.0;
 
@@ -713,10 +729,16 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 
 					if (q < P)
 					{
-						disconnection.sitex.push_back(geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * DX[0]);
-						disconnection.sitey.push_back(geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * DX[1]);
-						int phase = disconnection.int_dist(disconnection.rand_num_gen);
-						disconnection.phases.push_back(phase);
+					  disconnection.sitex.push_back(geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * DX[0]); //storing the x comp of pos in sitex array
+					  disconnection.sitey.push_back(geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * DX[1]); //storing the y comp of position in sitey array
+
+					  //    old code:
+					  //    int phase = disconnection.int_dist(disconnection.rand_num_gen); //rand num generator decides whether up-down or down-up disconnection
+					  //	disconnection.phases.push_back(phase);// adding the phase to the phases array
+
+					  //append g1 to phase1 array, append g2 to phase2 array
+					  disconnection.phase1.push_back(g1);
+					  disconnection.phase2.push_back(g2);
 					}
 				});		
 			}
@@ -724,8 +746,23 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 			Util::MPI::Allgather(disconnection.sitex);
 			Util::MPI::Allgather(disconnection.sitey);
 			Util::MPI::Allgather(disconnection.phases);
+			Util::MPI::Allgather(disconnection.phase1);
+			Util::MPI::Allgather(disconnection.phase2);
 			Util::Message(INFO,"Nucleating ", disconnection.phases.size(), " disconnections");
 		}
+
+
+// Now we are going to actually alter the fields 
+//ParallelFor{
+
+    // for (g1, g2, x) in (phase1 array, phase2 array, location array)
+    // {
+         // apply the "up" perturbation to g1 grain
+         // apply the "down" perturbation to g2 grain 
+    // } 
+
+//}}
+		
 		else
 		{
 			for (int n = 0; n < disconnection.fixed.sitex.size(); n++)
@@ -761,6 +798,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 							x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * DX[2];
 						);
 						disc(i,j,k,0) = 0.0;
+						// need to update because we are now using phase1 and phase2 instead of phases???
 						for (unsigned int m = 0; m < disconnection.phases.size(); m++)
 						{	
 							//Util::ParallelMessage(INFO,disconnection.phases[m]);
@@ -773,9 +811,10 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 							}
 							//amrex::Real bump = exp(1 - 1 / (1 - 2/disconnection.box_size * r_squared));
 							amrex::Real bump = exp(-r_squared / disconnection.box_size);
-							disc(i,j,k,0) += bump;
+							disc(i,j,k,0) += bump;   
 							etanew(i,j,k,  disconnection.phases[m]) = bump * (1-etanew(i,j,k,disconnection.phases[m])) + etanew(i,j,k,disconnection.phases[m]);
 							etanew(i,j,k,1-disconnection.phases[m]) = (1.-bump)*etanew(i,j,k,1-disconnection.phases[m]);
+							// etanew(i,j,k,
 						}
 					});
 				}
