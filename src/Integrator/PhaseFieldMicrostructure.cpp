@@ -710,9 +710,11 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 				amrex::Array4<amrex::Real> const &eta = (*eta_old_mf[lev]).array(mfi);
 				amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
 				{
+				  int g1;
+				  int g2;
 					Set::Scalar E0 = 2.0*disconnection.nucleation_energy;
-					for (int g1 = 0; g1 <= 2; g1++) {
-					  for (int g2 = 0; g1 <= 2; g1++) {
+					for (g1 = 0; g1 <= 2; g1++) {
+					  for (g2 = 0; g2 <= 2; g2++) {
 					    if (g1 != g2) {
 					      E0 /= disconnection.epsilon + 256.0*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2);
 					    }
@@ -812,9 +814,8 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 							//amrex::Real bump = exp(1 - 1 / (1 - 2/disconnection.box_size * r_squared));
 							amrex::Real bump = exp(-r_squared / disconnection.box_size);
 							disc(i,j,k,0) += bump;   
-							etanew(i,j,k,  disconnection.phases[m]) = bump * (1-etanew(i,j,k,disconnection.phases[m])) + etanew(i,j,k,disconnection.phases[m]);
-							etanew(i,j,k,1-disconnection.phases[m]) = (1.-bump)*etanew(i,j,k,1-disconnection.phases[m]);
-							// etanew(i,j,k,
+							etanew(i,j,k,  disconnection.phase1[m]) = bump * (1-etanew(i,j,k,disconnection.phases[m])) + etanew(i,j,k,disconnection.phases[m]);//swap out disconnection.phases[m] with grain id 1 and grain id 2... like disconnection.phase1[m] and disconnnection.phase2[m]. that's all.    
+							etanew(i,j,k,1-disconnection.phase2[m]) = (1.-bump)*etanew(i,j,k,1-disconnection.phases[m]);
 						}
 					});
 				}

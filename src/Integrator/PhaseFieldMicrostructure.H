@@ -162,12 +162,16 @@ private:
 		std::vector<Set::Scalar> sitex;
 		std::vector<Set::Scalar> sitey;
 		std::vector<int> phases;
+		std::vector<int> phase1;
+		std::vector<int> phase2;
 		
 		struct {
 			int on = 0;
 			std::vector<Set::Scalar> sitex;
 			std::vector<Set::Scalar> sitey;
 			std::vector<int> phases;
+			std::vector<int> phase1;
+			std::vector<int> phase2;
 			std::vector<Set::Scalar> time;
 			std::vector<bool> done;
 		} fixed;
