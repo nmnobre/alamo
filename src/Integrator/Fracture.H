@@ -196,7 +196,7 @@ public:
         
         IO::ParmParse pp_load("loading");
         if (pp_load.countval("body_force")) pp_load.queryarr("body_force",loading.body_force);
-        //pp_load.query("val", loading.val);
+        pp_load.query("step", loading.val);
 
         IO::ParmParse pp_elastic("elastic");
         pp_elastic.query("df_mult", elastic.df_mult);
@@ -262,8 +262,8 @@ protected:
         //Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel);
         if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel)
             elastic.do_solve_now = true;
-        if (crack.driving_force_norm < crack.driving_force_tolerance_abs)
-            elastic.do_solve_now = true;
+        //if (crack.driving_force_norm < crack.driving_force_tolerance_abs)
+        //    elastic.do_solve_now = true;
 
         if (!elastic.do_solve_now) return;
         // if(iter%elastic.interval != 0) return;
@@ -571,18 +571,20 @@ protected:
             // This also means that the elastic solve was performed.
             // Now we need to check if they both converged together.
 
-            Util::Message(INFO,"step = ", loading.step, 
-                                ", err_disp = ", elastic.err_disp,
-                                ", err_crack/vol = ",crack.err_crack/material.vol);
+            // Util::Message(INFO,"step = ", loading.step, 
+            //                     ", err_disp/vol = ", elastic.err_disp/material.vol,
+            //                     ", err_crack/vol = ",crack.err_crack/material.vol);
             
             if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
             {
-                loading.step += 0.5;
+                loading.step += loading.val;
                 elastic.do_solve_now = true;
+                crack.driving_force_reference = crack.driving_force_norm;
+                Util::Message(INFO, "step increased to = ", loading.step);
             }
             else elastic.do_solve_now = false;
 
-            crack.driving_force_reference = crack.driving_force_norm;
+            //crack.driving_force_reference = crack.driving_force_norm;
         }
         else if (elastic.do_solve_now)
         {
@@ -666,6 +668,7 @@ private:
     struct{
         Set::Vector body_force 				= Set::Vector::Zero();
         Set::Scalar step 					= 0;
+        Set::Scalar val                     = 0.1;
     } loading;
 
 };
