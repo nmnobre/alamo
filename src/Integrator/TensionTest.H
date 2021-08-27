@@ -75,7 +75,6 @@ public:
                 elastic.bc = new BC::Operator::Elastic::TensionTest();
                 pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
             }
-            pp.query("solver.int",elastic.interval);
             else if (bc_type == "expression")
             {
                 elastic.bc = new BC::Operator::Elastic::Expression();
@@ -83,6 +82,7 @@ public:
             }
 
 			pp.query("ref_threshold",m_elastic_ref_threshold);
+            pp.query("solver.int",elastic.interval);
 
         }
         RegisterGeneralFab(model_mf, 1, 2);
@@ -341,7 +341,7 @@ protected:
             amrex::Box bx = mfi.tilebox();
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
-            amrex::Array4<Set::Scalar> const &disp = eta_mf[lev]->array(mfi);
+            //amrex::Array4<Set::Scalar> const &disp = disp_mf[lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &strain = strain_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
