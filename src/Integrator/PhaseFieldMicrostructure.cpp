@@ -739,6 +739,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 					  //	disconnection.phases.push_back(phase);// adding the phase to the phases array
 
 					  //append g1 to phase1 array, append g2 to phase2 array
+					  // PROBLEM: g1 and g2 not defined! should this be in the loop?
 					  disconnection.phase1.push_back(g1);
 					  disconnection.phase2.push_back(g2);
 					}
