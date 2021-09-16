@@ -92,8 +92,8 @@ public:
         }
 
         RegisterNodalFab(crack.c_mf, 1, number_of_ghost_nodes, "crack", true);
-        RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", false);
-        RegisterNodalFab(crack.c_conv_mf, 1, number_of_ghost_nodes, "crack_old", true);
+        RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", true);
+        RegisterNodalFab(crack.c_conv_mf, 1, number_of_ghost_nodes, "crack_old", false);
         RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", true);
 
         RegisterIntegratedVariable(&(crack.driving_force_norm),"driving_force_norm");
@@ -276,8 +276,8 @@ protected:
         {
             Util::RealFillBoundary(*material.material_mf[ilev],geom[ilev]);
             std::swap(elastic.energy_pristine_old_mf[ilev], elastic.energy_pristine_mf[ilev]);
-            std::swap(elastic.disp_mf[ilev], elastic.disp_old_mf[ilev]);
-            std::swap(crack.c_mf[ilev],crack.c_conv_mf[ilev]);
+            //std::swap(elastic.disp_mf[ilev], elastic.disp_old_mf[ilev]);
+            //std::swap(crack.c_mf[ilev],crack.c_conv_mf[ilev]);
             
             for (MFIter mfi(*material.material_mf[ilev], false); mfi.isValid(); ++mfi)
             {
@@ -443,14 +443,22 @@ protected:
 #if AMREX_SPACEDIM !=2
                 Util::Abort(INFO, "This doesn't work with 1D or 3D yet");
 #endif
-                if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0);
-                else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0);
-                else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0);
-                else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0);
-                else if (i == lo.x) c(i,j,k,0) = c(i+1,j,k,0);
-                else if (j == lo.y) c(i,j,k,0) = c(i,j+1,k,0);
-                else if (i == hi.x) c(i,j,k,0) = c(i-1,j,k,0);
-                else if (j == hi.y) c(i,j,k,0) = c(i,j-1,k,0);
+                // if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0);
+                // else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0);
+                // else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0);
+                // else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0);
+                // else if (i == lo.x) c(i,j,k,0) = c(i+1,j,k,0);
+                // else if (j == lo.y) c(i,j,k,0) = c(i,j+1,k,0);
+                // else if (i == hi.x) c(i,j,k,0) = c(i-1,j,k,0);
+                // else if (j == hi.y) c(i,j,k,0) = c(i,j-1,k,0);
+                if      (i == lo.x && j == lo.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i+1,j+1,k,0) - 0.5*c(i+2,j+2,k,0));
+                else if (i == lo.x && j == hi.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i+1,j-1,k,0) - 0.5*c(i+2,j-2,k,0));
+                else if (i == hi.x && j == lo.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i-1,j+1,k,0) - 0.5*c(i-2,j+2,k,0));
+                else if (i == hi.x && j == hi.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i-1,j-1,k,0) - 0.5*c(i-2,j-2,k,0));
+                else if (i == lo.x) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i+1,j,k,0) - 0.5*c(i+2,j,k,0));
+                else if (j == lo.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i,j+1,k,0) - 0.5*c(i,j+2,k,0));
+                else if (i == hi.x) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i-1,j,k,0) - 0.5*c(i-2,j,k,0));
+                else if (j == hi.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i,j-1,k,0) - 0.5*c(i,j-2,k,0));
                 else
                 {
                     Set::Scalar rhs = 0.0;
@@ -465,7 +473,9 @@ protected:
                     df(i,j,k,0) = crack.cracktype[0].Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
                     rhs += crack.cracktype[0].Dg_phi(c_old(i,j,k,0),0.0)*en_cell*elastic.df_mult;
 
-                    Set::Scalar laplacian = Numeric::Laplacian(c_old,i,j,k,0,DX);//DDc.trace();
+                    std::array<Numeric::StencilType,AMREX_SPACEDIM> stencil = 
+                        {AMREX_D_DECL(Numeric::StencilType::Central2,Numeric::StencilType::Central2,Numeric::StencilType::Central2)};
+                    Set::Scalar laplacian = Numeric::Laplacian(c_old,i,j,k,0,DX,stencil);//DDc.trace();
 
                     Set::Scalar Gc = 0.0;
                     Set::Scalar Zeta = 0.0;
@@ -575,14 +585,14 @@ protected:
             //                     ", err_disp/vol = ", elastic.err_disp/material.vol,
             //                     ", err_crack/vol = ",crack.err_crack/material.vol);
             
-            if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
-            {
-                loading.step += loading.val;
-                elastic.do_solve_now = true;
-                crack.driving_force_reference = crack.driving_force_norm;
-                Util::Message(INFO, "step increased to = ", loading.step);
-            }
-            else elastic.do_solve_now = false;
+            // if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
+            // {
+            //     loading.step += loading.val;
+            //     elastic.do_solve_now = true;
+            //     crack.driving_force_reference = crack.driving_force_norm;
+            //     Util::Message(INFO, "step increased to = ", loading.step);
+            // }
+            // else elastic.do_solve_now = false;
 
             //crack.driving_force_reference = crack.driving_force_norm;
         }
