@@ -93,7 +93,6 @@ public:
 
         RegisterNodalFab(crack.c_mf, 1, number_of_ghost_nodes, "crack", true);
         RegisterNodalFab(crack.c_old_mf, 1, number_of_ghost_nodes, "crack_old", true);
-        RegisterNodalFab(crack.c_conv_mf, 1, number_of_ghost_nodes, "crack_old", false);
         RegisterNodalFab(crack.driving_force_mf, 5, number_of_ghost_nodes, "driving_force", true);
 
         RegisterIntegratedVariable(&(crack.driving_force_norm),"driving_force_norm");
@@ -237,20 +236,17 @@ protected:
         {
             crack.c_mf[ilev]->setVal(1.0);
             crack.c_old_mf[ilev]->setVal(1.0);
-            crack.c_conv_mf[ilev]->setVal(1.0);
-
+            
             for (int i = 0; i < crack.ic.size(); i++)
             {
                 crack.ic[i]->Add(ilev,crack.c_mf);
                 crack.ic[i]->Add(ilev,crack.c_old_mf);
-                crack.ic[i]->Add(ilev,crack.c_conv_mf);
             }
         }
         else
         {
             crack.c_mf[ilev]->setVal(1.0);
             crack.c_old_mf[ilev]->setVal(1.0);
-            crack.c_conv_mf[ilev]->setVal(1.0);
         }
 
         if(material.is_ic) material.ic->Initialize(ilev,material.material_mf);
@@ -259,11 +255,11 @@ protected:
 
     void TimeStepBegin(Set::Scalar /*a_time*/, int /*iter*/) override
     {
-        //Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel);
+        Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel);
         if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel)
             elastic.do_solve_now = true;
-        //if (crack.driving_force_norm < crack.driving_force_tolerance_abs)
-        //    elastic.do_solve_now = true;
+        if (crack.driving_force_norm < crack.driving_force_tolerance_abs)
+           elastic.do_solve_now = true;
 
         if (!elastic.do_solve_now) return;
         // if(iter%elastic.interval != 0) return;
@@ -276,8 +272,6 @@ protected:
         {
             Util::RealFillBoundary(*material.material_mf[ilev],geom[ilev]);
             std::swap(elastic.energy_pristine_old_mf[ilev], elastic.energy_pristine_mf[ilev]);
-            //std::swap(elastic.disp_mf[ilev], elastic.disp_old_mf[ilev]);
-            //std::swap(crack.c_mf[ilev],crack.c_conv_mf[ilev]);
             
             for (MFIter mfi(*material.material_mf[ilev], false); mfi.isValid(); ++mfi)
             {
@@ -321,8 +315,6 @@ protected:
                     if(_temp < 0.0) _temp = 0.;
                     if(_temp > 1.0) _temp = 1.0;
 					
-                    // _temp = std::max(crack.scaleModulusMax, _temp);
-                    // _temp = std::max(crack.scaleModulusMax, crack.scaleModulusMax + _temp * (1. - crack.scaleModulusMax));
                     model(i,j,k).DegradeModulus(1-_temp);
                 });
             }
@@ -356,14 +348,8 @@ protected:
         op_b.SetBC(&elastic.brittlebc);
         op_b.SetAverageDownCoeffs(true); // <<< Important! Do not change.
         op_b.SetOmega(elastic.omega);
-        //
+        
         // Actually do the elastic solve
-        // 
-        //for (int ilev = 0; ilev < nlevels; ilev++)
-        //{
-        //    elastic.disp_mf[ilev]->setVal(0.0);
-        //}
-
         {
             IO::ParmParse pp("elastic");
             Solver::Nonlocal::Newton<brittle_fracture_model_type_test>  solver(op_b);
@@ -551,7 +537,6 @@ protected:
 
         amrex::Array4<const Set::Scalar> const &df = (*crack.driving_force_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &c_new = (*crack.c_mf[amrlev]).array(mfi);
-        amrex::Array4<const Set::Scalar> const &c_conv = (*crack.c_conv_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &energy = (*elastic.energy_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &disp = (*elastic.disp_mf[amrlev]).array(mfi);
         amrex::Array4<const Set::Scalar> const &disp_old = (*elastic.disp_old_mf[amrlev]).array(mfi);
@@ -561,7 +546,6 @@ protected:
             material.vol += DV;
             crack.driving_force_norm += df(i,j,k,4) * DV;
             crack.int_crack += c_new(i,j,k) * DV;
-            crack.err_crack += (c_conv(i,j,k) - c_new(i,j,k))*(c_conv(i,j,k) - c_new(i,j,k))*DV;
             elastic.int_energy += energy(i,j,k) * DV;
             Set::Vector u_new = Numeric::FieldToVector(disp,i,j,k);
             Set::Vector u_old = Numeric::FieldToVector(disp_old,i,j,k);
@@ -571,36 +555,43 @@ protected:
 
     void TimeStepComplete(amrex::Real /*time*/,int iter)
     {
-        Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel, " ", crack.driving_force_tolerance_abs);
-        Util::Message(INFO,"Err_disp/vol = ", elastic.err_disp/material.vol, ", err_crack/vol = ",crack.err_crack/material.vol);
 
-        if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel
-            && crack.driving_force_norm < crack.driving_force_tolerance_abs)   //This means that crack had converged
-        {
-            // This means that the crack gradient descent converged.
-            // This also means that the elastic solve was performed.
-            // Now we need to check if they both converged together.
-
-            // Util::Message(INFO,"step = ", loading.step, 
-            //                     ", err_disp/vol = ", elastic.err_disp/material.vol,
-            //                     ", err_crack/vol = ",crack.err_crack/material.vol);
-            
-            // if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
-            // {
-            //     loading.step += loading.val;
-            //     elastic.do_solve_now = true;
-            //     crack.driving_force_reference = crack.driving_force_norm;
-            //     Util::Message(INFO, "step increased to = ", loading.step);
-            // }
-            // else elastic.do_solve_now = false;
-
-            //crack.driving_force_reference = crack.driving_force_norm;
-        }
-        else if (elastic.do_solve_now)
-        {
-            elastic.do_solve_now = false;
+        if (elastic.do_solve_now)
             crack.driving_force_reference = crack.driving_force_norm;
-        }
+            //crack.driving_force_reference = crack.driving_force_norminf;
+
+        elastic.do_solve_now = false;
+
+        // Util::Message(INFO,crack.driving_force_norm," ",crack.driving_force_reference," ",crack.driving_force_tolerance_rel, " ", crack.driving_force_tolerance_abs);
+        // Util::Message(INFO,"Err_disp/vol = ", elastic.err_disp/material.vol, ", err_crack/vol = ",crack.err_crack/material.vol);
+
+        // if (crack.driving_force_norm / crack.driving_force_reference < crack.driving_force_tolerance_rel
+        //     && crack.driving_force_norm < crack.driving_force_tolerance_abs)   //This means that crack had converged
+        // {
+        //     // This means that the crack gradient descent converged.
+        //     // This also means that the elastic solve was performed.
+        //     // Now we need to check if they both converged together.
+
+        //     // Util::Message(INFO,"step = ", loading.step, 
+        //     //                     ", err_disp/vol = ", elastic.err_disp/material.vol,
+        //     //                     ", err_crack/vol = ",crack.err_crack/material.vol);
+            
+        //     // if (elastic.err_disp/material.vol < 1.e-6 && crack.err_crack/material.vol < 1.e-6)   // Has the displacement and crack converged overall?
+        //     // {
+        //     //     loading.step += loading.val;
+        //     //     elastic.do_solve_now = true;
+        //     //     crack.driving_force_reference = crack.driving_force_norm;
+        //     //     Util::Message(INFO, "step increased to = ", loading.step);
+        //     // }
+        //     // else elastic.do_solve_now = false;
+
+        //     //crack.driving_force_reference = crack.driving_force_norm;
+        // }
+        // else if (elastic.do_solve_now)
+        // {
+        //     elastic.do_solve_now = false;
+        //     crack.driving_force_reference = crack.driving_force_norm;
+        // }
     }
 
 private:
@@ -635,7 +626,6 @@ private:
     struct{
         Set::Field<Set::Scalar> c_mf;                ///< crack field at current time step
         Set::Field<Set::Scalar> c_old_mf;            ///< crack field at previous time step
-        Set::Field<Set::Scalar> c_conv_mf;          ///< converged crack field 
         
         Set::Field<Set::Scalar> driving_force_mf;         ///< crack driving forces.
         Set::Scalar int_crack = 0.0;                    ///< integrated crack field over the entire domain.
