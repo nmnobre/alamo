@@ -1,4 +1,5 @@
 #ifndef INTEGRATOR_TENSIONTEST_H
+
 #define INTEGRATOR_TENSIONTEST_H
 #include <iostream>
 #include <fstream>
@@ -15,6 +16,7 @@
 #include "BC/BC.H"
 #include "BC/Operator/Elastic/Constant.H"
 #include "BC/Operator/Elastic/TensionTest.H"
+#include "BC/Operator/Elastic/Expression.H"
 
 #include "IC/Ellipse.H"
 #include "Numeric/Stencil.H"
@@ -75,7 +77,14 @@ public:
                 elastic.bc = new BC::Operator::Elastic::TensionTest();
                 pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
             }
-            pp.query("solver.int",elastic.interval);
+            else if (bc_type == "expression")
+            {
+                elastic.bc = new BC::Operator::Elastic::Expression();
+                pp.queryclass("bc.expression",static_cast<BC::Operator::Elastic::Expression*>(elastic.bc));
+            }
+
+			pp.query("ref_threshold",m_elastic_ref_threshold);
+
         }
         RegisterGeneralFab(model_mf, 1, 2);
 
@@ -293,8 +302,10 @@ protected:
 
 
     	//Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);
-        #if AMREX_SPACEDIM == 3
-        Set::Vector da(AMREX_D_DECL(DX[1]*DX[2], DX[2]*DX[0], DX[0]*DX[1]));
+        #if AMREX_SPACEDIM == 2
+        Set::Vector da(DX[1],DX[0]);
+        #elif AMREX_SPACEDIM == 3
+        Set::Vector da(DX[1]*DX[2], DX[2]*DX[0], DX[0]*DX[1]);
         #endif
 
 		const Dim3 lo= amrex::lbound(domain)/*, hi = amrex::ubound(domain)*/;
@@ -304,7 +315,12 @@ protected:
     	//amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
     	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
-            #if AMREX_SPACEDIM == 3
+            #if AMREX_SPACEDIM == 2
+            if (i == lo.x && j < boxhi.y)
+            {
+                trac_lo[0](0) += 0.5 * (stress(i,j,k,0) + stress(i,j+1,k,0)) * da(0);
+            } 
+            #elif AMREX_SPACEDIM == 3
             if (i == lo.x && (j < boxhi.y && k < boxhi.z))
             {
                 trac_lo[0](0) += 0.25 * (stress(i,j,k,0) + stress(i,j+1,k,0) + stress(i,j,k+1,0) + stress(i,j+1,k+1,0)) * da(0);
@@ -327,6 +343,7 @@ protected:
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &disp = eta_mf[lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &strain = strain_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 {
                     Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
@@ -334,8 +351,8 @@ protected:
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
                 {
-                    Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > 0.01)
+                    Set::Matrix grad = Numeric::Gradient(strain, i, j, k, DX.data());
+                    if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
                 {
@@ -377,6 +394,8 @@ private:
         Set::Field<Set::Scalar> strainp_mf;
         Set::Field<Set::Scalar> strainp_eq_mf;
     } plastic;
+    
+	Set::Scalar m_elastic_ref_threshold = 0.01;
 
 };
 } // namespace Integrator
