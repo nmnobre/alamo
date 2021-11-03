@@ -24,12 +24,12 @@ namespace Linear
 class Laplacian : public Model::Solid::Solid<Set::Sym::Diagonal>
 {
 public:
-	Laplacian() { Define(); } ;
-	~Laplacian() {} ;
-	void Define()
-	{
+    Laplacian() { Define(); } ;
+    ~Laplacian() {} ;
+    void Define()
+    {
         ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Diagonal>(Set::Matrix::Ones());
-	}
+    }
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
         return ( 0.5 * gradu.transpose() * (ddw*gradu) ).trace();
@@ -44,25 +44,25 @@ public:
     }
     Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Diagonal> ddw;
 public:
-	void Randomize() {}
+    void Randomize() {}
     static const KinematicVariable kinvar = KinematicVariable::gradu;
-	static Laplacian Random()
+    static Laplacian Random()
     {
         Laplacian ret;
         return ret;
     }
     AMREX_FORCE_INLINE
-	void operator += (const Laplacian &rhs)
+    void operator += (const Laplacian &rhs)
     {
         ddw += rhs.ddw;
-	}    
+    }    
     AMREX_FORCE_INLINE
-   	virtual Laplacian operator * (const Set::Scalar alpha) const
-	{
+        virtual Laplacian operator * (const Set::Scalar alpha) const
+    {
         Laplacian ret;
         ret.ddw = ddw*alpha;
         return ret;
-	}    
+    }    
     friend Laplacian operator * (const Set::Scalar alpha, const Laplacian b);
     friend Laplacian operator + (const Laplacian a, const Laplacian b);
     friend Laplacian operator - (const Laplacian a, const Laplacian b);
@@ -94,5 +94,3 @@ Laplacian operator - (const Laplacian a, const Laplacian b)
 }
 }
 #endif
-
-

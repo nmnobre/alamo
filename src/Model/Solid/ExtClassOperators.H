@@ -8,14 +8,14 @@ OP_CLASS operator * (const Set::Scalar alpha, const OP_CLASS b)
     #undef X
 
     #ifdef OP_LOOP_VARS
-	for (int i = 0; i < OP_LOOP_NUM; i++)
-	{
-		#define X(name)\
-		ret.name[i] = b.name[i]*alpha;
-		OP_LOOP_VARS
-		#undef X
-	}
-	#endif
+    for (int i = 0; i < OP_LOOP_NUM; i++)
+    {
+        #define X(name)\
+        ret.name[i] = b.name[i]*alpha;
+        OP_LOOP_VARS
+        #undef X
+    }
+    #endif
 
     return ret;
 }    
@@ -29,13 +29,13 @@ OP_CLASS operator + (const OP_CLASS a, const OP_CLASS b)
     #undef X
 
     #ifdef OP_LOOP_VARS
-	for (int i = 0; i < OP_LOOP_NUM; i++)
-	{
-		#define X(name) ret.name[i] = a.name[i] + b.name[i];
-		OP_LOOP_VARS
-		#undef X
-	}
-	#endif
+    for (int i = 0; i < OP_LOOP_NUM; i++)
+    {
+        #define X(name) ret.name[i] = a.name[i] + b.name[i];
+        OP_LOOP_VARS
+        #undef X
+    }
+    #endif
     
     return ret;
 }    
@@ -49,13 +49,13 @@ OP_CLASS operator - (const OP_CLASS a, const OP_CLASS b)
     #undef X
 
     #ifdef OP_LOOP_VARS
-	for (int i = 0; i < OP_LOOP_NUM; i++)
-	{
-		#define X(name) ret.name[i] = a.name[i] - b.name[i];
-		OP_LOOP_VARS
-		#undef X
-	}
-	#endif
+    for (int i = 0; i < OP_LOOP_NUM; i++)
+    {
+        #define X(name) ret.name[i] = a.name[i] - b.name[i];
+        OP_LOOP_VARS
+        #undef X
+    }
+    #endif
 
     return ret;
 }    

@@ -22,9 +22,9 @@ public:
     CrystalPlasticDegradable(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2)
     {
         Eigen::Matrix3d m;
-    	m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
-    		Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
-    	 	Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
+        m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
+            Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
+            Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
         Define(a_C11, a_C12, a_C44, m);
     }
     CrystalPlasticDegradable(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Eigen::Matrix3d m)
@@ -35,9 +35,9 @@ public:
     void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2)
     {
         Eigen::Matrix3d m;
-    	m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
-    		Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
-    	 	Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
+        m =     Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
+            Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
+            Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
         Define(a_C11, a_C12, a_C44, m);
     }
 
@@ -363,7 +363,7 @@ public:
         value.DefineSlipSystem(f_g_alpha,f_g_exp,f_gam0dot);
     }
     AMREX_FORCE_INLINE
-	void operator += (const CrystalPlasticDegradable &rhs)
+    void operator += (const CrystalPlasticDegradable &rhs)
     {
         curr += rhs.curr;
         prev += rhs.prev;

@@ -23,7 +23,7 @@ public:
     Linear (Operator::Operator<Grid::Node>& a_lp) : MLMG(a_lp), linop(a_lp)
     {
         MLMG::setBottomSolver(MLMG::BottomSolver::bicgstab);
-	    MLMG::setCFStrategy(MLMG::CFStrategy::ghostnodes);
+        MLMG::setCFStrategy(MLMG::CFStrategy::ghostnodes);
         MLMG::setFinalFillBC(false);
         MLMG::setMaxFmgIter(100000000);
     }
@@ -31,17 +31,17 @@ public:
     {
         m_verbose = verbosity;
         MLMG::setVerbose(m_verbose-1);
-		if (m_verbose > 4) MLMG::setBottomVerbose(m_verbose);
-     	else
- 	    {
- 		    MLMG::setBottomVerbose(0);
-	    }
+        if (m_verbose > 4) MLMG::setBottomVerbose(m_verbose);
+        else
+        {
+            MLMG::setBottomVerbose(0);
+        }
     }
 
     Set::Scalar solveaffine (amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_sol, 
-                       amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs,
-                       Real a_tol_rel, Real a_tol_abs, bool copyrhs = false, 
-                       const char* checkpoint_file = nullptr)
+                        amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs,
+                        Real a_tol_rel, Real a_tol_abs, bool copyrhs = false, 
+                        const char* checkpoint_file = nullptr)
     {
         amrex::Vector<amrex::MultiFab *> rhs_tmp(a_rhs.size());
         amrex::Vector<amrex::MultiFab *> zero_tmp(a_rhs.size());
@@ -61,18 +61,18 @@ public:
         {
             amrex::Box domain = linop.Geom(lev).Domain();
             domain.convert(amrex::IntVect::TheNodeVector());
-      		const Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
+            const Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
             for (MFIter mfi(*rhs_tmp[lev],amrex::TilingIfNotGPU());mfi.isValid();++mfi)
-		    {
-		    	amrex::Box bx = mfi.growntilebox(rhs_tmp[lev]->nGrow());
+            {
+                amrex::Box bx = mfi.growntilebox(rhs_tmp[lev]->nGrow());
                 bx = bx & domain;
                 amrex::Array4<amrex::Real> const& rhstmp = rhs_tmp[lev]->array(mfi);
                 for (int n = 0; n < rhs_tmp[lev]->nComp(); n++)
                 {
                     amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) 
                     {
-  			            bool    AMREX_D_DECL(xmin = (i == lo.x), ymin = (j==lo.y), zmin = (k==lo.z)),
-			        	    	AMREX_D_DECL(xmax = (i == hi.x), ymax = (j==hi.y), zmax = (k==hi.z));
+                        bool    AMREX_D_DECL(xmin = (i == lo.x), ymin = (j==lo.y), zmin = (k==lo.z)),
+                                AMREX_D_DECL(xmax = (i == hi.x), ymax = (j==hi.y), zmax = (k==hi.z));
                         if (AMREX_D_TERM(xmax || xmin, || ymax || ymin, || zmax || zmin))
                             rhstmp(i,j,k,n) = 0.0;
                         else
@@ -100,13 +100,13 @@ public:
     };
 
     Set::Scalar solve (amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_sol, 
-                       amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs,
-                       Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr)
+                        amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs,
+                        Real a_tol_rel, Real a_tol_abs, const char* checkpoint_file = nullptr)
     {
         return MLMG::solve(GetVecOfPtrs(a_sol),GetVecOfConstPtrs(a_rhs),a_tol_rel,a_tol_abs,checkpoint_file);
     };
     Set::Scalar solve (amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_sol, 
-                       amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs)
+                        amrex::Vector<std::unique_ptr<amrex::MultiFab> > & a_rhs)
     {
         return MLMG::solve(GetVecOfPtrs(a_sol),GetVecOfConstPtrs(a_rhs),m_tol_rel,m_tol_abs);
     };
