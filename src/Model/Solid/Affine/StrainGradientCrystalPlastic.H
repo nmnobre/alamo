@@ -25,24 +25,37 @@ class StrainGradientCrystalPlastic : public CrystalPlastic
 public:
     StrainGradientCrystalPlastic(){};
 
-    void DefineSlipGradientSystem(Set::Scalar a_Le, Set::Scalar a_Ld, Set::Scalar a_visc=0.01)
+    void DefineSlipGradientSystem()
     {
-        std::array<Set::Scalar,12> temp_Le, temp_Ld;
-        for (int i=0; i<12; i++)
-        {
-            temp_Le[i] = a_Le;
-            temp_Ld[i] = a_Ld;
-        }
-        DefineSlipGradientSystem(temp_Le, temp_Ld, a_visc);
+        DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
 
-    void DefineSlipGradientSystem(std::array<Set::Scalar,12> &a_Le, std::array<Set::Scalar,12> &a_Ld, Set::Scalar a_visc=0.01)
+    void DefineSlipGradientSystem(Set::Scalar a_Ke, Set::Scalar a_b, Set::Scalar a_de, Set::Scalar a_ds, Set::Scalar a_tau0, Set::Scalar a_mu, 
+                                    Set::Scalar a_c0, Set::Scalar a_w1, Set::Scalar a_w2, Set::Scalar a_h, Set::Scalar a_q1, Set::Scalar a_q2,
+                                    Set::Scalar a_F0, Set::Scalar a_T)
     {
-        visc = a_visc;
+        m_Ke = a_Ke;
+        m_b = a_b;
+        m_de = a_de;
+        m_ds = a_ds;
+        m_tau0 = a_tau0;
+        m_mu = a_mu;
+        m_c0 = a_c0;
+        m_w1 = a_w1;
+        m_w2 = a_w2;
+        m_h = a_h;
+        m_q1 = a_q1;
+        m_q2 = a_q2;
+        m_F0 = a_F0;
+        m_T = a_T;
+
         for (int i=0; i<12; i++)
         {
-            Le[i] = a_Le[i];
-            Ld[i] = a_Ld[i];
+            rho_se[i] = 0.0;
+            rho_ss[i] = 0.0;
+            rho_gen[i] = 0.0;
+            rho_get[i] = 0.0;
+            rho_gsm[i] = 0.0;
             gamalpha[i] = 0.0; 
             gamdotalpha[i] = 0.0;
         }
@@ -51,56 +64,76 @@ public:
     void ComputePlasticStrainRate(  Set::Matrix sigma, 
                                     std::array<Set::Vector, 12> &gamdotgrad, 
                                     std::array<Set::Vector, 12> &gamgrad,
-                                    std::array<Set::Matrix, 12> &gamdotgradgrad,
-                                    std::array<Set::Matrix, 12> &gamgradgrad,
                                     Set::Scalar dt)
     {
-        Set::Scalar tol = 1.e-10;
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+
+        Set::Scalar total_rho = 0.0;
+        for (int i = 0; i<12; i++) 
+            total_rho += rho_se[i] + rho_ss[i] + std::abs(rho_gen[i]) + std::abs(rho_get[i]) + std::abs(rho_gsm[i]);
+        
+        // Let's first compute all dislocation densities
+        for (int i=0; i<4; i++)
+        {
+            for (int j=0; j<3; j++)
+            {
+                int alpha = 3*i + j;
+                Set::Vector t_alpha = R_crystal*dir[i][j].cross(R_crystal*plane[i]);
+                Set::Scalar rho_se_dot = ((m_Ke/m_b)*std::sqrt(total_rho) - m_de*rho_se[alpha])*std::abs(gamdotalpha[alpha]);
+                Set::Scalar rho_ss_dot = ((1. - (Set::Constant::Pi*m_ds*m_ds*rho_ss[alpha]/4.0))*(2.0*m_Ke/m_b)*std::sqrt(total_rho) - m_ds*rho_ss[alpha])*std::abs(gamdotalpha[alpha]);
+                Set::Vector curlTerm = Set::Vector::Zero();
+                for (int bi=0; bi<4; bi++)
+                {
+                    for (int bj=0; bj<3; bj++)
+                    {
+                        int beta = 3*bi + bj;
+                        for (int p=0; p<3; p++)
+                            for (int q=0; q<3; q++)
+                                for (int r=0; r<3; r++)
+                                    curlTerm(r) += (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*(R_crystal*plane[bi](p))
+                                                    *((R_crystal*plane[i]).dot(R_crystal*plane[bi]))
+                                                    *Set::Constant::PermutationTensor(i,j,k);
+                    }
+                }
+                
+                Set::Scalar rho_gsm_dot = (1.0/m_b)*(R_crystal*dir[i][j]).dot(curlTerm);
+                Set::Scalar rho_get_dot = (1.0/m_b)*(t_alpha).dot(curlTerm);
+                Set::Scalar rho_gen_dot = (1.0/m_b)*(R_crystal*plane[i]).dot(curlTerm);
+
+                rho_se[alpha] += rho_se_dot*dt;
+                rho_ss[alpha] += rho_ss_dot*dt;
+                rho_gsm[alpha] += rho_gsm_dot*dt;
+                rho_get[alpha] += rho_get_dot*dt;
+                rho_gen[alpha] += rho_gen_dot*dt;
+            }
+        }
+
+        total_rho = 0.0;
+        for (int k = 0; k<12; k++) total_rho += rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]);
 
         for (int i=0; i<4; i++)
         {
             for (int j=0; j<3; j++)
             {
+                int alpha = 3*i+j;
                 Set::Scalar tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
+                Set::Scalar tau_prime = m_tau0 + m_mu*m_b*m_c0*std::sqrt(total_rho);
 
-                Set::Scalar gamedot = std::sqrt(gamdotalpha[3*i+j]*gamdotalpha[3*i+j] + 
-                                                (Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))*
-                                                (Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j])));
+                Set::Scalar anisotropic_rho = 0.0;
+                for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
+                Set::Scalar S_alpha = m_mu*m_b*std::sqrt(anisotropic_rho);
                 
-                Set::Vector gamedotgrad = Set::Vector::Zero();
-                if (std::abs(gamedot) > tol)
-                {
-                    gamedotgrad =   (1.0/gamedot)*
-                                    ((gamdotalpha[3*i+j]*gamdotgrad[3*i+j]) +
-                                    (Ld[3*i+j]*Ld[3*i+j]*(gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))*(gamdotgradgrad[3*i+j]*R_crystal*dir[i][j])));
-                }
-
-                Set::Scalar taue = g_alpha[3*i+j]*std::pow((gamedot/gam0dot[3*i+j]),m_exp[3*i+j]);
-                Set::Vector tauegrad = Set::Vector::Zero();
-                if (std::abs(gamedot) > tol) tauegrad = g_alpha[3*i+j]*m_exp[3*i+j]*gamedotgrad*std::pow(gamedot,m_exp[3*i+j]-1)*std::pow(gam0dot[3*i+j],m_exp[3*i+j]);
-
-                Set::Scalar qbar = std::abs(gamedot) < tol ? 0.0 : taue*gamdotalpha[3*i+j]/gamedot;
-                //Set::Scalar ziebar = taue*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))/gamedot;
-                //Set::Scalar zietilde = C44*Le[3*i+j]*Le[3*i+j]*gamgrad[3*i+j].dot(R_crystal*dir[i][j]);
-
-                Set::Scalar grad_zietilde_s = std::abs(gamedot) < tol ? 0.0 : C44*Le[3*i+j]*Le[3*i+j]*(gamgradgrad[3*i+j]*(R_crystal*dir[i][j])).dot(R_crystal*dir[i][j]);
-                Set::Scalar grad_ziebar_s = std::abs(gamedot) < tol ? 0.0 : (tauegrad.dot(R_crystal*dir[i][j]))*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))/gamedot +
-                                            taue*(Ld[3*i+j]*Ld[3*i+j]*(gamdotgradgrad[3*i+j]*R_crystal*dir[i][j]).dot(R_crystal*dir[i][j]))/gamedot - 
-                                            taue*(Ld[3*i+j]*Ld[3*i+j]*gamdotgrad[3*i+j].dot(R_crystal*dir[i][j]))*(gamedotgrad.dot(R_crystal*dir[i][j]))/(gamedot*gamedot);
-
-                gamdotalpha[3*i+j] -= visc*dt*(qbar - tau - grad_zietilde_s - grad_ziebar_s);
+                Set::Scalar temp1 = std::pow((std::abs(tau) - S_alpha) / tau_prime, m_q1);
+                temp1 = temp1 > 0.0 ? temp1 : 0.0;
+                Set::Scalar temp2 = std::pow(1. - temp1,m_q2);
+                temp2 = temp2 > 0.0 ? temp2 : 0.0;
+                gamdotalpha[alpha] = gam0dot[alpha]*std::exp(-m_F0*temp2/(Set::Constant::kB*m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
             }
         }
+        
     }
 
-    // Hardening law
-    // \dot{g}^{\alpha} = \sum_{\beta=1}^N h_{\alpha\beta} |\dot{\gamma}^\beta|
-    // h_{\alpha\beta} = qh_{\alpha\beta} h(\bar{\gamma})
-    // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
-    // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
-    // qh_{\alpha\beta} = 1 (if \alpha,\beta coplanar), qh (else)
     void Advance(const Set::Matrix /*sigma*/, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
         Set::Matrix_3D R_crystal;
@@ -109,24 +142,32 @@ public:
         std::array<Set::Scalar, 12> gamdot;
         
         for (int i=0; i< 4; i++)
-        {
             for (int j=0; j<3; j++)
-            {
                 F0 += dt * gamdotalpha[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
-                gamalpha[3*i+j] += dt*std::abs(gamdot[3*i + j]);
-            }
-        }
 
-        //if (hardening)
     }
 
 public:
 
-    Set::Scalar visc;
-    std::array<Set::Scalar,12> Le;
-    std::array<Set::Scalar,12> Ld;
     std::array<Set::Scalar,12> gamalpha;
     std::array<Set::Scalar,12> gamdotalpha;
+    std::array<Set::Scalar,12> rho_gsm;
+    std::array<Set::Scalar,12> rho_get;
+    std::array<Set::Scalar,12> rho_gen;
+    std::array<Set::Scalar,12> rho_se;
+    std::array<Set::Scalar,12> rho_ss;
+
+    Set::Scalar m_Ke;
+    Set::Scalar m_b;
+    Set::Scalar m_de;
+    Set::Scalar m_ds;
+    Set::Scalar m_tau0;
+    Set::Scalar m_mu;
+    Set::Scalar m_c0;
+    Set::Scalar m_w1, m_w2, m_h;
+    Set::Scalar m_q1, m_q2;
+    Set::Scalar m_F0, m_T;
+
     
 public:
     static StrainGradientCrystalPlastic Zero()
@@ -136,7 +177,7 @@ public:
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
         ret.F0 = Set::Matrix::Zero();
         ret.DefineSlipSystem(0.,0.,0.);
-        ret.DefineSlipGradientSystem(0.,0.,0.);
+        ret.DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
         ret.hardening = false;
         ret.g0 = 0.0;
         ret.gs = 0.0;
@@ -151,49 +192,14 @@ public:
     {
         CrystalPlastic::Parse(value,pp);
 
-        amrex::Vector<Set::Scalar> input_Ld, input_Le;
-        std::array<Set::Scalar, 12> f_Le, f_Ld;
-        if (pp.contains("Le"))
-        {
-            pp.queryarr("Le",input_Le);
-            if(input_Le.size() == 1)
-            {
-                for (int i = 0; i< 12; i++) f_Le[i] = input_Le[0];
-            }
-            else if(input_Le.size() <= 0 || input_Le.size() != 12) Util::Abort(INFO, "Invalid number of values in Le");
-            else
-            {
-                for (int i = 0; i< 12; i++) f_Le[i] = input_Le[i];
-            }
-        }
-        else
-            for (int i = 0; i< 12; i++) f_Le[i] = 0.1;
-        
-        if (pp.contains("Ld"))
-        {
-            pp.queryarr("Ld",input_Ld);
-            if(input_Ld.size() == 1)
-            {
-                for (int i = 0; i< 12; i++) f_Ld[i] = input_Ld[0];
-            }
-            else if(input_Ld.size() <= 0 || input_Ld.size() != 12) Util::Abort(INFO, "Invalid number of values in Ld");
-            else
-            {
-                for (int i = 0; i< 12; i++) f_Ld[i] = input_Ld[i];
-            }
-        }
-        else
-            for (int i = 0; i< 12; i++) f_Ld[i] = 0.1;
-        
-        Set::Scalar input_visc;
-        pp.query("visc",input_visc);
+        pp.query("Ke", m_Ke);
         value.DefineSlipGradientSystem(f_Le,f_Ld,input_visc);
     }
 
     #define OP_CLASS StrainGradientCrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) X(visc)
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_F0) X(m_T)
     #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot) X(gamalpha) X(gamdotalpha) X(Le) X(Ld)
+    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot) X(gamalpha) X(gamdotalpha) X(rho_se) X(rho_ss) X(rho_gen) X(rho_gsm) X(rho_get)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
