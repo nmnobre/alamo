@@ -18,7 +18,7 @@ public:
 
     Isotropic() {};
     Isotropic(Linear::Isotropic base) : Linear::Isotropic(base) {};
-    
+
     // Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
     // {
     //     Define(a_mu,a_lambda,a_F0);

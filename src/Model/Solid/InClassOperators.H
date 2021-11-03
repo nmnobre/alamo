@@ -1,10 +1,10 @@
 AMREX_FORCE_INLINE
 void operator += (const OP_CLASS &rhs)
 {
-    #define X(name) \
-        name += rhs.name;
-        OP_VARS
-    #undef X
+#define X(name) \
+    name += rhs.name;
+    OP_VARS
+#undef X
     #ifdef OP_LOOP_VARS
     for (int i = 0; i < OP_LOOP_NUM; i++)
     {
@@ -19,11 +19,11 @@ void operator += (const OP_CLASS &rhs)
 AMREX_FORCE_INLINE
 OP_CLASS operator * (const Set::Scalar alpha) const
 {
-    OP_CLASS ret;
-    #define X(name) \
-        ret.name = name*alpha;
-        OP_VARS
-    #undef X
+        OP_CLASS ret;
+#define X(name) \
+    ret.name = name*alpha;
+    OP_VARS
+#undef X
     #ifdef OP_LOOP_VARS
     for (int i = 0; i < OP_LOOP_NUM; i++)
     {

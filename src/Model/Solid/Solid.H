@@ -28,11 +28,11 @@ public:
     virtual Set::Scalar W(const Set::Matrix &) const = 0; //          {Util::Abort(INFO,"W not implemented"); return 0.0;};
     virtual Set::Matrix DW(const Set::Matrix &) const = 0; //         {Util::Abort(INFO,"DW not implemented"); return Set::Matrix::Zero();};
     virtual Set::Matrix4<AMREX_SPACEDIM,SYM> DDW(const Set::Matrix &) const = 0; // {Util::Abort(INFO,"DDW not implemented"); return ddw;};
-    
+
     virtual void Advance(const Set::Matrix &, const Set::Matrix &, const Set::Matrix3 &, const Set::Scalar /*dt*/) {return;}
     virtual void SetHardening(const bool /*flag*/) {return;}
     virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
-
+    
 public:
 
 

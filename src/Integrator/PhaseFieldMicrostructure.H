@@ -57,7 +57,6 @@ protected:
     /// \fn    Advance
     /// \brief Evolve phase field in time
     void Advance (int lev, Real time, Real dt) override;
-
     void Initialize (int lev) override;
 
     void TagCellsForRefinement (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
@@ -65,7 +64,7 @@ protected:
     void TimeStepBegin(amrex::Real time, int iter) override;
     void TimeStepComplete(amrex::Real time, int iter) override;
     void Integrate(int amrlev, Set::Scalar time, int step,
-                const amrex::MFIter &mfi, const amrex::Box &box) override;
+                    const amrex::MFIter &mfi, const amrex::Box &box) override;
 
 private:
 

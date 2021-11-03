@@ -66,7 +66,7 @@ public:
                 pp.queryclass("constant",*static_cast<IC::Constant*>(ic));
             }
             
-        }        
+        }       
         {
             IO::ParmParse pp("bc");
             bc = new BC::Constant(1);
@@ -107,12 +107,12 @@ protected:
         
             // Iterate over the grid on this patch
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
-                // Do the physics!
-                // Note that Numeric::Laplacian is an inlined function so there is no overhead.
-                // You can calculate the derivatives yourself if you want.
-                temp(i,j,k) = temp_old(i,j,k) + dt * alpha * Numeric::Laplacian(temp_old,i,j,k,0,DX);
-            });
+                                    {
+                                        // Do the physics!
+                                        // Note that Numeric::Laplacian is an inlined function so there is no overhead.
+                                        // You can calculate the derivatives yourself if you want.
+                                        temp(i,j,k) = temp_old(i,j,k) + dt * alpha * Numeric::Laplacian(temp_old,i,j,k,0,DX);
+                                    });
         }
     }
 
@@ -134,15 +134,15 @@ protected:
             
             // Iterate over the grid as done above.
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
-                // Calculate the temperature gradient.
-                Set::Vector grad = Numeric::Gradient(temp,i,j,k,0,DX);
+                                    {
+                                        // Calculate the temperature gradient.
+                                        Set::Vector grad = Numeric::Gradient(temp,i,j,k,0,DX);
 
-                // Is the gradient * cell_size too big? If so, then
-                // mark this cell as needing refinement.
-                if (grad.lpNorm<2>() * dr > refinement_threshold)
-                    tags(i,j,k) = amrex::TagBox::SET;
-            });
+                                        // Is the gradient * cell_size too big? If so, then
+                                        // mark this cell as needing refinement.
+                                        if (grad.lpNorm<2>() * dr > refinement_threshold)
+                                            tags(i,j,k) = amrex::TagBox::SET;
+                                    });
         }
     }
 
@@ -156,7 +156,7 @@ private:
     amrex::Real alpha = 1.0;                 ///< Thermal diffusivity
     amrex::Real refinement_threshold = 0.01; ///< Criterion for cell refinement
 
-    IC::IC *ic;                                 ///< Object used to initialize temperature field
+    IC::IC *ic;                              ///< Object used to initialize temperature field
     BC::BC<Set::Scalar> *bc;                 ///< Object used to update temp field boundary ghost cells
 };
 } // namespace Integrator

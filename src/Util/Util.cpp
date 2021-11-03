@@ -40,8 +40,8 @@ std::string GetFileName()
         }
         IO::FileNameParse(filename);
         // else
-        //     if (amrex::ParallelDescriptor::IOProcessor())
-        //         Util::Abort("No plot file specified! (Specify plot_file = \"plot_file_name\" in input file");
+        // if (amrex::ParallelDescriptor::IOProcessor())
+        // Util::Abort("No plot file specified! (Specify plot_file = \"plot_file_name\" in input file");
     }
     return filename;
 }
@@ -67,7 +67,7 @@ void SignalHandler(int s)
 #ifdef MEME
     amrex::ParmParse pp;
     if (!pp.contains("nomeme"))
-    {            
+    {
         time_t timer; time(&timer);
         std::stringstream cmd;
         cmd << "xdg-open " << BUILD_DIR << "/src/Util/Meme/cat0" << (1+((int)timer)%6) << ".gif &";
