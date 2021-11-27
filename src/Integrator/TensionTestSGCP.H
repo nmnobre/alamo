@@ -278,7 +278,7 @@ protected:
                             a_gamdot_gradgrad[m] = Numeric::Hessian(gamdotalpha,i,j,k,m,DX);
                             a_gam_gradgrad[m] = Numeric::Hessian(gamalpha,i,j,k,m,DX);
                         }
-                        model(i,j,k).ComputePlasticStrainRate(sigma, a_gamdot_grad, a_gam_grad, a_gamdot_gradgrad, a_gam_gradgrad, dt);
+                        model(i,j,k).ComputePlasticStrainRate(sigma, a_gamdot_grad, a_gam_grad, dt);
                         for (int m=0; m<12; m++)
                             gamdotalpha(i,j,k,m) = model(i,j,k).gamdotalpha[m];
                     });
