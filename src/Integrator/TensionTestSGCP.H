@@ -261,8 +261,8 @@ protected:
 
                     for (int n=0; n<12; n++)
                     {
-                        gamdotgrad[i] = Numeric::Gradient(gamdotalpha,i,j,k,n,DX,sten);
-                        gamgrad[i] = Numeric::Gradient(gamalpha,i,j,k,n,DX,sten);
+                        gamdotgrad[n] = Numeric::Gradient(gamdotalpha,i,j,k,n,DX,sten);
+                        gamgrad[n] = Numeric::Gradient(gamalpha,i,j,k,n,DX,sten);
                     }
 
                     model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt);

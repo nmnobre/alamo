@@ -147,7 +147,7 @@ public:
             for (int j=0; j<3; j++)
             {
                 F0 += dt * gamdotalpha[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
-                gamalpha[3*i + j] += dt*gamdotalpha[3*i+j];
+                gamalpha[3*i + j] += dt*gamdotalpha[3*i + j];
             }
         }
 
