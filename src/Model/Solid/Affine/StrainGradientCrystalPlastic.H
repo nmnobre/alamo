@@ -140,11 +140,16 @@ public:
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
 
-        std::array<Set::Scalar, 12> gamdot;
+        //std::array<Set::Scalar, 12> gamdot;
         
         for (int i=0; i< 4; i++)
+        {
             for (int j=0; j<3; j++)
+            {
                 F0 += dt * gamdotalpha[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                gamalpha[3*i + j] += dt*gamdotalpha[3*i+j];
+            }
+        }
 
     }
 
@@ -219,8 +224,8 @@ public:
         pp.query("h", a_h);
         pp.query("q1", a_q1);
         pp.query("q2", a_q2);
-        pp.query("rho_0", a_rho0);
-        pp.query("F0", a_F0);
+        pp.query("rho0", a_rho0);
+        pp.query("m_F0", a_F0);
         pp.query("T", a_T);
 
         value.DefineSlipGradientSystem(a_Ke, a_b, a_de, a_ds, a_tau0, a_mu, 

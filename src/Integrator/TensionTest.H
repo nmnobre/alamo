@@ -216,25 +216,25 @@ protected:
 
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                                            std::array<Numeric::StencilType,AMREX_SPACEDIM>
-                                                sten = Numeric::GetStencil(i,j,k,bx);
+                    std::array<Numeric::StencilType,AMREX_SPACEDIM>
+                        sten = Numeric::GetStencil(i,j,k,bx);
 
-                                            if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
-                                            {
-                                                Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
-                                                Set::Matrix P = model(i,j,k).DW(F);
-                                                Numeric::MatrixToField(stress,i,j,k,P);
-                                                Numeric::MatrixToField(strain,i,j,k,F);
-                                            }
-                                            else
-                                            {                    
-                                                Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
-                                                Set::Matrix sigma = model(i,j,k).DW(gradu);
-                                                Set::Matrix eps = 0.5*(gradu + gradu.transpose());
-                                                Numeric::MatrixToField(stress,i,j,k,sigma);
-                                                Numeric::MatrixToField(strain,i,j,k,eps);
-                                            }
-                                        });
+                    if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                    {
+                        Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                        Set::Matrix P = model(i,j,k).DW(F);
+                        Numeric::MatrixToField(stress,i,j,k,P);
+                        Numeric::MatrixToField(strain,i,j,k,F);
+                    }
+                    else
+                    {                    
+                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                        Set::Matrix sigma = model(i,j,k).DW(gradu);
+                        Set::Matrix eps = 0.5*(gradu + gradu.transpose());
+                        Numeric::MatrixToField(stress,i,j,k,sigma);
+                        Numeric::MatrixToField(strain,i,j,k,eps);
+                    }
+                });
             }
             Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
             Util::RealFillBoundary(*strain_mf[lev],geom[lev]);

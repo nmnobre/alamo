@@ -99,9 +99,6 @@ public:
                 // Hardcoded FCC in here..
                 RegisterNodalFab(plastic.gamalpha_mf, 12, 2, "gamalpha", true);
                 RegisterNodalFab(plastic.gamdotalpha_mf, 12, 2, "gamdotalpha", true);
-                RegisterNodalFab(plastic.gamdotalpha_old_mf, 12, 2, "gamdotalpha_old", true);
-                RegisterIntegratedVariable(&(plastic.gamdot_int),"gamdot_int");
-
                 RegisterNodalFab(plastic.strainp_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strainp",true);
                 RegisterNodalFab(plastic.strainp_eq_mf, 1, 2, "strainp_eq",true);
             }
@@ -114,14 +111,10 @@ protected:
     {
         eta_mf[lev]->setVal(0.0);
         if (elastic.models.size() > 1 && ic)
-        {
             ic->Initialize(lev, eta_mf);
-        }
         else 
-        {
             eta_mf[lev]->setVal(1.0);
-        }
-
+        
         disp_mf[lev]->setVal(0.);
         rhs_mf[lev]->setVal(0.);
         stress_mf[lev]->setVal(0.);
@@ -133,7 +126,6 @@ protected:
             plastic.strainp_eq_mf[lev]->setVal(0.0);
             plastic.gamalpha_mf[lev]->setVal(0.0);
             plastic.gamdotalpha_mf[lev]->setVal(0.0);
-            plastic.gamdotalpha_old_mf[lev]->setVal(0.0);
         }
         
         eta_mf[lev]->FillBoundary();
@@ -154,17 +146,10 @@ protected:
 
     void TimeStepBegin(Set::Scalar a_time, int a_iter) override
     {
-        Util::Message(INFO,plastic.gamdot_int," ",plastic.gamdot_int_ref," ",plastic.gamdot_rel);
-
-        // Has gamma dot calculation converged?
-        if (plastic.on && plastic.gamdot_int > 0.0 && plastic.gamdot_int < plastic.gamdot_rel)
-            elastic.do_elastic_solve = true;
-
         if (!elastic.do_elastic_solve) return;
-        // Has gamma 
-        //if(a_iter%elastic.interval) return;
+
         // Set linear elastic model
-        
+       
         for (int lev = 0; lev <= finest_level; ++lev)
         {
 //            rhs_mf[lev]->setVal(0.0);
@@ -254,74 +239,59 @@ protected:
             const Set::Scalar* DX = geom[lev].CellSize();
             Util::Warning(INFO,"Need to determine why tiling isn't working...");
 
-            if (!elastic.do_elastic_solve)
+            for ( amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi )
             {
-                std::swap(plastic.gamdotalpha_mf[lev],plastic.gamdotalpha_old_mf[lev]);
-                for (amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi)
-                {
-                    const amrex::Box& bx = mfi.nodaltilebox();
-                    amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
-                    amrex::Array4<const Set::Scalar> const& stress = stress_mf[lev]->array(mfi);
-                    amrex::Array4<const Set::Scalar> const& gamalpha = plastic.gamalpha_mf[lev]->array(mfi);
-                    amrex::Array4<Set::Scalar> const& gamdotalpha = plastic.gamdotalpha_mf[lev]->array(mfi);
+                const amrex::Box& bx = mfi.nodaltilebox();
+                amrex::Array4<MODEL>                const& model        = model_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar>          const& stress       = stress_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar>    const& strain       = strain_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar>          const& strainp      = plastic.strainp_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar>          const& strainp_eq   = plastic.strainp_eq_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar>    const& disp         = disp_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar>          const& gamdotalpha  = plastic.gamdotalpha_mf[lev]->array(mfi);
+                amrex::Array4<Set::Scalar>          const& gamalpha     = plastic.gamalpha_mf[lev]->array(mfi);
+                amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+                    Set::Matrix sigma = Numeric::FieldToMatrix(stress,i,j,k);
+                    Set::Matrix eps = Numeric::FieldToMatrix(strain,i,j,k);
+                    Set::Matrix3 eps_grad = Numeric::GradientMatrix(strain,i,j,k,DX);
 
-                    amrex::ParallelFor (bx, [=] AMREX_GPU_DEVICE(int i, int j, int k)
+                    std::array<Set::Vector,12> gamdotgrad;
+                    std::array<Set::Vector,12> gamgrad;
+                    std::array<Numeric::StencilType,AMREX_SPACEDIM> sten = Numeric::GetStencil(i,j,k,bx);
+
+                    for (int n=0; n<12; n++)
                     {
-                        std::array<Numeric::StencilType,AMREX_SPACEDIM> sten = Numeric::GetStencil(i,j,k,bx);
-                        Set::Matrix sigma = Numeric::FieldToMatrix(stress,i,j,k);
-                        std::array<Set::Vector, 12> a_gamdot_grad, a_gam_grad;
-                        std::array<Set::Matrix, 12> a_gamdot_gradgrad, a_gam_gradgrad;
-                        for (int m = 0; m<12; m++)
-                        {
-                            a_gamdot_grad[m] = Numeric::Gradient(gamdotalpha,i,j,k,m,DX,sten);
-                            a_gam_grad[m] = Numeric::Gradient(gamalpha,i,j,k,m,DX,sten);
-                            a_gamdot_gradgrad[m] = Numeric::Hessian(gamdotalpha,i,j,k,m,DX);
-                            a_gam_gradgrad[m] = Numeric::Hessian(gamalpha,i,j,k,m,DX);
-                        }
-                        model(i,j,k).ComputePlasticStrainRate(sigma, a_gamdot_grad, a_gam_grad, dt);
-                        for (int m=0; m<12; m++)
-                            gamdotalpha(i,j,k,m) = model(i,j,k).gamdotalpha[m];
-                    });
-                }
-            }
-            else //if (plastic.do_gam)
-            {
-                for ( amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi )
-                {
-                    const amrex::Box& bx = mfi.nodaltilebox();
-                    amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
-                    amrex::Array4<Set::Scalar> const& gamalpha = plastic.gamalpha_mf[lev]->array(mfi);
-                    amrex::Array4<Set::Scalar> const& strainp = plastic.strainp_mf[lev]->array(mfi);
-                    amrex::Array4<Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
-                    amrex::Array4<const Set::Scalar> const &disp  = disp_mf[lev]->array(mfi);
-                    amrex::Array4<Set::Scalar> const& stress = stress_mf[lev]->array(mfi);
+                        gamdotgrad[i] = Numeric::Gradient(gamdotalpha,i,j,k,n,DX,sten);
+                        gamgrad[i] = Numeric::Gradient(gamalpha,i,j,k,n,DX,sten);
+                    }
 
-                    amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k)
+                    model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt);
+                    model(i,j,k).Advance(sigma,eps,eps_grad,dt);
+
+                    Set::Matrix epsp = model(i,j,k).GetPlasticState();
+                    if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
                     {
-                        model(i,j,k).Advance(Set::Matrix::Zero(),Set::Matrix::Zero(),Set::Matrix3::Zero(),dt);
-                        Set::Matrix epsp = model(i,j,k).GetPlasticState();
-                        for (int m=0; m<12; m++)
-                            gamalpha(i,j,k,m) = model(i,j,k).gamalpha[m];
-
-                        std::array<Numeric::StencilType,AMREX_SPACEDIM> sten = Numeric::GetStencil(i,j,k,bx);
-                        if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
-                        {
-                            Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
-                            Set::Matrix P = model(i,j,k).DW(F);
-                            Numeric::MatrixToField(stress,i,j,k,P);
-                        }
-                        else
-                        {
-                            Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
-                            Set::Matrix sigma = model(i,j,k).DW(gradu);
-                            Numeric::MatrixToField(stress,i,j,k,sigma);
-                        }
-
-                        Numeric::MatrixToField(strainp,i,j,k,epsp);
-                        strainp_eq(i,j,k) = epsp.norm();
-                    });
-                }
+                        Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                        Set::Matrix P = model(i,j,k).DW(F);
+                        Numeric::MatrixToField(stress,i,j,k,P);
+                    }
+                    else
+                    {
+                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                        sigma = model(i,j,k).DW(gradu);
+                        Numeric::MatrixToField(stress,i,j,k,sigma);
+                    }
+                    Numeric::MatrixToField(strainp,i,j,k,epsp);
+                    strainp_eq(i,j,k) = epsp.norm();
+                    
+                    for (int n=0; n<12; n++)
+                    {
+                        gamalpha(i,j,k,n) = model(i,j,k).gamalpha[n];
+                        gamdotalpha(i,j,k,n) = model(i,j,k).gamdotalpha[n];
+                    }
+                });
             }
+
             Util::RealFillBoundary(*model_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.gamdotalpha_mf[lev],geom[lev]);
@@ -348,15 +318,9 @@ protected:
         const Dim3 /*boxlo= amrex::lbound(box),*/ boxhi = amrex::ubound(box);
 
         amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
-        amrex::Array4<const Set::Scalar> const& gamdotalpha = plastic.gamdotalpha_mf[amrlev]->array(mfi);
-        amrex::Array4<const Set::Scalar> const& gamdotalpha_old = plastic.gamdotalpha_old_mf[amrlev]->array(mfi);
-        //amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
             #if AMREX_SPACEDIM == 3
-
-            for (int m = 0; m<12; m++)
-                plastic.gamdot_int += (gamdotalpha_old(i,j,k,m) - gamdotalpha(i,j,k,m))*(gamdotalpha_old(i,j,k,m) - gamdotalpha(i,j,k,m))*dv;
 
             if (i == lo.x && (j < boxhi.y && k < boxhi.z))
             {
@@ -403,10 +367,7 @@ protected:
 
     void TimeStepComplete(amrex::Real /*time*/,int /*iter*/)
     {
-        if (elastic.do_elastic_solve && plastic.gamdot_int > 0)
-            plastic.gamdot_int_ref = plastic.gamdot_int;
         
-        elastic.do_elastic_solve = false;
     }
 
 private:
@@ -437,11 +398,8 @@ private:
     struct{
         bool on = false;
         bool hardening = false;
-        Set::Scalar gamdot_int = 0.0, gamdot_int_ref = 1.0;
-        Set::Scalar gamdot_rel = 1.E-4;
         Set::Field<Set::Scalar> gamalpha_mf;
         Set::Field<Set::Scalar> gamdotalpha_mf;
-        Set::Field<Set::Scalar> gamdotalpha_old_mf;
         Set::Field<Set::Scalar> strainp_mf;
         Set::Field<Set::Scalar> strainp_eq_mf;
     } plastic;
