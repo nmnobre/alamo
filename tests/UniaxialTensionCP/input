@@ -9,7 +9,7 @@ stop_time		    = 1.e-3
 # amr parameters
 amr.plot_int		    = 10
 amr.max_level		    = 0
-amr.n_cell		    = 8 8 8
+amr.n_cell		    = 16 16 16
 amr.blocking_factor	    = 4
 amr.regrid_int		    = 0
 amr.grid_eff		    = 1.0
@@ -51,12 +51,16 @@ elastic.model1.gam0dot = 0.001
 elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
-elastic.solver.int = 10000
+elastic.solver.tol_rel = 1.0e-6
+elastic.solver.tol_abs = 1.0e-6
+elastic.solver.bottom_tol_rel = 1.0e-6
+elastic.solver.bottom_tol_abs = 1.0e-6
+#elastic.solver.int = 10000
 elastic.solver.bottom_solver=smoother
 
 ### UNIAXIAL TENSION ###
 
 elastic.bc.type = tension_test
 elastic.bc.tension_test.type = uniaxial_stress
-elastic.bc.tension_test.disp = 0.02
+elastic.bc.tension_test.disp = 0.01
 
