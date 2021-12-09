@@ -83,6 +83,7 @@ public:
             }
 
             pp.query("ref_threshold",m_elastic_ref_threshold);
+            pp.query("int",elastic.interval);
 
         }
         RegisterGeneralFab(model_mf, 1, 2);

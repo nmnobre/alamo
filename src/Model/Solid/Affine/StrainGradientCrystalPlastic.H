@@ -125,10 +125,10 @@ public:
                 for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*m_h*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
                 Set::Scalar S_alpha = m_mu*m_b*std::sqrt(anisotropic_rho);
                 
-                Set::Scalar temp1 = std::pow((std::abs(tau) - S_alpha) / tau_prime, m_q1);
-                temp1 = temp1 > 0.0 ? temp1 : 0.0;
-                Set::Scalar temp2 = std::pow(1. - temp1,m_q2);
-                temp2 = temp2 > 0.0 ? temp2 : 0.0;
+                Set::Scalar temp1 = (std::abs(tau) - S_alpha) / tau_prime;
+                temp1 = temp1 > 0.0 ? std::pow(temp1,m_q1) : 0.0;
+                Set::Scalar temp2 = 1. - temp1;
+                temp2 = temp2 > 0.0 ? std::pow(temp2,m_q2) : 0.0;
                 gamdotalpha[alpha] = gam0dot[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
             }
         }

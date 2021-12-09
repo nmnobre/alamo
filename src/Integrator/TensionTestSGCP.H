@@ -146,7 +146,7 @@ protected:
 
     void TimeStepBegin(Set::Scalar a_time, int a_iter) override
     {
-        if (!elastic.do_elastic_solve) return;
+        if(a_iter%elastic.interval) return;
 
         // Set linear elastic model
        
