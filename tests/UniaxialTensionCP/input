@@ -51,6 +51,10 @@ elastic.model1.gam0dot = 0.001
 elastic.solver.verbose = 3
 elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
+elastic.solver.tol_rel = 1.0e-6
+elastic.solver.tol_abs = 1.0e-6
+elastic.solver.bottom_tol_rel = 1.0e-6
+elastic.solver.bottom_tol_abs = 1.0e-6
 elastic.int = 100
 elastic.solver.bottom_solver=smoother
 
@@ -58,5 +62,5 @@ elastic.solver.bottom_solver=smoother
 
 elastic.bc.type = tension_test
 elastic.bc.tension_test.type = uniaxial_stress
-#elastic.bc.tension_test.disp = 0.02
-elastic.bc.tension_test.disp = (0.,2.:0.001,0.8)
+elastic.bc.tension_test.disp = 0.01
+
