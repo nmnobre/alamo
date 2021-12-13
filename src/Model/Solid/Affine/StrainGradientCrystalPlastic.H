@@ -94,7 +94,7 @@ public:
                                 for (int r=0; r<3; r++)
                                     curlTerm(r) = curlTerm(r) + (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*((R_crystal*plane[bi])(p))
                                                     *((R_crystal*plane[i]).dot(R_crystal*plane[bi]))
-                                                    *Set::Constant::PermutationTensor(p,q,r);
+                                                    *Set::Constant::PermutationTensor(q,p,r);
                     }
                 }
                 
