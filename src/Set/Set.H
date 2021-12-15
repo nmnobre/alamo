@@ -83,12 +83,12 @@ static const Set::Scalar INVSQ3 = 0.57735026918962576450914878050195745564760175
     AMREX_FORCE_INLINE
     Set::Scalar PermutationTensor(int i, int j, int k)
     {
-        if (i==1 && j==2 && k==3) return 1.0;
-        else if (i==3 && j==1 && k==2) return 1.0;
-        else if (i==2 && j==3 && k==1) return 1.0;
-        else if (i==3 && j==2 && k==1) return -1.0;
-        else if (i==1 && j==3 && k==2) return -1.0;
-        else if (i==2 && j==1 && k==3) return -1.0;
+        if (i==0 && j==1 && k==2) return 1.0;
+        else if (i==2 && j==0 && k==1) return 1.0;
+        else if (i==1 && j==2 && k==0) return 1.0;
+        else if (i==2 && j==1 && k==0) return -1.0;
+        else if (i==0 && j==2 && k==1) return -1.0;
+        else if (i==1 && j==0 && k==2) return -1.0;
         else return 0.0;
     }
 }
