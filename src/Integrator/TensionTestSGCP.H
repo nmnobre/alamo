@@ -250,10 +250,30 @@ protected:
                 amrex::Array4<const Set::Scalar>    const& disp         = disp_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar>          const& gamdotalpha  = plastic.gamdotalpha_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar>          const& gamalpha     = plastic.gamalpha_mf[lev]->array(mfi);
+
+                amrex::IndexType type = eta_mf[lev]->ixType();
                 amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k){
                     Set::Matrix sigma = Numeric::FieldToMatrix(stress,i,j,k);
                     Set::Matrix eps = Numeric::FieldToMatrix(strain,i,j,k);
                     Set::Matrix3 eps_grad = Numeric::GradientMatrix(strain,i,j,k,DX);
+
+                    // Set::Vector x;
+                    // // NODE
+                    // if (type == amrex::IndexType::TheNodeType())
+                    // {
+                    //     AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * geom[lev].CellSize()[0];,
+                    //                 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * geom[lev].CellSize()[1];,
+                    //                 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * geom[lev].CellSize()[2];);
+                    // }
+                    // else if (type == amrex::IndexType::TheCellType())
+                    // {
+                    //     AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
+                    //                 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
+                    //                 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
+                    // }
+
+                    bool outputflag = false;
+                    // if (x == Set::Vector::Zero()) outputflag=true;
 
                     std::array<Set::Vector,12> gamdotgrad;
                     std::array<Set::Vector,12> gamgrad;
@@ -265,7 +285,7 @@ protected:
                         gamgrad[n] = Numeric::Gradient(gamalpha,i,j,k,n,DX,sten);
                     }
 
-                    model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt);
+                    model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt,outputflag);
                     model(i,j,k).Advance(sigma,eps,eps_grad,dt);
 
                     Set::Matrix epsp = model(i,j,k).GetPlasticState();

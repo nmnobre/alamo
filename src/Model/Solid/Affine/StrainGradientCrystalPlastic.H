@@ -65,7 +65,8 @@ public:
     void ComputePlasticStrainRate(  Set::Matrix sigma, 
                                     std::array<Set::Vector, 12> &gamdotgrad, 
                                     std::array<Set::Vector, 12> &gamgrad,
-                                    Set::Scalar dt)
+                                    Set::Scalar dt,
+                                    bool outflag)
     {
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
@@ -92,7 +93,7 @@ public:
                         for (int p=0; p<3; p++)
                             for (int q=0; q<3; q++)
                                 for (int r=0; r<3; r++)
-                                    curlTerm(r) = curlTerm(r) + (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*((R_crystal*plane[bi])(p))
+                                    curlTerm(r) = curlTerm(r) + (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*((R_crystal*dir[bi][bj])(p))
                                                     *((R_crystal*plane[i]).dot(R_crystal*plane[bi]))
                                                     *Set::Constant::PermutationTensor(q,p,r);
                     }
@@ -107,11 +108,15 @@ public:
                 rho_gsm[alpha] += rho_gsm_dot*dt;
                 rho_get[alpha] += rho_get_dot*dt;
                 rho_gen[alpha] += rho_gen_dot*dt;
+
+                if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se_dot = ", rho_se_dot, " rho_ss_dot = ", rho_ss_dot, " rho_gsm_dot = ", rho_gsm_dot, " rho_gen_dot = ", rho_gen_dot, " rho_get_dot = ", rho_get_dot);
+                if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se = ", rho_se[alpha], " rho_ss = ", rho_ss[alpha], " rho_gsm = ", rho_gsm[alpha], " rho_gen = ", rho_gen[alpha], " rho_get = ", rho_get[alpha]);
             }
         }
 
         total_rho = 0.0;
         for (int k = 0; k<12; k++) total_rho += rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]);
+        if (outflag) Util::Message(INFO, "total rho = ", total_rho);
 
         for (int i=0; i<4; i++)
         {
@@ -129,6 +134,7 @@ public:
                 temp1 = temp1 > 0.0 ? std::pow(temp1,m_q1) : 0.0;
                 Set::Scalar temp2 = 1. - temp1;
                 temp2 = temp2 > 0.0 ? std::pow(temp2,m_q2) : 0.0;
+                if (outflag) Util::Message(INFO,"alpha = ", alpha, ". tau = ", tau, ". S_alpha = ", S_alpha, ". tau_prime = ", tau_prime,". temp2 = ", temp2);
                 gamdotalpha[alpha] = gam0dot[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
             }
         }
