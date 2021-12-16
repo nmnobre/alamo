@@ -165,9 +165,9 @@ public:
     inline static const std::array<Set::Vector_3D, 4> plane = 
     {
         Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized()
+        Set::Vector_3D(-1,-1,1).normalized(),
+        Set::Vector_3D(-1,1,1).normalized(),
+        Set::Vector_3D(1,-1,1).normalized()
     };
     inline static const std::array<std::array<Set::Vector_3D,3>,4> dir = 
     {
