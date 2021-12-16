@@ -109,8 +109,8 @@ public:
                 rho_get[alpha] += rho_get_dot*dt;
                 rho_gen[alpha] += rho_gen_dot*dt;
 
-                if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se_dot = ", rho_se_dot, " rho_ss_dot = ", rho_ss_dot, " rho_gsm_dot = ", rho_gsm_dot, " rho_gen_dot = ", rho_gen_dot, " rho_get_dot = ", rho_get_dot);
-                if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se = ", rho_se[alpha], " rho_ss = ", rho_ss[alpha], " rho_gsm = ", rho_gsm[alpha], " rho_gen = ", rho_gen[alpha], " rho_get = ", rho_get[alpha]);
+                // if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se_dot = ", rho_se_dot, " rho_ss_dot = ", rho_ss_dot, " rho_gsm_dot = ", rho_gsm_dot, " rho_gen_dot = ", rho_gen_dot, " rho_get_dot = ", rho_get_dot);
+                // if (outflag) Util::Message(INFO, "alpha = ",alpha, " rho_se = ", rho_se[alpha], " rho_ss = ", rho_ss[alpha], " rho_gsm = ", rho_gsm[alpha], " rho_gen = ", rho_gen[alpha], " rho_get = ", rho_get[alpha]);
             }
         }
 
@@ -126,15 +126,19 @@ public:
                 Set::Scalar tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
                 Set::Scalar tau_prime = m_tau0 + m_mu*m_b*m_c0*std::sqrt(total_rho);
 
+                if(outflag) Util::Message(INFO, "alpha = ", alpha, ". tau = ", tau, ". tau_prime = ", tau_prime);
+
                 Set::Scalar anisotropic_rho = 0.0;
                 for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*m_h*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
                 Set::Scalar S_alpha = m_mu*m_b*std::sqrt(anisotropic_rho);
+
+                if(outflag) Util::Message(INFO, "anisotropic_rho = ", anisotropic_rho, ". S_alpha = ", S_alpha);
                 
                 Set::Scalar temp1 = (std::abs(tau) - S_alpha) / tau_prime;
                 temp1 = temp1 > 0.0 ? std::pow(temp1,m_q1) : 0.0;
                 Set::Scalar temp2 = 1. - temp1;
                 temp2 = temp2 > 0.0 ? std::pow(temp2,m_q2) : 0.0;
-                if (outflag) Util::Message(INFO,"alpha = ", alpha, ". tau = ", tau, ". S_alpha = ", S_alpha, ". tau_prime = ", tau_prime,". temp2 = ", temp2);
+                if (outflag) Util::Message(INFO,"temp1 = ", temp1,". temp2 = ", temp2);
                 gamdotalpha[alpha] = gam0dot[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
             }
         }

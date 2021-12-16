@@ -96,6 +96,8 @@ public:
             if (plastic.on)
             {
                 pp.query("hardening",plastic.hardening);
+                pp.query("debug",plastic.debug);
+                pp.query("epsp_evol_int",plastic.epsp_evol_int);
                 // Hardcoded FCC in here..
                 RegisterNodalFab(plastic.gamalpha_mf, 12, 2, "gamalpha", true);
                 RegisterNodalFab(plastic.gamdotalpha_mf, 12, 2, "gamdotalpha", true);
@@ -146,8 +148,10 @@ protected:
 
     void TimeStepBegin(Set::Scalar a_time, int a_iter) override
     {
-        if(a_iter%elastic.interval) return;
+        if (a_iter%plastic.epsp_evol_int == 0) plastic.do_epsp_evol = true;
 
+        if(a_iter%elastic.interval) return;
+        
         // Set linear elastic model
        
         for (int lev = 0; lev <= finest_level; ++lev)
@@ -257,23 +261,23 @@ protected:
                     Set::Matrix eps = Numeric::FieldToMatrix(strain,i,j,k);
                     Set::Matrix3 eps_grad = Numeric::GradientMatrix(strain,i,j,k,DX);
 
-                    // Set::Vector x;
-                    // // NODE
-                    // if (type == amrex::IndexType::TheNodeType())
-                    // {
-                    //     AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * geom[lev].CellSize()[0];,
-                    //                 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * geom[lev].CellSize()[1];,
-                    //                 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * geom[lev].CellSize()[2];);
-                    // }
-                    // else if (type == amrex::IndexType::TheCellType())
-                    // {
-                    //     AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
-                    //                 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
-                    //                 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
-                    // }
+                    Set::Vector x;
+                    // NODE
+                    if (type == amrex::IndexType::TheNodeType())
+                    {
+                        AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i)) * geom[lev].CellSize()[0];,
+                                    x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j)) * geom[lev].CellSize()[1];,
+                                    x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k)) * geom[lev].CellSize()[2];);
+                    }
+                    else if (type == amrex::IndexType::TheCellType())
+                    {
+                        AMREX_D_TERM(x(0) = geom[lev].ProbLo()[0] + ((amrex::Real)(i) + 0.5) * geom[lev].CellSize()[0];,
+                                    x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
+                                    x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
+                    }
 
                     bool outputflag = false;
-                    // if (x == Set::Vector::Zero()) outputflag=true;
+                    if (x == Set::Vector::Zero()) outputflag=true;
 
                     std::array<Set::Vector,12> gamdotgrad;
                     std::array<Set::Vector,12> gamgrad;
@@ -285,25 +289,30 @@ protected:
                         gamgrad[n] = Numeric::Gradient(gamalpha,i,j,k,n,DX,sten);
                     }
 
-                    model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt,outputflag);
-                    model(i,j,k).Advance(sigma,eps,eps_grad,dt);
+                    model(i,j,k).ComputePlasticStrainRate(sigma,gamdotgrad,gamgrad,dt,(outputflag & plastic.debug));
 
-                    Set::Matrix epsp = model(i,j,k).GetPlasticState();
-                    if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                    if(plastic.do_epsp_evol)
                     {
-                        Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
-                        Set::Matrix P = model(i,j,k).DW(F);
-                        Numeric::MatrixToField(stress,i,j,k,P);
+                        model(i,j,k).Advance(sigma,eps,eps_grad,plastic.epsp_evol_int*dt);
+
+                        Set::Matrix epsp = model(i,j,k).GetPlasticState();
+                        if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                        {
+                            Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                            Set::Matrix P = model(i,j,k).DW(F);
+                            Numeric::MatrixToField(stress,i,j,k,P);
+                        }
+                        else
+                        {
+                            Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                            sigma = model(i,j,k).DW(gradu);
+                            Numeric::MatrixToField(stress,i,j,k,sigma);
+                        }
+                        Numeric::MatrixToField(strainp,i,j,k,epsp);
+                        strainp_eq(i,j,k) = epsp.norm();
+                        //plastic.do_epsp_evol = false;
                     }
-                    else
-                    {
-                        Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
-                        sigma = model(i,j,k).DW(gradu);
-                        Numeric::MatrixToField(stress,i,j,k,sigma);
-                    }
-                    Numeric::MatrixToField(strainp,i,j,k,epsp);
-                    strainp_eq(i,j,k) = epsp.norm();
-                    
+                        
                     for (int n=0; n<12; n++)
                     {
                         gamalpha(i,j,k,n) = model(i,j,k).gamalpha[n];
@@ -387,7 +396,7 @@ protected:
 
     void TimeStepComplete(amrex::Real /*time*/,int /*iter*/)
     {
-        
+        if (plastic.do_epsp_evol) plastic.do_epsp_evol = false;
     }
 
 private:
@@ -422,6 +431,9 @@ private:
         Set::Field<Set::Scalar> gamdotalpha_mf;
         Set::Field<Set::Scalar> strainp_mf;
         Set::Field<Set::Scalar> strainp_eq_mf;
+        bool debug = false;
+        bool do_epsp_evol = false;
+        int epsp_evol_int = 1;
     } plastic;
 
 };
