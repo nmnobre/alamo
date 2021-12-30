@@ -277,7 +277,8 @@ protected:
                     }
 
                     bool outputflag = false;
-                    if (x == Set::Vector::Zero()) outputflag=true;
+                    if ((x - Set::Vector::Zero()).norm() < 1.e-2) outputflag=true;
+                    //Util::Message(INFO, "Outputflag = ", outputflag, " x = ", x);
 
                     std::array<Set::Vector,12> gamdotgrad;
                     std::array<Set::Vector,12> gamgrad;

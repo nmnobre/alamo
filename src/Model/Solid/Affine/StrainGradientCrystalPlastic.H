@@ -27,12 +27,12 @@ public:
 
     void DefineSlipGradientSystem()
     {
-        DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
+        DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
     }
 
     void DefineSlipGradientSystem(Set::Scalar a_Ke, Set::Scalar a_b, Set::Scalar a_de, Set::Scalar a_ds, Set::Scalar a_tau0, Set::Scalar a_mu, 
                                     Set::Scalar a_c0, Set::Scalar a_w1, Set::Scalar a_w2, Set::Scalar a_h, Set::Scalar a_q1, Set::Scalar a_q2,
-                                    Set::Scalar a_rho0, Set::Scalar a_F0, Set::Scalar a_T)
+                                    Set::Scalar a_rho_s0, Set::Scalar a_rho_g0, Set::Scalar a_F0, Set::Scalar a_T)
     {
         m_Ke = a_Ke;
         m_b = a_b;
@@ -46,17 +46,18 @@ public:
         m_h = a_h;
         m_q1 = a_q1;
         m_q2 = a_q2;
-        m_rho0 = a_rho0;
+        m_rho_s0 = a_rho_s0;
+        m_rho_g0 = a_rho_g0;
         m_F0 = a_F0;
         m_T = a_T;
 
         for (int i=0; i<12; i++)
         {
-            rho_se[i] = a_rho0/24.0;
-            rho_ss[i] = a_rho0/24.0;
-            rho_gen[i] = 0.0;
-            rho_get[i] = 0.0;
-            rho_gsm[i] = 0.0;
+            rho_se[i] = a_rho_s0/24.0;
+            rho_ss[i] = a_rho_s0/24.0;
+            rho_gen[i] = a_rho_g0/36.0;
+            rho_get[i] = a_rho_g0/36.0;
+            rho_gsm[i] = a_rho_g0/36.0;
             gamalpha[i] = 0.0; 
             gamdotalpha[i] = 0.0;
         }
@@ -81,9 +82,16 @@ public:
             for (int j=0; j<3; j++)
             {
                 int alpha = 3*i + j;
+                
+                Set::Scalar anisotropic_rho = 0.0;
+                for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*m_h*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
+                
                 Set::Vector t_alpha = R_crystal*dir[i][j].cross(R_crystal*plane[i]);
-                Set::Scalar rho_se_dot = ((m_Ke/m_b)*std::sqrt(total_rho) - m_de*rho_se[alpha])*std::abs(gamdotalpha[alpha]);
-                Set::Scalar rho_ss_dot = ((1. - (Set::Constant::Pi*m_ds*m_ds*rho_ss[alpha]/4.0))*(2.0*m_Ke/m_b)*std::sqrt(total_rho) - m_ds*rho_ss[alpha])*std::abs(gamdotalpha[alpha]);
+
+                Set::Scalar rho_se_dot = ((m_Ke/m_b)*std::sqrt(anisotropic_rho) - m_de*rho_se[alpha]/m_b)*std::abs(gamdotalpha[alpha]);
+
+                Set::Scalar rho_ss_dot = (((2.0*m_Ke) - (Set::Constant::Pi*m_ds*m_ds*rho_ss[alpha]*0.25))*(1.0/m_b)*std::sqrt(anisotropic_rho) - m_ds*rho_ss[alpha]/m_b)*std::abs(gamdotalpha[alpha]);
+
                 Set::Vector curlTerm = Set::Vector::Zero();
                 for (int bi=0; bi<4; bi++)
                 {
@@ -138,8 +146,10 @@ public:
                 temp1 = temp1 > 0.0 ? std::pow(temp1,m_q1) : 0.0;
                 Set::Scalar temp2 = 1. - temp1;
                 temp2 = temp2 > 0.0 ? std::pow(temp2,m_q2) : 0.0;
-                if (outflag) Util::Message(INFO,"temp1 = ", temp1,". temp2 = ", temp2);
+                //if (outflag) Util::Message(INFO,"temp1 = ", temp1,". temp2 = ", temp2);
                 gamdotalpha[alpha] = gam0dot[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
+
+                if (outflag) Util::Message(INFO, "gamalpha[",alpha,"] = ", gamalpha[alpha], " gam0dot = ", gam0dot[alpha]);
             }
         }
         
@@ -180,7 +190,8 @@ public:
     Set::Scalar m_tau0;
     Set::Scalar m_mu;
     Set::Scalar m_c0;
-    Set::Scalar m_rho0;
+    Set::Scalar m_rho_s0;
+    Set::Scalar m_rho_g0;
     Set::Scalar m_w1, m_w2, m_h;
     Set::Scalar m_q1, m_q2;
     Set::Scalar m_F0, m_T;
@@ -214,11 +225,12 @@ public:
         Set::Scalar a_de = 5.e0;
         Set::Scalar a_ds = 25.0e0;
         Set::Scalar a_tau0 = 3.40e-1; //GPa
-        Set::Scalar a_mu = value.C44;
+        Set::Scalar a_mu = value.C44; //0.2*(3.0*value.C44 + value.C11 - value.C12);
         Set::Scalar a_c0 = 8.7e-5;
         Set::Scalar a_w1 = 1.0, a_w2 = 1.0, a_h = 0.084*0.084;
         Set::Scalar a_q1 = 0.5, a_q2 = 1.25e2;
-        Set::Scalar a_rho0 = 6.e12;
+        Set::Scalar a_rho_s0 = 6.e12;
+        Set::Scalar a_rho_g0 = 6.e12;
         Set::Scalar a_F0 = 3.114e4; // divided by kB
         Set::Scalar a_T = 298.;
 
@@ -234,16 +246,17 @@ public:
         pp.query("h", a_h);
         pp.query("q1", a_q1);
         pp.query("q2", a_q2);
-        pp.query("rho0", a_rho0);
+        pp.query("rho_s0", a_rho_s0);
+        pp.query("rho_g0", a_rho_g0);
         pp.query("m_F0", a_F0);
         pp.query("T", a_T);
 
         value.DefineSlipGradientSystem(a_Ke, a_b, a_de, a_ds, a_tau0, a_mu, 
-                                    a_c0, a_w1, a_w2, a_h, a_q1, a_q2, a_rho0, a_F0, a_T);
+                                    a_c0, a_w1, a_w2, a_h, a_q1, a_q2, a_rho_s0, a_rho_g0, a_F0, a_T);
     }
 
     #define OP_CLASS StrainGradientCrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_rho0) X(m_F0) X(m_T)
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_rho_s0) X(m_rho_g0) X(m_F0) X(m_T)
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot) X(gamalpha) X(gamdotalpha) X(rho_se) X(rho_ss) X(rho_gen) X(rho_gsm) X(rho_get)
     #include "Model/Solid/InClassOperators.H"
