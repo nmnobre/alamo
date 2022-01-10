@@ -10,7 +10,7 @@ plot_file		    = tests/UniaxialTensionSGCP/output
 # this is not a time integration, so do
 # exactly one timestep and then quit
 timestep		    = 5.e-5  # in s
-stop_time		    = 5.e-3   # in s
+stop_time		    = 1.e-3   # in s
 
 # amr parameters
 amr.plot_int		    = 10
@@ -18,7 +18,7 @@ amr.plot_int		    = 10
 amr.max_level		    = 0
 amr.n_cell		    = 16 16 16
 amr.blocking_factor	    = 4
-amr.regrid_int		    = 0
+amr.regrid_int		    = 1
 amr.grid_eff		    = 1.0
 amr.thermo.plot_int = 1
 amr.thermo.int = 1
@@ -78,6 +78,7 @@ elastic.solver.nriters = 1
 elastic.solver.fixed_iter = 200
 elastic.solver.int = 1000
 elastic.solver.bottom_solver=smoother
+elastic.ref_threshold = 1.e-6
 
 ### UNIAXIAL TENSION ###
 
@@ -85,3 +86,7 @@ elastic.bc.type = tension_test
 elastic.bc.tension_test.type = uniaxial_stress
 elastic.bc.tension_test.disp = 8.e-2 # in nm
 #elastic.bc.tension_test.disp = (0.,200.0:0.,0.8)
+
+#elastic.bc.type = expression
+#elastic.bc.expression.type.yhi = disp disp disp
+#elastic.bc.expression.val.yhi = "0.0" "6.e-3*exp(-((x*x+z*z)))" "0.0"

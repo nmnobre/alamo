@@ -15,6 +15,7 @@
 #include "BC/BC.H"
 #include "BC/Operator/Elastic/Constant.H"
 #include "BC/Operator/Elastic/TensionTest.H"
+#include "BC/Operator/Elastic/Expression.H"
 
 #include "IC/Ellipse.H"
 #include "Numeric/Stencil.H"
@@ -72,7 +73,13 @@ public:
                 elastic.bc = new BC::Operator::Elastic::TensionTest();
                 pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
             }
+            else if (bc_type == "expression")
+            {
+                elastic.bc = new BC::Operator::Elastic::Expression();
+                pp.queryclass("bc.expression",static_cast<BC::Operator::Elastic::Expression*>(elastic.bc));
+            }
             pp.query("solver.int",elastic.interval);
+            pp.query("ref_threshold",m_elastic_ref_threshold);
         }
         RegisterGeneralFab(model_mf, 1, 2);
 
@@ -240,6 +247,14 @@ protected:
     {
         if (plastic.on)
         {
+            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.strainp_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.gamdotalpha_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.gamalpha_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
+            
             const Set::Scalar* DX = geom[lev].CellSize();
             Util::Warning(INFO,"Need to determine why tiling isn't working...");
 
@@ -328,6 +343,7 @@ protected:
             Util::RealFillBoundary(*plastic.gamalpha_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
             Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
+            Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
         }
     }
     
@@ -383,12 +399,12 @@ protected:
                 }
                 {
                     Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > 0.01)
+                    if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
                 {
                     Set::Vector grad = Numeric::Gradient(strainp_eq, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > 0.01)
+                    if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
             });
@@ -436,6 +452,8 @@ private:
         bool do_epsp_evol = false;
         int epsp_evol_int = 1;
     } plastic;
+
+    Set::Scalar m_elastic_ref_threshold = 0.01;
 
 };
 } // namespace Integrator
