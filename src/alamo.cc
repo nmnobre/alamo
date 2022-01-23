@@ -46,17 +46,21 @@ int main (int argc, char* argv[])
     }
     else if (program == "crystalplastictensiontest")
     {
+#if AMREX_SPACDIM == 3
         Integrator::Integrator *cp_tt = new Integrator::TensionTest<Model::Solid::Affine::CrystalPlastic>();
         cp_tt->InitData();
         cp_tt->Evolve();        
         delete cp_tt;
+#endif
     }
     else if (program == "sgcptensiontest")
     {
+#if AMREX_SPACDIM == 3
         Integrator::Integrator *sgcp_tt = new Integrator::TensionTestSGCP<Model::Solid::Affine::StrainGradientCrystalPlastic>();
         sgcp_tt->InitData();
         sgcp_tt->Evolve();        
         delete sgcp_tt;
+#endif
     }
     else if (program == "j2plastictensiontest")
     {

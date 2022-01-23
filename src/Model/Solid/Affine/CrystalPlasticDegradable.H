@@ -8,6 +8,8 @@
 #include "Set/Set.H"
 #include "Model/Solid/Affine/CubicDegradable.H"
 
+#if AMREX_SPACEDIM==3
+
 namespace Model
 {
 namespace Solid
@@ -530,5 +532,7 @@ CrystalPlasticDegradable operator - (const CrystalPlasticDegradable a, const Cry
 }
 }
 }
+
+#endif
 
 #endif

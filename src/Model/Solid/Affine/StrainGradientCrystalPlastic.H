@@ -9,6 +9,8 @@
 #include "Model/Solid/Affine/Cubic.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
 
+#if AMREX_SPACEDIM == 3
+
 /*
     Note: everything is hardcoded for FCC right now. 
     We will deal with templating BCC and HCP later.
@@ -267,5 +269,7 @@ public:
 }
 }
 }
+
+#endif
 
 #endif
