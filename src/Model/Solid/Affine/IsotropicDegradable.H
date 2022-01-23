@@ -56,7 +56,7 @@ public:
     {
         Linear::IsotropicDegradable::Parse(value,pp);
         if (pp.contains("F0")) pp.queryarr("F0",value.F0);
-    }
+        }
     
     #define OP_CLASS IsotropicDegradable
     #define OP_VARS  X(ddw) X(m_mu0) X(m_lambda0) X(m_mu) X(m_lambda) X(F0)

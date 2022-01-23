@@ -27,19 +27,19 @@ public:
         yield_strength0 = a_yield;
         hardening_modulus = a_hardening;
         hardening_modulus0 = a_hardening;
-        
+
         F0 = Set::Matrix::Zero();
         beta = Set::Matrix::Zero();
     }
 
     void DegradeYieldSurface(const Set::Scalar eta)
-	{
-		if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);
-		if(std::isnan(eta)) Util::Abort(INFO, "Nans in eta");
+    {
+        if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);
+        if(std::isnan(eta)) Util::Abort(INFO, "Nans in eta");
         if(std::isinf(eta)) Util::Abort(INFO, "Infs in eta");
-		yield_strength = yield_strength0*(1. - eta);
+        yield_strength = yield_strength0*(1. - eta);
         hardening_modulus = hardening_modulus0*(1.-eta);
-	}
+    }
 
     void DegradeYieldSurface(const amrex::Vector<Set::Scalar> &eta)
     {
@@ -47,16 +47,16 @@ public:
         else if (eta.size() == 1)
         {
             if(std::isnan(eta[0])) Util::Abort(INFO,"Nans in eta");
-			if(std::isinf(eta[0])) Util::Abort(INFO,"Infs in eta");
-			if(eta[0] < 0.0 || eta[0] > 1.0) Util::Abort(INFO,"Invalid value of eta",eta[0]);
-			yield_strength = yield_strength0*(1. - eta[0]);
+            if(std::isinf(eta[0])) Util::Abort(INFO,"Infs in eta");
+            if(eta[0] < 0.0 || eta[0] > 1.0) Util::Abort(INFO,"Invalid value of eta",eta[0]);
+            yield_strength = yield_strength0*(1. - eta[0]);
             hardening_modulus = hardening_modulus0*(1.-eta[0]);
         }
         else if (eta.size() == 2)
         {
             if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
-			if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
-			if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
+            if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
+            if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
             yield_strength = yield_strength0*(1. - eta[0]);
             hardening_modulus = hardening_modulus0*(1.-eta[1]);
         }
@@ -139,29 +139,29 @@ public:
         ret.Define(0.,0.,0.,0.);
         ret.DefineSlipSystem(0.,0.,0.);
         return ret;
-    }
+    }    
     static J2PlasticDegradable Random()
-    {
-        J2PlasticDegradable ret;
+{
+    J2PlasticDegradable ret;
         Set::Scalar mu = Util::Random();
         Set::Scalar lambda = Util::Random();
         ret.Define(mu,mu,lambda,lambda);
         ret.DefineSlipSystem(Util::Random(),Util::Random(),Util::Random());
         ret.F0 = Set::Matrix::Random();
         ret.beta = Set::Matrix::Random();
-        return ret;
-    }
+    return ret;
+}    
     static void Parse(J2PlasticDegradable & value, IO::ParmParse & pp)
-    {
+{
         Model::Solid::Affine::IsotropicDegradable::Parse(value,pp);
-        
+
         Set::Scalar yield, hardening, theta_tmp;
         pp.query("yield", yield);
         pp.query("hardening", hardening);
         pp.query("theta", theta_tmp);
 
         value.DefineSlipSystem(yield, hardening, theta_tmp);
-    }
+}    
 
     #define OP_CLASS J2PlasticDegradable
     #define OP_VARS  X(ddw) X(m_mu0) X(m_lambda0) X(m_mu) X(m_lambda) X(F0) X(beta) X(theta) X(yield_strength) X(hardening_modulus) X(yield_strength0) X(hardening_modulus0)

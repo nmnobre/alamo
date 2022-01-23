@@ -16,19 +16,19 @@ class Isotropic : public Linear::Isotropic
 {
 public:
 
-	Isotropic() {};
+    Isotropic() {};
     Isotropic(Linear::Isotropic base) : Linear::Isotropic(base) {};
-    
+
     // Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
     // {
     //     Define(a_mu,a_lambda,a_F0);
     // };
 
-	// void Define(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0)
-	// {
-	// 	F0 = a_F0;
+    // void Define(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0)
+    // {
+    //     F0 = a_F0;
     //     ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
-	// }
+    // }
 
     // void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
     // {
@@ -98,4 +98,3 @@ public:
 }
 
 #endif
-

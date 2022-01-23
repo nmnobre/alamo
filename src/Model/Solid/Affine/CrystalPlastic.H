@@ -66,13 +66,6 @@ public:
                 yield += g_alpha[3*i + j]*R;
             }
         }
-        // for(int i=0; i<12; i++)
-        //{
-            //for (int j = 0; j < AMREX_SPACEDIM; j++) // TODO
-            //    for (int k = 0; k < AMREX_SPACEDIM; k++) // TODO
-            //        R(j,k) = dir[i](j)*plane[i](k); // TODO
-            //yield += g_alpha[i]*R;
-        //}
         return yield.norm();
     }
 
@@ -94,18 +87,7 @@ public:
                 yield += g_alpha[3*i + j]*R;
             }
         }
-        Set::Matrix_3D _F0 = Set::Matrix_3D::Zero();
-
-        #if AMREX_SPACEDIM==1
-            _F0(0,0) = F0(0,0);
-        #elif AMREX_SPACEDIM==2
-            _F0(0,0) = F0(0,0); _F0(0,1) = F0(0,1);
-            _F0(1,0) = F0(1,0); _F0(1,1) = F0(1,1);
-        #elif AMREX_SPACEDIM==3
-            _F0 = F0;
-        #endif
-        
-        return (yield.transpose()*_F0).trace();
+        return (yield.transpose()*F0).trace();
     }
 
     // Hardening law
@@ -177,15 +159,6 @@ public:
                 g_alpha[i] += dt*gdotalpha;
             }
         }
-
-        #if AMREX_SPACEDIM==1
-            F0(0,0) = _F0(0,0);
-        #elif AMREX_SPACEDIM==2
-            F0(0,0) = _F0(0,0); F0(0,1) = _F0(0,1);
-            F0(1,0) = _F0(1,0); F0(1,1) = _F0(1,1);
-        #elif AMREX_SPACEDIM==3
-            F0 = _F0;
-        #endif
     }
 
     void SetPlasticStrains(Set::Matrix &a_state)
@@ -206,9 +179,9 @@ public:
     inline static const std::array<Set::Vector_3D, 4> plane = 
     {
         Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized(),
-        Set::Vector_3D(1,1,1).normalized()
+        Set::Vector_3D(-1,-1,1).normalized(),
+        Set::Vector_3D(-1,1,1).normalized(),
+        Set::Vector_3D(1,-1,1).normalized()
     };
     inline static const std::array<std::array<Set::Vector_3D,3>,4> dir = 
     {
@@ -283,8 +256,6 @@ public:
             }
             else
                 for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
-
-            // for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
         }
 
         amrex::Vector<Set::Scalar> input_exp;

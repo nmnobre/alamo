@@ -25,6 +25,7 @@
 #include "Solver/Nonlocal/Newton.H"
 #include "Model/Solid/Affine/Isotropic.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
+#include "Model/Solid/Affine/StrainGradientCrystalPlastic.H"
 #include "Model/Solid/Affine/J2Plastic.H"
 #include "Model/Solid/Affine/J2PlasticDegradable.H"
 
@@ -81,8 +82,8 @@ public:
                 pp.queryclass("bc.expression",static_cast<BC::Operator::Elastic::Expression*>(elastic.bc));
             }
 
-			pp.query("ref_threshold",m_elastic_ref_threshold);
-            pp.query("solver.int",elastic.interval);
+            pp.query("ref_threshold",m_elastic_ref_threshold);
+            pp.query("int",elastic.interval);
 
         }
         RegisterGeneralFab(model_mf, 1, 2);
@@ -97,9 +98,9 @@ public:
                 pp.queryclass("ellipse",static_cast<IC::Ellipse*>(ic));
             }
         }
-        #if AMREX_SPACEDIM==3
+#if AMREX_SPACEDIM==3
         RegisterIntegratedVariable(&(trac_lo[0].data()[0]),"trac_lo_xx");
-        #endif
+#endif
 
         {
             IO::ParmParse pp("plastic");
@@ -133,24 +134,24 @@ protected:
         strain_mf[lev]->setVal(0.);
 
         if (plastic.on)
-        {
+    {
             plastic.strainp_mf[lev]->setVal(0.);
             plastic.strainp_eq_mf[lev]->setVal(0.0);
         }
-        
-        eta_mf[lev]->FillBoundary();
-        for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
-        {
-            amrex::Box bx = mfi.grownnodaltilebox();
-            amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
-            amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                model(i,j,k) = MODEL::Zero();
+
+            eta_mf[lev]->FillBoundary();
+            for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+            {
+                amrex::Box bx = mfi.grownnodaltilebox();
+                amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                                            model(i,j,k) = MODEL::Zero();
                 if(plastic.on) model(i,j,k).SetHardening(plastic.hardening);
-                for (unsigned int n = 0; n < elastic.models.size(); n++) 
-                    model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
-            });
-        }
+                                            for (unsigned int n = 0; n < elastic.models.size(); n++) 
+                                                model(i,j,k) += eta(i,j,k,n) * elastic.models[n];
+                                        });
+            }
         Util::RealFillBoundary(*model_mf[lev],geom[lev]);
     }
 
@@ -217,7 +218,7 @@ protected:
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     std::array<Numeric::StencilType,AMREX_SPACEDIM>
-					    sten = Numeric::GetStencil(i,j,k,bx);
+                        sten = Numeric::GetStencil(i,j,k,bx);
 
                     if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
                     {
@@ -273,7 +274,6 @@ protected:
                         Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
                         Set::Matrix P = model(i,j,k).DW(F);
                         Numeric::MatrixToField(stress,i,j,k,P);
-                        //Numeric::MatrixToField(strain,i,j,k,F);
                     }
                     else
                     {
@@ -292,42 +292,42 @@ protected:
             Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
         }
     }
-    
+
     void Integrate(int amrlev, Set::Scalar /*time*/, int /*step*/,
-    				 const amrex::MFIter &mfi, const amrex::Box &box) override
+                    const amrex::MFIter &mfi, const amrex::Box &box) override
     {
-    	const amrex::Real *DX = geom[amrlev].CellSize();
+        const amrex::Real *DX = geom[amrlev].CellSize();
         amrex::Box domain = geom[amrlev].Domain();
         domain.convert(amrex::IntVect::TheNodeVector());
 
 
-    	//Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);
-        #if AMREX_SPACEDIM == 2
+        //Set::Scalar dv = AMREX_D_TERM(DX[0], *DX[1], *DX[2]);
+#if AMREX_SPACEDIM == 2
         Set::Vector da(DX[1],DX[0]);
-        #elif AMREX_SPACEDIM == 3
+#elif AMREX_SPACEDIM == 3
         Set::Vector da(DX[1]*DX[2], DX[2]*DX[0], DX[0]*DX[1]);
-        #endif
+#endif
 
-		const Dim3 lo= amrex::lbound(domain)/*, hi = amrex::ubound(domain)*/;
-		const Dim3 /*boxlo= amrex::lbound(box),*/ boxhi = amrex::ubound(box);
+        const Dim3 lo= amrex::lbound(domain)/*, hi = amrex::ubound(domain)*/;
+        const Dim3 /*boxlo= amrex::lbound(box),*/ boxhi = amrex::ubound(box);
 
-    	amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
-    	//amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
-    	amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+        amrex::Array4<const amrex::Real> const &stress = (*stress_mf[amrlev]).array(mfi);
+        //amrex::Array4<const amrex::Real> const &disp   = (*disp_mf[amrlev]).array(mfi);
+        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
-            #if AMREX_SPACEDIM == 2
-            if (i == lo.x && j < boxhi.y)
-            {
-                trac_lo[0](0) += 0.5 * (stress(i,j,k,0) + stress(i,j+1,k,0)) * da(0);
-            } 
-            #elif AMREX_SPACEDIM == 3
-            if (i == lo.x && (j < boxhi.y && k < boxhi.z))
-            {
-                trac_lo[0](0) += 0.25 * (stress(i,j,k,0) + stress(i,j+1,k,0) + stress(i,j,k+1,0) + stress(i,j+1,k+1,0)) * da(0);
-            } 
-            #endif
+#if AMREX_SPACEDIM == 2
+                                    if (i == lo.x && j < boxhi.y)
+                                    {
+                                        trac_lo[0](0) += 0.5 * (stress(i,j,k,0) + stress(i,j+1,k,0)) * da(0);
+                                    } 
+#elif AMREX_SPACEDIM == 3
+                                    if (i == lo.x && (j < boxhi.y && k < boxhi.z))
+                                    {
+                                        trac_lo[0](0) += 0.25 * (stress(i,j,k,0) + stress(i,j+1,k,0) + stress(i,j,k+1,0) + stress(i,j+1,k+1,0)) * da(0);
+                                    } 
+#endif
 
-        });
+                                });
             
     }
 
@@ -345,22 +345,22 @@ protected:
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &strain = strain_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                {
-                    Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > 0.01)
-                        tags(i, j, k) = amrex::TagBox::SET;
-                }
-                {
-                    Set::Matrix grad = Numeric::Gradient(strain, i, j, k, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
-                        tags(i, j, k) = amrex::TagBox::SET;
-                }
+                                        {
+                                            Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
+                                            if (grad.lpNorm<2>() * DXnorm > 0.01)
+                                                tags(i, j, k) = amrex::TagBox::SET;
+                                        }
+                                        {
+                                            Set::Matrix grad = Numeric::Gradient(strain, i, j, k, DX.data());
+                                            if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
+                                                tags(i, j, k) = amrex::TagBox::SET;
+                                        }
                 {
                     Set::Vector grad = Numeric::Gradient(strainp_eq, i, j, k, 0, DX.data());
                     if (grad.lpNorm<2>() * DXnorm > 0.01)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
-            });
+                                    });
         }
     }
 
@@ -394,7 +394,8 @@ private:
         Set::Field<Set::Scalar> strainp_mf;
         Set::Field<Set::Scalar> strainp_eq_mf;
     } plastic;
-	Set::Scalar m_elastic_ref_threshold = 0.01;
+
+    Set::Scalar m_elastic_ref_threshold = 0.01;
 
 };
 } // namespace Integrator

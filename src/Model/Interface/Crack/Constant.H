@@ -48,16 +48,16 @@ public:
         if(gtype == "squarepexp"|| gtype == "cubicm") pp.query("exponent",ductile_exponent);
 
         std::map<std::string,Model::Interface::Crack::Crack::GType>  g_map;
-	    g_map["square"] = Model::Interface::Crack::Crack::GType::GSQUARE;
-	    g_map["multiwell"] = Model::Interface::Crack::Crack::GType::GMULTIWELL;
+        g_map["square"] = Model::Interface::Crack::Crack::GType::GSQUARE;
+        g_map["multiwell"] = Model::Interface::Crack::Crack::GType::GMULTIWELL;
         g_map["4c3"] = Model::Interface::Crack::Crack::GType::GPHI4C3;
         g_map["squarep"] = Model::Interface::Crack::Crack::GType::GSQUAREP;
-	    g_map["squarepexp"] = Model::Interface::Crack::Crack::GType::GSQUAREPM;
+        g_map["squarepexp"] = Model::Interface::Crack::Crack::GType::GSQUAREPM;
         g_map["cubicm"] = Model::Interface::Crack::Crack::GType::GCUBICM;
 
         std::map<std::string,Model::Interface::Crack::Crack::WType>  w_map;
         w_map["square"] = Model::Interface::Crack::Crack::WType::WSQUARE;
-	    w_map["multiwell"] = Model::Interface::Crack::Crack::WType::WMULTIWELL;
+        w_map["multiwell"] = Model::Interface::Crack::Crack::WType::WMULTIWELL;
         w_map["multiwell2"] = Model::Interface::Crack::Crack::WType::WMULTIWELL2;
         w_map["4c3"] = Model::Interface::Crack::Crack::WType::WPHI4C3;
 

@@ -15,9 +15,9 @@ class Cubic : public Linear::Cubic
 {
 public:
 
-	Cubic() {};
+    Cubic() {};
     Cubic(Linear::Cubic base) : Linear::Cubic(base) {};
-	virtual ~Cubic() {};
+    virtual ~Cubic() {};
 
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
@@ -89,4 +89,3 @@ public:
 }
 
 #endif
-

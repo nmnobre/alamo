@@ -171,7 +171,7 @@ obj/obj-$(POSTFIX)/%.F90.o: src/%.F90
 	mpif90 -c $< -o $@  -I${subst :, -I,$(CPLUS_INCLUDE_PATH)}
 	rm *.mod -rf
 
-docs: docs/doxygen/index.html docs/build/html/index.html .FORCE 
+docs: docs/build/html/index.html .FORCE 
 	@printf "$(B_ON)$(FG_MAGENTA)DOCS$(RESET) Done\n" 
 
 docs/doxygen/index.html: $(SRC) $(SRC_F) $(SRC_MAIN) $(HDR_ALL)
