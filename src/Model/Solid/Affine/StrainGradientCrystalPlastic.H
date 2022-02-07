@@ -25,6 +25,8 @@ class StrainGradientCrystalPlastic : public CrystalPlastic
 public:
     StrainGradientCrystalPlastic(){};
 
+    //StrainGradientCrystalPlastic(StrainGradientCrystalPlastic &alpha){}
+
     void DefineSlipGradientSystem()
     {
         DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.);
@@ -72,6 +74,19 @@ public:
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
 
+        std::array<Set::Vector_3D, 4> plane_rot;
+        std::array<Set::Vector_3D, 12> dir_rot;
+
+        for (int i=0; i<4; i++)
+        {
+            plane_rot[i] = R_crystal*plane[i];
+            for(int j=0; j<3; j++)
+            {
+                int alpha = 3*i + j;
+                dir_rot[alpha] = R_crystal*dir[i][j];
+            }
+        }
+
         Set::Scalar total_rho = 0.0;
         for (int i = 0; i<12; i++) 
             total_rho += rho_se[i] + rho_ss[i] + std::abs(rho_gen[i]) + std::abs(rho_get[i]) + std::abs(rho_gsm[i]);
@@ -86,30 +101,32 @@ public:
                 Set::Scalar anisotropic_rho = 0.0;
                 for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*m_h*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
                 
-                Set::Vector t_alpha = R_crystal*dir[i][j].cross(R_crystal*plane[i]);
+                Set::Vector t_alpha = (dir_rot[alpha]).cross(plane_rot[i]);
 
                 Set::Scalar rho_se_dot = ((m_Ke/m_b)*std::sqrt(anisotropic_rho) - m_de*rho_se[alpha]/m_b)*std::abs(gamdotalpha[alpha]);
 
                 Set::Scalar rho_ss_dot = (((2.0*m_Ke) - (Set::Constant::Pi*m_ds*m_ds*rho_ss[alpha]*0.25))*(1.0/m_b)*std::sqrt(anisotropic_rho) - m_ds*rho_ss[alpha]/m_b)*std::abs(gamdotalpha[alpha]);
 
-                Set::Vector curlTerm = Set::Vector::Zero();
+                Set::Vector_3D curlTerm = Set::Vector::Zero();
                 for (int bi=0; bi<4; bi++)
                 {
                     for (int bj=0; bj<3; bj++)
                     {
                         int beta = 3*bi + bj;
-                        for (int p=0; p<3; p++)
-                            for (int q=0; q<3; q++)
-                                for (int r=0; r<3; r++)
-                                    curlTerm(r) = curlTerm(r) + (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*((R_crystal*dir[bi][bj])(p))
-                                                    *((R_crystal*plane[i]).dot(R_crystal*plane[bi]))
-                                                    *Set::Constant::PermutationTensor(q,p,r);
+                        Set::Vector_3D temp1 = (gamdotgrad[alpha]*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta]);
+                        curlTerm += temp1.cross(dir_rot[beta])*((plane_rot[i]).dot(plane_rot[bi]));
+                        // for (int p=0; p<3; p++)
+                        //     for (int q=0; q<3; q++)
+                        //         for (int r=0; r<3; r++)
+                        //             curlTerm(r) = curlTerm(r) + (gamdotgrad[alpha](q)*gamalpha[beta] + gamdotalpha[alpha]*gamgrad[beta](q))*((R_crystal*dir[bi][bj])(p))
+                        //                             *((R_crystal*plane[i]).dot(R_crystal*plane[bi]))
+                        //                             *Set::Constant::PermutationTensor(q,p,r);
                     }
                 }
                 
-                Set::Scalar rho_gsm_dot = (1.0/m_b)*(R_crystal*dir[i][j]).dot(curlTerm);
+                Set::Scalar rho_gsm_dot = (1.0/m_b)*(dir_rot[alpha]).dot(curlTerm);
                 Set::Scalar rho_get_dot = (1.0/m_b)*(t_alpha).dot(curlTerm);
-                Set::Scalar rho_gen_dot = (1.0/m_b)*(R_crystal*plane[i]).dot(curlTerm);
+                Set::Scalar rho_gen_dot = (1.0/m_b)*(plane_rot[i]).dot(curlTerm);
 
                 rho_se[alpha] += rho_se_dot*dt;
                 rho_ss[alpha] += rho_ss_dot*dt;
@@ -131,7 +148,7 @@ public:
             for (int j=0; j<3; j++)
             {
                 int alpha = 3*i+j;
-                Set::Scalar tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
+                Set::Scalar tau = (dir_rot[alpha]).dot(sigma*(plane_rot[i]));
                 Set::Scalar tau_prime = m_tau0 + m_mu*m_b*m_c0*std::sqrt(total_rho);
 
                 if(outflag) Util::Message(INFO, "alpha = ", alpha, ". tau = ", tau, ". tau_prime = ", tau_prime);
@@ -195,6 +212,22 @@ public:
     Set::Scalar m_w1, m_w2, m_h;
     Set::Scalar m_q1, m_q2;
     Set::Scalar m_F0, m_T;
+
+    // std::array<Set::Vector_3D, 4> plane_rot = 
+    // {
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,1,1).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,-1,1).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,1,1).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,-1,1).normalized())
+    // };
+
+    // std::array<std::array<Set::Vector_3D,3>,4> dir_rot = 
+    // {
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(0,-1,1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,0,-1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,1,0).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(0,1,1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,0,-1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,-1,0).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(0,-1,1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,0,-1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,1,0).normalized()),
+    //     (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(0,1,1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(1,0,-1).normalized()), (Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix())*(Set::Vector_3D(-1,-1,0).normalized())
+    // };
 
     
 public:

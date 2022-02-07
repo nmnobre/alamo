@@ -207,10 +207,13 @@ protected:
 
         for (int lev = 0; lev <= disp_mf.finest_level; lev++)
         {
+            amrex::Box domain = geom[lev].Domain();
+            domain.convert(amrex::IntVect::TheNodeVector());
+
             const amrex::Real* DX = geom[lev].CellSize();
             for (MFIter mfi(*disp_mf[lev], false); mfi.isValid(); ++mfi)
             {
-                amrex::Box bx = mfi.nodaltilebox();
+                amrex::Box bx = mfi.grownnodaltilebox() & domain;
                 amrex::Array4<MODEL>        const &model = model_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar>       const &stress  = stress_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar>       const &strain  = strain_mf[lev]->array(mfi);
@@ -254,13 +257,16 @@ protected:
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
             Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
             Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
+
+            amrex::Box domain = geom[lev].Domain();
+            domain.convert(amrex::IntVect::TheNodeVector());
             
             const Set::Scalar* DX = geom[lev].CellSize();
             Util::Warning(INFO,"Need to determine why tiling isn't working...");
 
             for ( amrex::MFIter mfi(*eta_mf[lev],false); mfi.isValid(); ++mfi )
             {
-                const amrex::Box& bx = mfi.nodaltilebox();
+                const amrex::Box& bx = mfi.grownnodaltilebox() & domain;
                 amrex::Array4<MODEL>                const& model        = model_mf[lev]->array(mfi);
                 amrex::Array4<Set::Scalar>          const& stress       = stress_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar>    const& strain       = strain_mf[lev]->array(mfi);
@@ -312,18 +318,18 @@ protected:
                         model(i,j,k).Advance(sigma,eps,eps_grad,plastic.epsp_evol_int*dt);
 
                         Set::Matrix epsp = model(i,j,k).GetPlasticState();
-                        if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
-                        {
-                            Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
-                            Set::Matrix P = model(i,j,k).DW(F);
-                            Numeric::MatrixToField(stress,i,j,k,P);
-                        }
-                        else
-                        {
-                            Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
-                            sigma = model(i,j,k).DW(gradu);
-                            Numeric::MatrixToField(stress,i,j,k,sigma);
-                        }
+                        // if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                        // {
+                        //     Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                        //     Set::Matrix P = model(i,j,k).DW(F);
+                        //     Numeric::MatrixToField(stress,i,j,k,P);
+                        // }
+                        // else
+                        // {
+                        //     Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                        //     sigma = model(i,j,k).DW(gradu);
+                        //     Numeric::MatrixToField(stress,i,j,k,sigma);
+                        // }
                         Numeric::MatrixToField(strainp,i,j,k,epsp);
                         strainp_eq(i,j,k) = epsp.norm();
                         //plastic.do_epsp_evol = false;
@@ -389,7 +395,7 @@ protected:
             amrex::Box bx = mfi.tilebox();
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
-            amrex::Array4<Set::Scalar> const &disp = eta_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &disp = disp_mf[lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 {
@@ -398,7 +404,7 @@ protected:
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
                 {
-                    Set::Vector grad = Numeric::Gradient(disp, i, j, k, 0, DX.data());
+                    Set::Vector grad = Numeric::Gradient(disp, i, j, k, 1, DX.data());
                     if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
