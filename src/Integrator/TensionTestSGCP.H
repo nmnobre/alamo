@@ -12,6 +12,7 @@
 #include "Integrator/Integrator.H"
 
 #include "IC/IC.H"
+#include "IC/Ellipsoid.H"
 #include "BC/BC.H"
 #include "BC/Operator/Elastic/Constant.H"
 #include "BC/Operator/Elastic/TensionTest.H"
@@ -25,6 +26,9 @@
 #include "Solver/Nonlocal/Newton.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
 #include "Model/Solid/Affine/StrainGradientCrystalPlastic.H"
+
+#include "Model/Interface/Crack/Crack.H"
+#include "Model/Interface/Crack/Constant.H"
 
 #include "Operator/Operator.H"
 
@@ -45,6 +49,35 @@ public:
         RegisterNodalFab(rhs_mf, AMREX_SPACEDIM, 2, "rhs",true);
         RegisterNodalFab(stress_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "stress",true);
         RegisterNodalFab(strain_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strain",true);
+
+        {
+            IO::ParmParse pp_crack("crack");
+            pp_crack.query("modulus_scaling_max",crack.scaleModulusMax);
+            pp_crack.query("refinement_threshold",crack.refinement_threshold);
+
+            pp_crack.queryclass("constant",crack.cracktype);
+
+            IO::ParmParse pp("crack.ic");
+            pp.queryarr("type", crack.ic_type);
+            
+            if (crack.ic_type.size() == 0) crack.is_ic = false;
+            else
+            {
+                crack.is_ic = true;
+                for (int i = 0; i < crack.ic_type.size(); i++)
+                {
+                    if (crack.ic_type[i] == "ellipsoid")
+                    {
+                        IC::Ellipsoid *tmpic = new IC::Ellipsoid(geom);
+                        pp.queryclass("ellipsoid",*tmpic);
+                        crack.ic.push_back(tmpic);
+                    }
+                    else
+                        Util::Abort(INFO, "This IC is not functional for this case yet");
+                }
+            }
+            RegisterNodalFab(crack.c_mf, 1, 2, "crack", true);
+        }
         
 
         {
@@ -72,6 +105,7 @@ public:
             {
                 elastic.bc = new BC::Operator::Elastic::TensionTest();
                 pp.queryclass("bc.tension_test",static_cast<BC::Operator::Elastic::TensionTest*>(elastic.bc));
+                Util::Message(INFO, "read this value");
             }
             else if (bc_type == "expression")
             {
@@ -129,6 +163,15 @@ protected:
         stress_mf[lev]->setVal(0.);
         strain_mf[lev]->setVal(0.);
 
+        if(crack.is_ic)
+        {
+            crack.c_mf[lev]->setVal(1.0);
+            for (int i = 0; i < crack.ic.size(); i++)
+                crack.ic[i]->Add(lev,crack.c_mf);
+        }
+        else
+            crack.c_mf[lev]->setVal(1.0);
+        
         if (plastic.on)
         {
             plastic.strainp_mf[lev]->setVal(0.);
@@ -186,7 +229,37 @@ protected:
 
             disp_mf[lev]->setVal(0.0);
 
-            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            //Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+        }
+
+        // Degrading the modulus
+        for (int ilev = 0; ilev <= finest_level; ++ilev)
+        {
+            Util::RealFillBoundary(*crack.c_mf[ilev],geom[ilev]);
+            Util::RealFillBoundary(*model_mf[ilev],geom[ilev]);
+
+            amrex::Box domain = geom[ilev].Domain();
+            domain.convert(amrex::IntVect::TheNodeVector());
+            
+            for (amrex::MFIter mfi(*disp_mf[ilev],true); mfi.isValid(); ++mfi)
+            {
+                amrex::Box box = mfi.grownnodaltilebox() & domain;
+                amrex::Array4<const Set::Scalar> const& c = (*crack.c_mf[ilev]).array(mfi);
+                amrex::Array4<MODEL> model = (model_mf)[ilev]->array(mfi);
+
+                amrex::ParallelFor (box,[=] AMREX_GPU_DEVICE(int i, int j, int k){
+                                            Set::Scalar _temp = 0.0;
+                                            // _temp = crack.cracktype->g_phi(c(i,j,k,0),0);
+                                            _temp = crack.cracktype.g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
+                    
+                                            if (std::isnan(_temp)) Util::Abort(INFO);
+                                            if(_temp < 0.0) _temp = 0.;
+                                            if(_temp > 1.0) _temp = 1.0;
+                    
+                                            model(i,j,k).DegradeModulus(1.-_temp);
+                                        });
+            }
+            Util::RealFillBoundary(*model_mf[ilev],geom[ilev]);
         }
 
         elastic.bc->SetTime(a_time);
@@ -255,8 +328,8 @@ protected:
             Util::RealFillBoundary(*plastic.gamdotalpha_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.gamalpha_mf[lev],geom[lev]);
             Util::RealFillBoundary(*plastic.strainp_eq_mf[lev],geom[lev]);
-            Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
-            Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
+            // Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
+            // Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
 
             amrex::Box domain = geom[lev].Domain();
             domain.convert(amrex::IntVect::TheNodeVector());
@@ -318,18 +391,18 @@ protected:
                         model(i,j,k).Advance(sigma,eps,eps_grad,plastic.epsp_evol_int*dt);
 
                         Set::Matrix epsp = model(i,j,k).GetPlasticState();
-                        // if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
-                        // {
-                        //     Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
-                        //     Set::Matrix P = model(i,j,k).DW(F);
-                        //     Numeric::MatrixToField(stress,i,j,k,P);
-                        // }
-                        // else
-                        // {
-                        //     Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
-                        //     sigma = model(i,j,k).DW(gradu);
-                        //     Numeric::MatrixToField(stress,i,j,k,sigma);
-                        // }
+                        if (model(i,j,k).kinvar == Model::Solid::KinematicVariable::F)
+                        {
+                            Set::Matrix F = Set::Matrix::Identity() + Numeric::Gradient(disp,i,j,k,DX,sten);
+                            Set::Matrix P = model(i,j,k).DW(F);
+                            Numeric::MatrixToField(stress,i,j,k,P);
+                        }
+                        else
+                        {
+                            Set::Matrix gradu = Numeric::Gradient(disp,i,j,k,DX,sten);
+                            sigma = model(i,j,k).DW(gradu);
+                            Numeric::MatrixToField(stress,i,j,k,sigma);
+                        }
                         Numeric::MatrixToField(strainp,i,j,k,epsp);
                         strainp_eq(i,j,k) = epsp.norm();
                         //plastic.do_epsp_evol = false;
@@ -397,6 +470,7 @@ protected:
             amrex::Array4<Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
             amrex::Array4<Set::Scalar> const &disp = disp_mf[lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
+            amrex::Array4<const Set::Scalar> const& c = crack.c_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                 {
                     Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
@@ -411,6 +485,11 @@ protected:
                 {
                     Set::Vector grad = Numeric::Gradient(strainp_eq, i, j, k, 0, DX.data());
                     if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
+                        tags(i, j, k) = amrex::TagBox::SET;
+                }
+                {
+                    Set::Vector grad = Numeric::Gradient(c, i, j, k, 0, DX.data());
+                    if (grad.lpNorm<2>()*DXnorm >= crack.refinement_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
             });
@@ -458,6 +537,17 @@ private:
         bool do_epsp_evol = false;
         int epsp_evol_int = 1;
     } plastic;
+
+    struct{
+        Set::Field<Set::Scalar> c_mf;                ///< crack field at current time step
+        Model::Interface::Crack::Constant cracktype;                      ///< type of crack. See Crack/Constant or Crack/Sin
+        amrex::Vector<std::string> ic_type;                            ///< crack IC type. See IC/Notch and IC/Ellipsoid
+        amrex::Vector<IC::IC*> ic;                                     ///< crack IC. See IC/Notch and IC/Ellipsoid
+        bool is_ic = false;
+
+        Set::Scalar scaleModulusMax = 0.02;         ///< material modulus ratio inside crack (default = 0.02).
+        Set::Scalar refinement_threshold = 0.001;
+    } crack;
 
     Set::Scalar m_elastic_ref_threshold = 0.01;
 

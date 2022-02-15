@@ -16,26 +16,9 @@ class CubicDegradable : public Cubic
 {
 public:
 
-    enum LatticeType {FCC, BCC, HCP};   // standard Bravais lattices. More to be added later
-
     CubicDegradable() {};
-    CubicDegradable(Solid<Set::Sym::MajorMinor> base) : Cubic(base) {};
+    //CubicDegradable(Solid<Set::Sym::MajorMinor> base) : Cubic(base) {};
     CubicDegradable(Cubic base) : Cubic(base) {};
-
-    CubicDegradable(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44, Set::Scalar a_phi1, Set::Scalar a_Phi, Set::Scalar a_phi2)
-    {
-        Eigen::Matrix3d m;
-        m =  Eigen::AngleAxisd(a_phi2, Eigen::Vector3d::UnitX()) *
-            Eigen::AngleAxisd(a_Phi,  Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(a_phi1, Eigen::Vector3d::UnitX());
-        Define(a_C11, a_C12, a_C44, m);
-    };
-
-    void Define(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44,Eigen::Matrix3d m)
-    {
-        R=m; C110 = a_C11; C120 = a_C12; C440 = a_C44;
-        Cubic::Define(a_C11, a_C12, a_C44, m);
-    }
 
     void DegradeModulus(const Set::Scalar eta)
     {
@@ -44,7 +27,9 @@ public:
         if(std::isnan(C120)) Util::Abort(INFO, "Nans in C120");
         if(std::isnan(C440)) Util::Abort(INFO, "Nans in C440");
 
-        Cubic::Define( C110*(1.-eta), C120*(1.-eta), C440*(1.-eta), R, _F0);
+        C11 = C110*(1.-eta);
+        C12 = C120*(1.-eta);
+        C44 = C440*(1.-eta);
     }
     void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
     {
@@ -55,28 +40,42 @@ public:
             if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            Cubic::Define( C110*(1.-eta[0]), C120*(1.-eta[1]), C440*(1.-eta[1]), R, _F0 );
+            C11 = C110*(1.-eta[0]);
+            C12 = C120*(1.-eta[1]);
+            C44 = C440*(1.-eta[1]);
         }
         else if (eta.size() == 3)
         {
             if(std::isnan(eta[0]) || std::isnan(eta[1]) || std::isnan(eta[2])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1]) || std::isnan(eta[2])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0 || eta[2] < 0.0 || eta[2] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            Cubic::Define( C110*(1.-eta[0]), C120*(1.-eta[1]), C440*(1.-eta[2]), R, _F0);
+            C11 = C110*(1.-eta[0]);
+            C12 = C120*(1.-eta[1]);
+            C44 = C440*(1.-eta[2]);
         }
         else
             return;
     }
-    
-    AMREX_FORCE_INLINE
-    void SetF0(Set::Matrix &a_F0){_F0 = a_F0; Cubic::SetF0(a_F0);}
 
 public:
     Set::Scalar C110, C120, C440;
-    Set::Matrix _F0;
-    Eigen::Matrix3d R;
 
 public:
+
+    static CubicDegradable Zero()
+    {
+        CubicDegradable ret;
+        ret.C11 = 0.0;
+        ret.C12 = 0.0;
+        ret.C44 = 0.0;
+        ret.F0 = Set::Matrix::Zero();
+        ret.q.coeffs() *= 0;
+        ret.C110 = 0.0;
+        ret.C120 = 0.0;
+        ret.C440 = 0.0;
+        return ret;
+    }
+
     static CubicDegradable Random()
     {
         return Random(Util::Random(), Util::Random(), Util::Random());
@@ -84,111 +83,26 @@ public:
 
     static CubicDegradable Random(Set::Scalar a_C11, Set::Scalar a_C12, Set::Scalar a_C44)
     {
-        CubicDegradable ret;
-        Set::Scalar phi1 = 2.0*Set::Constant::Pi * Util::Random();
-        Set::Scalar Phi  = 2.0*Set::Constant::Pi * Util::Random();
-        Set::Scalar phi2 = 2.0*Set::Constant::Pi * Util::Random();
-        Eigen::Matrix3d m;
-        m = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
-            Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
-
-        ret.Define(a_C11,a_C12,a_C44,m);
+        CubicDegradable ret = Cubic::Random(a_C11,a_C12,a_C44);
+        ret.C110 = ret.C11;
+        ret.C120 = ret.C12;
+        ret.C440 = ret.C44;
         return ret;
     }
 
     static void Parse(CubicDegradable & value, IO::ParmParse & pp)
     {
-        Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
-        pp.query("C11",C11);
-        pp.query("C12",C12);
-        pp.query("C44",C44);
-
-        //if (pp.contains("random"))
-        //{
-        //    value = CubicCrystalPlastic::Random(C11,C12,C44);
-        //    return;
-        //}
-
-        Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
-        pp.query("phi1",phi1);
-        pp.query("Phi",Phi);
-        pp.query("phi2",phi2);
-
-        Eigen::Matrix3d m;
-        m = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
-            Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
-
-        value.Define(C11,C12,C44,m);
+        Cubic::Parse(value, pp);
+        value.C110 = value.C11;
+        value.C120 = value.C12;
+        value.C440 = value.C44;
     }
-    AMREX_FORCE_INLINE
-    void operator += (const CubicDegradable &rhs)
-    {
-        ddw += rhs.ddw;
-        F0  += rhs.F0;
-        _F0  += rhs._F0;
-        R += rhs.R;
-        C110 += rhs.C110;
-        C120 += rhs.C120;
-        C440 += rhs.C440;
-    }    
-    AMREX_FORCE_INLINE
-        CubicDegradable operator * (const Set::Scalar alpha) const
-    {
-        CubicDegradable ret;
-        ret.ddw = ddw*alpha;
-        ret.F0  = alpha*F0;
-        ret._F0  = alpha*_F0;
-        ret.R = alpha*R;
-        ret.C110 = alpha*C110;
-        ret.C120 = alpha*C120;
-        ret.C440 = alpha*C440;
-        return ret;
-    }    
-    friend CubicDegradable operator * (const Set::Scalar alpha, const CubicDegradable b);
-    friend CubicDegradable operator + (const CubicDegradable a, const CubicDegradable b);
-    friend CubicDegradable operator - (const CubicDegradable a, const CubicDegradable b);
+
+    #define OP_CLASS CubicDegradable
+    #define OP_VARS  X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(C110) X(C120) X(C440)
+    #include "Model/Solid/InClassOperators.H"
 };
-AMREX_FORCE_INLINE
-CubicDegradable operator * (const Set::Scalar alpha, const CubicDegradable b)
-{
-    CubicDegradable ret;
-    ret.ddw = b.ddw * alpha;
-    ret.F0  = b.F0 * alpha;
-    ret._F0  = alpha*b._F0;
-    ret.R = alpha * b.R;
-    ret.C110 = alpha * b.C110;
-    ret.C120 = alpha * b.C120;
-    ret.C440 = alpha * b.C440;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-CubicDegradable operator + (const CubicDegradable a, const CubicDegradable b)
-{
-    CubicDegradable ret;
-    ret.ddw = a.ddw + b.ddw;
-    ret.F0  = a.F0 + b.F0;
-    ret._F0  = a._F0 + b._F0;
-    ret.R = a.R + b.R;
-    ret.C110 = a.C110 + b.C110;
-    ret.C120 = a.C120 + b.C120;
-    ret.C440 = a.C440 + b.C440;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-CubicDegradable operator - (const CubicDegradable a, const CubicDegradable b)
-{
-    CubicDegradable ret;
-    ret.ddw = a.ddw - b.ddw;
-    ret.F0  = a.F0 - b.F0;
-    ret._F0  = a._F0 - b._F0;
-    ret.R = a.R - b.R;
-    ret.C110 = a.C110 - b.C110;
-    ret.C120 = a.C120 - b.C120;
-    ret.C440 = a.C440 - b.C440;
-    return ret;
-}
+#include "Model/Solid/ExtClassOperators.H"
 
 }
 }

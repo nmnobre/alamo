@@ -6,7 +6,7 @@
 #include <eigen3/Eigen/Core>
 #include "Affine.H"
 #include "Set/Set.H"
-#include "Model/Solid/Affine/Cubic.H"
+#include "Model/Solid/Affine/CubicDegradable.H"
 
 /*
     Note: everything is hardcoded for FCC right now. 
@@ -19,7 +19,7 @@ namespace Solid
 {
 namespace Affine
 {
-class CrystalPlastic : public Cubic
+class CrystalPlastic : public CubicDegradable
 {
 public:
     CrystalPlastic(){};
@@ -191,6 +191,7 @@ public:
         CrystalPlastic ret;
         ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
+        ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
         ret.F0 = Set::Matrix::Zero();
         ret.DefineSlipSystem(0.,0.,0.);
         ret.hardening = false;
@@ -205,7 +206,7 @@ public:
 
     static void Parse(CrystalPlastic & value, IO::ParmParse & pp)
     {
-        Cubic::Parse(value,pp);
+        CubicDegradable::Parse(value,pp);
         
         amrex::Vector<Set::Scalar> input_g_alpha;
         std::array<Set::Scalar,12> f_g_alpha;
@@ -289,7 +290,7 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) 
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(C110) X(C120) X(C440) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) 
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
     #include "Model/Solid/InClassOperators.H"

@@ -113,17 +113,17 @@ public:
 
         if (pp.contains("phi1") || pp.contains("Phi") || pp.contains("phi2"))
         {
-        Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
-        pp.query("phi1",phi1);
-        pp.query("Phi",Phi);
-        pp.query("phi2",phi2);
+            Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
+            pp.query("phi1",phi1);
+            pp.query("Phi",Phi);
+            pp.query("phi2",phi2);
 
             Eigen::Matrix3d R;
             R = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
                 Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
                 Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
             value.q = Eigen::Quaterniond(R);
-    }    
+        }    
         // std::cout << "q = " << value.q.w() << " + " << value.q.vec() << std::endl;
         // std::cout << "R = " << std::endl << value.q.normalized().toRotationMatrix() << std::endl;
     }    
