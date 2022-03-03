@@ -47,6 +47,7 @@ public:
         
         RegisterNodalFab(disp_mf, AMREX_SPACEDIM, 2, "disp",true);
         RegisterNodalFab(rhs_mf, AMREX_SPACEDIM, 2, "rhs",true);
+        
         RegisterNodalFab(stress_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "stress",true);
         RegisterNodalFab(strain_mf, AMREX_SPACEDIM * AMREX_SPACEDIM, 2, "strain",true);
 
@@ -266,6 +267,7 @@ protected:
         elastic.bc->Init(rhs_mf,geom);
 
         amrex::LPInfo info;
+        //info.setMaxCoarseningLevel(0);
         Operator::Elastic<MODEL::sym> elastic_op(Geom(0,finest_level), grids, DistributionMap(0,finest_level), info);
         elastic_op.SetUniform(false);
         elastic_op.SetBC(elastic.bc);
@@ -472,16 +474,16 @@ protected:
             amrex::Array4<const Set::Scalar> const& strainp_eq = plastic.strainp_eq_mf[lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& c = crack.c_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                {
-                    Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > 0.01)
-                        tags(i, j, k) = amrex::TagBox::SET;
-                }
-                {
-                    Set::Vector grad = Numeric::Gradient(disp, i, j, k, 1, DX.data());
-                    if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
-                        tags(i, j, k) = amrex::TagBox::SET;
-                }
+                // {
+                //     Set::Vector grad = Numeric::Gradient(eta, i, j, k, 0, DX.data());
+                //     if (grad.lpNorm<2>() * DXnorm > 0.01)
+                //         tags(i, j, k) = amrex::TagBox::SET;
+                // }
+                // {
+                //     Set::Vector grad = Numeric::Gradient(disp, i, j, k, 1, DX.data());
+                //     if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)
+                //         tags(i, j, k) = amrex::TagBox::SET;
+                // }
                 {
                     Set::Vector grad = Numeric::Gradient(strainp_eq, i, j, k, 0, DX.data());
                     if (grad.lpNorm<2>() * DXnorm > m_elastic_ref_threshold)

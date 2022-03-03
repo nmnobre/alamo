@@ -265,6 +265,7 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
                 for (int p = 0; p < AMREX_SPACEDIM; p++)
                 {
 
+                    //diag(i,j,k,p) = DX[0]*DX[0];
                     diag(i,j,k,p) = 0.0;
                     for (int q = 0; q < AMREX_SPACEDIM; q++)
                     {
@@ -300,7 +301,7 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
                         Set::Matrix4<AMREX_SPACEDIM,SYM>
                         AMREX_D_DECL(Cgrad1 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,1,0,0>::D(DDW,i,j,k,0,DX,sten)),
                                         Cgrad2 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,0,1,0>::D(DDW,i,j,k,0,DX,sten)),
-                                    Cgrad3 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,0,0,1>::D(DDW,i,j,k,0,DX,sten)));
+                                     Cgrad3 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,0,0,1>::D(DDW,i,j,k,0,DX,sten)));
 
                         Set::Vector f = DDW(i,j,k)*gradgradu + 
                             AMREX_D_TERM((Cgrad1*gradu).col(0),

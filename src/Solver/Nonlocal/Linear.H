@@ -161,9 +161,9 @@ public:
             pp.query("bottom_solver",bottom_solver);
             if (bottom_solver == "cg")
                 value.setBottomSolver(MLMG::BottomSolver::cg);
-            if (bottom_solver == "bicgstab")
+            else if (bottom_solver == "bicgstab")
                 value.setBottomSolver(MLMG::BottomSolver::bicgstab);
-            if (bottom_solver == "smoother")
+            else if (bottom_solver == "smoother")
                 value.setBottomSolver(MLMG::BottomSolver::smoother);
             else
                 Util::Abort(INFO,"Unsupported bottom_solver " + bottom_solver);
