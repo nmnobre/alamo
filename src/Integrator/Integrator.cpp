@@ -9,7 +9,7 @@
 #include "Util/Util.H"
 #include <numeric>
 
-
+#include "AMReX_PlotFileUtilHDF5.H"
 
 namespace Integrator
 {
@@ -890,6 +890,36 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
         }
         WriteMultiLevelPlotfile(plotfilename[0]+plotfilename[1]+"cell", nlevels, amrex::GetVecOfConstPtrs(cplotmf), allnames,
                                 Geom(), time, iter, refRatio());
+        //#ifdef DALAMO_HDF5
+// void WriteMultiLevelPlotfileHDF5 (const std::string &plotfilename,
+//                                  int nlevels,
+//                                  const Vector<const MultiFab*> &mf,
+//                                  const Vector<std::string> &varnames,
+//                                  const Vector<Geometry> &geom,
+//                                  Real time,
+//                                  const Vector<int> &level_steps,
+//                                  const Vector<IntVect> &ref_ratio,
+//                                  const std::string &compression);        
+
+        Util::Message(INFO,"Printing HDF5 to ",plotfilename[0] + plotfilename[1] + "cell.hdf5");
+        Util::Message(INFO,nlevels);
+        Util::Message(INFO,"finest level = ",nlevels-1);
+        Util::Message(INFO,"actual finest level = ",finest_level);
+
+        Util::Message(INFO,refRatio().size()," ",finest_level);
+        const amrex::Vector<amrex::IntVect> refratio = refRatio();
+        for (int lev = 0; lev < refRatio().size(); lev++)
+        {
+            Util::Message(INFO,lev);
+            Util::Message(INFO,lev," ",refratio[lev]);
+        }
+        
+
+        //Util::Message(INFO,refRatio().size());
+        WriteMultiLevelPlotfileHDF5(plotfilename[0] + plotfilename[1] + "cell.hdf5", finest_level+1, amrex::GetVecOfConstPtrs(cplotmf), allnames, Geom(), time, iter, refratio);
+        
+            
+        //#endif                                
     
         std::ofstream chkptfile;
         chkptfile.open(plotfilename[0]+plotfilename[1]+"cell/Checkpoint");

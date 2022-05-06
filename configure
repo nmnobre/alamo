@@ -47,6 +47,15 @@ def message(title,message="",wrap_message=True):
 def shellmessage(title,cmd):
     print(color.boldgreen + title.ljust(width) + color.reset,end="")
     wrap(subprocess.check_output(cmd.split(' '),stderr=subprocess.STDOUT).decode('ascii').replace('\n',' '))
+def prepend(file,line):
+    f = open(file,"r")
+    lines = f.readlines()
+    f.close()
+    f = open(file,"w")
+    f.write(line)
+    for line in lines: f.write(line)
+    f.close()
+
 
 message("Python",python_version)
 if sys.version_info.minor < 5:
@@ -73,6 +82,8 @@ parser.add_argument('--create-gfortran-link',dest='gfortranln',action='store_tru
                     help="Create a link to the gfortran library. (Unless you are CircleCI, you should probably not do this!)")
 parser.add_argument('--jit',dest='jit',action='store_true',default=False)
 parser.add_argument('--libmesh',dest='libmesh',default=None,help="Specify location of LIBMESH library (for use with JIT expression parsing)")
+parser.add_argument('--hdf5',dest='hdf5',action='store_true',default=False,help='Enable compilation against the HDF5 library')
+parser.add_argument('--hdf5-home',dest='hdf5_home',default='/usr/include/hdf5/mpich/',help='Enable compilation against the HDF5 library')
 parser.set_defaults(debug=False)
 args=parser.parse_args()
 
@@ -385,3 +396,16 @@ if (args.docs):
     try: import m2r; message("M2R", str(m2r.__version__) + " (python 3)")
     except: message("M2R",color.red + "M2R not installed - install using " + code("pip install m2r"))
 
+
+#
+# HDF 5
+#
+# Ubuntu: libhdf5-mpich-dev
+if args.hdf5:
+    message("HDF5","On")
+    message("HDF5_HOME",args.hdf5_home)
+    prepend("ext/amrex/GNUmakefile", "USE_HDF5=TRUE\n")
+    prepend("ext/amrex/GNUmakefile", "HDF5_HOME={}\n".format(args.hdf5_home))
+    f.write('CXX_COMPILE_FLAGS += -DALAMO_HDF5\n')
+    f.write('ALAMO_INCLUDE += -I./ext/amrex/Src/Extern/HDF5/ -I{}/include\n'.format(args.hdf5_home))
+    f.write('LIB += -L{}/lib/libhdf5.a\n'.format(args.hdf5_home))

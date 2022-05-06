@@ -40,7 +40,7 @@ CXX_COMPILE_FLAGS += -Winline -Wextra -Wall -Wno-comment -std=c++17 $(METADATA_F
 LINKER_FLAGS += -Bsymbolic-functions
 
 ALAMO_INCLUDE += $(if ${EIGEN}, -isystem ${EIGEN})  $(if ${AMREX}, -isystem ${AMREX}/include/) -I./src/ $(for pth in ${CPLUS_INCLUDE_PATH}; do echo -I"$pth"; done)
-LIB     += -L${AMREX}/lib/ -lamrex -lpthread
+LIB     += -L${AMREX}/lib/ -lamrex -lpthread /opt/hdf5/build/lib/libhdf5.a /opt/hdf5/build/lib/libhdf5_hl.a -lz -ldl
 
 HDR_ALL = $(shell find src/ -name *.H)
 HDR_TEST = $(shell find src/ -name *Test.H)
