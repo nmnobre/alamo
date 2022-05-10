@@ -21,6 +21,7 @@ class Expression : public Elastic
 #ifndef ALAMO_JIT
 public:
     Expression(){ Util::Abort(INFO,"You need to compile with JIT to use this BC"); }
+    Expression(IO::ParmParse &, std::string ): Expression() {}
     virtual void Init(amrex::MultiFab * ,const amrex::Geometry &,bool) 
     const override
     {};
@@ -31,6 +32,9 @@ public:
     Set::Vector operator () (const Set::Vector &, const Set::Matrix &, const Set::Matrix &, const int &, const int &, const int &, const amrex::Box &) {return Set::Vector::Zero();};
 #else
 public:
+    Expression(IO::ParmParse &pp, std::string name) 
+    {pp.queryclass(name,*this);}
+
     //static constexpr const char* const Elastic::strings[];
     #if AMREX_SPACEDIM==2
     static const constexpr char * const facestr[] = {
@@ -403,8 +407,6 @@ public:
         }        
     }
 #endif
-    Expression(IO::ParmParse &pp, std::string name): Expression()
-    {pp.queryclass(name,*this);}
 };
 }
 }

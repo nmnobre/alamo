@@ -22,6 +22,7 @@
 #include "Integrator/Fracture.H"
 #include "Integrator/ThermoElastic.H"
 #include "Integrator/Dynamics.H"
+#include "Integrator/IonicConductivity.H"
 
 int main (int argc, char* argv[])
 {
@@ -137,6 +138,14 @@ int main (int argc, char* argv[])
     {
         IO::ParmParse pp;
         Integrator::Dynamics integrator;
+        pp.queryclass(integrator);
+        integrator.InitData();
+        integrator.Evolve();
+    }
+    else if (program == "ionic")
+    {
+        IO::ParmParse pp;
+        Integrator::IonicConductivity integrator;
         pp.queryclass(integrator);
         integrator.InitData();
         integrator.Evolve();
