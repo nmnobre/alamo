@@ -17,6 +17,7 @@
 #include "IC/Cylinder.H"
 #include "IC/Sphere.H"
 #include "IC/Constant.H"
+#include "IC/Expression.H"
 
 #include "Numeric/Stencil.H"
 
@@ -40,41 +41,31 @@
 ///    - See #Cylinder or #Constant
 namespace Integrator
 {
-class HeatConduction : public Integrator
+class HeatConduction : virtual public Integrator
 {
 public:
     /// \brief Read in parameters and register field variables
     HeatConduction() : Integrator()
+    {}
+
+    static void Parse(HeatConduction &value, IO::ParmParse &pp)
     {
-        IO::ParmParse pp("heat");
-        pp.query("alpha", alpha);
-        pp.query("refinement_threshold", refinement_threshold);
+        pp.query("heat.alpha", value.alpha);
+        pp.query("heat.refinement_threshold", value.refinement_threshold);
 
-        // Read in initial condition
-        {
-            IO::ParmParse pp("ic");
-            std::string type = "sphere";
-            pp.query("type",type);
-            if (type == "sphere")
-            {
-                ic = new IC::Sphere(geom);
-                pp.queryclass("sphere",*static_cast<IC::Sphere*>(ic));
-            }
-            else
-            {
-                ic = new IC::Constant(geom);
-                pp.queryclass("constant",*static_cast<IC::Constant*>(ic));
-            }
+        std::string type = "sphere";
+        pp.query("ic.type",type);
+        if (type == "sphere")          value.ic = new IC::Sphere(value.geom,pp,"sphere");
+        else if (type == "constant")   value.ic = new IC::Constant(value.geom, pp, "constant");
+        else if (type == "expression") value.ic = new IC::Expression(value.geom,pp,"expression");
+        else  Util::Abort(INFO,"Invalid ic.type ", type);
+
             
-        }       
-        {
-            IO::ParmParse pp("bc");
-            bc = new BC::Constant(1);
-            pp.queryclass("temp",*static_cast<BC::Constant *>(bc));
-        }
-
-        RegisterNewFab(temp_mf,     bc, number_of_components, number_of_ghost_cells, "Temp",true);
-        RegisterNewFab(temp_old_mf, bc, number_of_components, number_of_ghost_cells, "Temp_old",false);
+        value.bc = new BC::Constant(1);
+        pp.queryclass("bc.temp",*static_cast<BC::Constant *>(value.bc));
+                
+        value.RegisterNewFab(value.temp_mf,     value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp",true);
+        value.RegisterNewFab(value.temp_old_mf, value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp_old",false);
     }
 
 protected:
@@ -146,15 +137,17 @@ protected:
         }
     }
 
-private:
-    int number_of_components = 1;            ///< Number of components
-    int number_of_ghost_cells = 1;           ///< Number of ghost cells
-
+protected:
     Set::Field<Set::Scalar> temp_mf;         ///< Temperature field variable (current timestep)
     Set::Field<Set::Scalar> temp_old_mf;     ///< Temperature field variable (previous timestep)
 
-    amrex::Real alpha = 1.0;                 ///< Thermal diffusivity
-    amrex::Real refinement_threshold = 0.01; ///< Criterion for cell refinement
+private:
+    int number_of_components = 1;            ///< Number of components
+    int number_of_ghost_cells = 2;           ///< Number of ghost cells
+
+
+    Set::Scalar alpha = 1.0;                 ///< Thermal diffusivity
+    Set::Scalar refinement_threshold = 0.01; ///< Criterion for cell refinement
 
     IC::IC *ic;                              ///< Object used to initialize temperature field
     BC::BC<Set::Scalar> *bc;                 ///< Object used to update temp field boundary ghost cells

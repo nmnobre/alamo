@@ -8,8 +8,6 @@
 
 #include "BC/BC.H"
 
-#include "Test/Operator/Elastic.H"
-
 using namespace amrex;
 
 enum Grid { Cell, Node};
@@ -29,8 +27,6 @@ template <Grid G> class Operator;
 template <>
 class Operator<Grid::Node> : public amrex::MLNodeLinOp
 {
-    friend Test::Operator::Elastic;
-
     //
     // Public: Constructor/Destructor/Operators/defines
     //
@@ -59,6 +55,7 @@ public :
     void Apply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const { Fapply(amrlev,mglev,out,in);}
 
     void SetOmega(Set::Scalar a_omega) {m_omega = a_omega;}
+    virtual void SetAverageDownCoeffs(bool) {Util::Abort(INFO,"Not implemented!");}
     
     //
     // Public Utilty functions

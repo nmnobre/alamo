@@ -1,3 +1,14 @@
+//
+// Solid models are used with the :ref:`Integrator::Mechanics` integrator, which
+// implements the :ref:`Solver::Nonlocal::Newton` elasticity solver.
+// All solid models inherit from the :code:`Model::Solid` base class, which requires
+// all of the necessary components to be used in a mechanics solve.
+// Model classes have basically two functions:
+// 
+// #. Provide energy (W), stress (DW), and modulus (DDW) based on a kinematic variable
+// #. Evolve internal variables in time.
+//
+
 #ifndef MODEL_SOLID_H_
 #define MODEL_SOLID_H_
 
@@ -33,6 +44,9 @@ public:
     virtual void SetHardening(const bool /*flag*/) {return;}
     virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
     
+    virtual void Advance(Set::Scalar, Set::Matrix, Set::Matrix) {}
+
+
 public:
 
 

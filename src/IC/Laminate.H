@@ -15,7 +15,9 @@ public:
     enum Mollifier {Dirac, Gaussian};
 
     Laminate (amrex::Vector<amrex::Geometry> &_geom) : IC(_geom) {}
-    
+    Laminate (amrex::Vector<amrex::Geometry> &_geom, IO::ParmParse &pp, std::string name) : IC(_geom) 
+    {pp.queryclass(name,*this);}
+        
     void Add(const int &lev,Set::Field<Set::Scalar> &a_field)
     {
         for (amrex::MFIter mfi(*a_field[lev],amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -32,6 +34,8 @@ public:
                     // The base matrix is always field(i,j,k,0)
                     // Inclusions start with field(i,j,k,1)
 
+                    if (!singlefab)
+                    {
                     Set::Scalar value = 0.0;
                     for (int m = 0; m < number_of_inclusions; m++)
                     {
@@ -44,6 +48,13 @@ public:
                     field (i,j,k,0) = 1.0 - value;
                     if (field(i,j,k,0) < 0.) field(i,j,k,0) = 0.;
                     if (field(i,j,k,0) > 1.) field(i,j,k,0) = 1.;
+                    }
+                    else
+                    {
+                        Set::Scalar t = std::abs((x-center[0]).transpose()*orientation[0]) - (thickness[0]/2.0);
+                        field (i,j,k,0) = 0.5 - 0.5*std::erf(t / eps[0]);
+                        if (invert) field(i,j,k,0) = 1.0 - field(i,j,k,0);
+                    } 
                 });
         }
         a_field[lev]->FillBoundary();
@@ -57,6 +68,8 @@ private:
     amrex::Vector<Set::Scalar> eps;
     amrex::Vector<Set::Scalar> thickness;
     Mollifier moll = Mollifier::Gaussian;
+    bool singlefab = false;
+    bool invert = false;
 
 public:
     static void Parse(Laminate & value, IO::ParmParse & pp)
@@ -69,7 +82,7 @@ public:
         
         amrex::Vector<Set::Scalar> a_center;
         // (x,y,[z]) values for the center point of the laminate
-        if(pp.contains("center")) pp.queryarr("center",a_center);
+        if(pp.contains("center")) pp.queryarr("center", a_center);
 
         if(a_center.size() != value.number_of_inclusions*AMREX_SPACEDIM) value.center.push_back(Set::Vector::Zero());
         else
@@ -95,7 +108,7 @@ public:
         {
             for (int i = 0; i<value.number_of_inclusions; i++)
             {
-                if(a_thickness[i] <= 0.0) Util::Abort(INFO, "Invalid value of inclusion ", i+1, " thickness");
+                if(a_thickness[i] <= 0.0) Util::Abort(INFO, "Invalid value of inclusion ", i + 1, " thickness");
                 value.thickness.push_back(a_thickness[i]);
             }
         }
@@ -165,9 +178,15 @@ public:
         std::string mollifier;
         pp.query("mollifier",mollifier);
         if(mollifier == "Dirac" || mollifier == "dirac") 
-            value.moll = Mollifier::Dirac;
-        else 
-            value.moll = Mollifier::Gaussian;
+             value.moll = Mollifier::Dirac;
+        else
+             value.moll = Mollifier::Gaussian;
+
+        // Switch to mode where only one component is used.
+        pp.query("singlefab", value.singlefab);
+
+        // Take the complement of the laminate
+        pp.query("invert", value.invert);
     }
 };
 }

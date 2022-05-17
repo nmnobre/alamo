@@ -82,6 +82,18 @@ public:
         }
         value.Define(mu,mu,lambda,lambda);
     }
+    static IsotropicDegradable Zero()
+    {
+        Util::Abort(INFO,"Not properly implmeneted yet");
+        IsotropicDegradable ret;
+        return ret;
+    }
+    virtual void Print(std::ostream &out) const override 
+    {
+        out << "ddw     = " << ddw << std::endl;
+        out << "mu0     = " << m_mu0 << std::endl;
+        out << "lambda0 = " << m_lambda0 << std::endl;
+    }
 
     #define OP_CLASS IsotropicDegradable
     #define OP_VARS  X(ddw) X(m_mu0) X(m_lambda0) X(m_mu) X(m_lambda)
