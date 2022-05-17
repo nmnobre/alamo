@@ -44,6 +44,14 @@ public:
     Set::Matrix F0 = Set::Matrix::Zero();
 
 public:
+    static IsotropicDegradable Zero()
+    {
+        IsotropicDegradable ret;
+        ret.Define(0.,0.,0.,0.);
+        ret.F0 = Set::Matrix::Zero();
+        return ret;
+    }
+
     static IsotropicDegradable Random()
     {
         IsotropicDegradable ret;
@@ -56,7 +64,15 @@ public:
     {
         Linear::IsotropicDegradable::Parse(value,pp);
         if (pp.contains("F0")) pp.queryarr("F0",value.F0);
-        }
+    }
+
+    virtual void Print(std::ostream &out) const override 
+    {
+        out << "ddw     = " << ddw << std::endl;
+        out << "mu0     = " << m_mu0 << std::endl;
+        out << "lambda0 = " << m_lambda0 << std::endl;
+        out << "F0 = \n" << F0 << std::endl;
+    }
     
     #define OP_CLASS IsotropicDegradable
     #define OP_VARS  X(ddw) X(m_mu0) X(m_lambda0) X(m_mu) X(m_lambda) X(F0)

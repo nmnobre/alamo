@@ -87,27 +87,27 @@ int main (int argc, char* argv[])
         eshelby.InitData();
         eshelby.Evolve();        
     }
-    else if (program == "crystalplastictensiontest")
-    {
-        Integrator::Integrator *cp_tt = new Integrator::TensionTest<Model::Solid::Affine::CrystalPlastic>();
-        cp_tt->InitData();
-        cp_tt->Evolve();        
-        delete cp_tt;
-    }
-    else if (program == "sgcptensiontest")
-    {
-        Integrator::Integrator *sgcp_tt = new Integrator::TensionTestSGCP<Model::Solid::Affine::StrainGradientCrystalPlastic>();
-        sgcp_tt->InitData();
-        sgcp_tt->Evolve();        
-        delete sgcp_tt;
-    }
-    else if (program == "j2plastictensiontest")
-    {
-        Integrator::Integrator *j2_tt = new Integrator::TensionTest<Model::Solid::Affine::J2PlasticDegradable>();
-        j2_tt->InitData();
-        j2_tt->Evolve();        
-        delete j2_tt;
-    }
+    // else if (program == "crystalplastictensiontest")
+    // {
+    //     Integrator::Integrator *cp_tt = new Integrator::TensionTest<Model::Solid::Affine::CrystalPlastic>();
+    //     cp_tt->InitData();
+    //     cp_tt->Evolve();        
+    //     delete cp_tt;
+    // }
+    // else if (program == "sgcptensiontest")
+    // {
+    //     Integrator::Integrator *sgcp_tt = new Integrator::TensionTestSGCP<Model::Solid::Affine::StrainGradientCrystalPlastic>();
+    //     sgcp_tt->InitData();
+    //     sgcp_tt->Evolve();        
+    //     delete sgcp_tt;
+    // }
+    // else if (program == "j2plastictensiontest")
+    // {
+    //     Integrator::Integrator *j2_tt = new Integrator::TensionTest<Model::Solid::Affine::J2PlasticDegradable>();
+    //     j2_tt->InitData();
+    //     j2_tt->Evolve();        
+    //     delete j2_tt;
+    // }
     else if (program == "finitekinematics")
     {
         Integrator::Integrator *fk = new Integrator::Mechanics<Model::Solid::Elastic::NeoHookean>();
@@ -140,8 +140,9 @@ int main (int argc, char* argv[])
     }
     else if (program == "fracture")
     {
-        srand(1.0*amrex::ParallelDescriptor::MyProc());
+        IO::ParmParse pp;
         Integrator::Fracture model;
+        pp.queryclass(model);
         model.InitData();
         model.Evolve();
         //delete model;

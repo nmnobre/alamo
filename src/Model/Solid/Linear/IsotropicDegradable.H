@@ -19,7 +19,7 @@ public:
     IsotropicDegradable(Set::Scalar a_mu, Set::Scalar a_lambda) 
     {
         Define(a_mu, a_mu, a_lambda, a_lambda);
-    };
+    }
 
     void Define(Set::Scalar a_mu, Set::Scalar a_mu0, Set::Scalar a_lambda, Set::Scalar a_lambda0)
     {
@@ -84,8 +84,8 @@ public:
     }
     static IsotropicDegradable Zero()
     {
-        Util::Abort(INFO,"Not properly implmeneted yet");
         IsotropicDegradable ret;
+        ret.Define(0.,0.,0.,0.);
         return ret;
     }
     virtual void Print(std::ostream &out) const override 

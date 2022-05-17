@@ -19,21 +19,21 @@ public:
     Isotropic() {};
     Isotropic(Linear::Isotropic base) : Linear::Isotropic(base) {};
 
-    // Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
-    // {
-    //     Define(a_mu,a_lambda,a_F0);
-    // };
+    Isotropic(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0=Set::Matrix::Zero()) 
+    {
+        Define(a_mu,a_lambda,a_F0);
+    };
 
-    // void Define(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0)
-    // {
-    //     F0 = a_F0;
-    //     ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
-    // }
+    void Define(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0)
+    {
+        F0 = a_F0;
+        ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
+    }
 
-    // void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
-    // {
-    //     ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
-    // }
+    void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
+    {
+        ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
+    }
 
     Set::Scalar W(const Set::Matrix & gradu) const override
     {

@@ -17,7 +17,6 @@ class CubicDegradable : public Cubic
 public:
 
     CubicDegradable() {};
-    //CubicDegradable(Solid<Set::Sym::MajorMinor> base) : Cubic(base) {};
     CubicDegradable(Cubic base) : Cubic(base) {};
 
     void DegradeModulus(const Set::Scalar eta)
@@ -76,6 +75,18 @@ public:
         return ret;
     }
 
+    virtual void Print(std::ostream &out) const override 
+    {
+        out << "C11     = " << C11 << std::endl;
+        out << "C110     = " << C110 << std::endl;
+        out << "C12     = " << C12 << std::endl;
+        out << "C120     = " << C120 << std::endl;
+        out << "C44     = " << C44 << std::endl;
+        out << "C440     = " << C440 << std::endl;
+        out << "q      = " << q.coeffs() << std::endl();
+        out << "F0 \n" << F0 << std::endl();
+    }
+
     static CubicDegradable Random()
     {
         return Random(Util::Random(), Util::Random(), Util::Random());
@@ -95,22 +106,10 @@ public:
     // about its original, pristine state
     static void Parse(CubicDegradable & value, IO::ParmParse & pp)
     {
-        Set::Scalar C11 = 1.68, C12 = 1.21, C44 = 0.75;
-        pp.query("C11",C11); // Original, undegraded :math:`\mathbb{C}_{11}`
-        pp.query("C12",C12); // Original, undegraded :math:`\mathbb{C}_{12}`
-        pp.query("C44",C44); // Original, undegraded :math:`\mathbb{C}_{44}`
-
-        Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
-        pp.query("phi1",phi1); // Bunge Euler angles :math:`\phi_1`
-        pp.query("Phi",Phi);   // Bunge Euler angles :math:`\Phi`
-        pp.query("phi2",phi2); // Bunge Euler angles :math:`\phi_2`
-
-        Eigen::Matrix3d m;
-        m = Eigen::AngleAxisd(phi2, Eigen::Vector3d::UnitX()) *
-            Eigen::AngleAxisd(Phi,  Eigen::Vector3d::UnitZ()) *
-            Eigen::AngleAxisd(phi1, Eigen::Vector3d::UnitX());
-
-        value.Define(C11,C12,C44,m);
+        Cubic::Parse(value,pp);
+        value.C110 = value.C11;
+        value.C120 = value.C11;
+        value.C440 = value.C44;
     }
 
     #define OP_CLASS CubicDegradable

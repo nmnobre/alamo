@@ -299,16 +299,6 @@ public:
 
 bool CrystalPlastic::hardening = false;
 
-//static constexpr std::array<Set::Vector_3D, 4> CrystalPlastic::plane = 
-//{
-//    Set::Vector_3D(1,1,1).normalized(),
-//    Set::Vector_3D(1,1,1).normalized(),
-//    Set::Vector_3D(1,1,1).normalized(),
-//    Set::Vector_3D(1,1,1).normalized()
-//}
-
-
-
 }
 }
 }
