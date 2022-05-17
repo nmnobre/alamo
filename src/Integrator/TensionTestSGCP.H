@@ -271,10 +271,14 @@ protected:
         Operator::Elastic<MODEL::sym> elastic_op(Geom(0,finest_level), grids, DistributionMap(0,finest_level), info);
         elastic_op.SetUniform(false);
         elastic_op.SetBC(elastic.bc);
-
+        
         Set::Scalar tol_rel = 1E-8, tol_abs = 1E-8;
 
         IO::ParmParse pp("elastic");
+        Set::Scalar omega = 0.33;
+        pp.query("omega",omega);
+        elastic_op.SetOmega(omega);
+
         elastic.solver = new Solver::Nonlocal::Newton<MODEL>(elastic_op);
         pp.queryclass("solver",*elastic.solver);
 
