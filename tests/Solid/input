@@ -1,6 +1,8 @@
 #@
 #@  [linear-isotropic]
 #@  dim = 3
+#@  args = model1.E=210
+#@  args = model1.nu=0.3
 #@  check = false
 #@
 #@  [j2]
@@ -24,6 +26,26 @@
 #@  args = model1.yield=0.2
 #@  args = model1.theta=1.0
 #@  args = model1.hardening=50.0
+#@  args = bc.tension_test.disp = (0,0.25,0.75,1.0:0,0.002,-0.002,0)
+#@
+#@
+#@
+#@  [crystalplastic]
+#@  dim = 3
+#@  check-file = reference/crystalplastic.dat
+#@  args = timestep = 0.001
+#@  args = alamo.program.mechanics.model=affine.crystalplastic
+#@  args = model1.C11 = 168.40
+#@  args = model1.C12 = 121.40
+#@  args = model1.C44 = 75.40
+#@  args = model1.hardening.on = 1
+#@  args = model1.hardening.g0 = 0.016
+#@  args = model1.hardening.gs = 0.0704
+#@  args = model1.hardening.h0 = 0.132
+#@  args = model1.hardening.hs = 0.008
+#@  args = model1.hardening.qh = 1.4
+#@  args = model1.exp = 10.0
+#@  args = model1.gam0dot = 0.001
 #@  args = bc.tension_test.disp = (0,0.25,0.75,1.0:0,0.002,-0.002,0)
 #@  
 #@
@@ -50,7 +72,7 @@
 #@ 
 
 alamo.program = mechanics
-
+alamo.program.mechanics.model=linear.isotropic
 
 plot_file		    = tests/Solid/output
 
@@ -73,8 +95,9 @@ geometry.prob_lo	    = 0 0 0
 geometry.prob_hi	    = 1 1 1
 
 nmodels = 1
-model1.E=210 
-model1.nu=0.3
+#model1.E=210 
+#model1.nu=0.3
+
 
 solver.verbose = 3
 solver.nriters = 1

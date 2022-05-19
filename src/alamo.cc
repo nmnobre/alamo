@@ -13,6 +13,7 @@
 #include "Model/Solid/Linear/Laplacian.H"
 #include "Model/Solid/Affine/J2.H"
 #include "Model/Solid/Affine/J2Plastic.H"
+#include "Model/Solid/Affine/CrystalPlastic.H"
 
 #include "Integrator/CahnHilliard.H"
 #include "Integrator/PhaseFieldMicrostructure.H"
@@ -75,6 +76,11 @@ int main (int argc, char* argv[])
         {
             integrator = new Integrator::Mechanics<Model::Solid::Affine::J2Plastic>();
             pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::J2Plastic>*>(integrator));
+        }
+        else if (model == "affine.crystalplastic") 
+        {
+            integrator = new Integrator::Mechanics<Model::Solid::Affine::CrystalPlastic>();
+            pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::CrystalPlastic>*>(integrator));
         }
         else
         {

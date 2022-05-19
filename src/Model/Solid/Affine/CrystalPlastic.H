@@ -6,7 +6,7 @@
 #include <eigen3/Eigen/Core>
 #include "Affine.H"
 #include "Set/Set.H"
-#include "Model/Solid/Affine/CubicDegradable.H"
+#include "Model/Solid/Affine/Cubic.H"
 
 /*
     Note: everything is hardcoded for FCC right now. 
@@ -19,7 +19,7 @@ namespace Solid
 {
 namespace Affine
 {
-class CrystalPlastic : public CubicDegradable
+class CrystalPlastic : public Cubic
 {
 public:
     CrystalPlastic(){};
@@ -40,9 +40,10 @@ public:
     {
         for (int i = 0; i < 12; i++)
         {
-            g_alpha[i] = a_g_alpha[i];
+            m_g_alpha[i] = a_g_alpha[i];
+            m_g_alpha0[i] = a_g_alpha[i];
             m_exp[i] = a_exp[i];
-            gam0dot[i] = a_gam0dot[i];
+            m_gam0dot[i] = a_gam0dot[i];
         }
     
         F0 = Set::Matrix::Zero();
@@ -63,7 +64,7 @@ public:
                     for (int l=0; l<3; l++) 
                         R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
                 }
-                yield += g_alpha[3*i + j]*R;
+                yield += m_g_alpha[3*i + j]*R;
             }
         }
         return yield.norm();
@@ -84,7 +85,64 @@ public:
                     for (int l=0; l<3; l++)
                         R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
                 }
-                yield += g_alpha[3*i + j]*R;
+                yield += m_g_alpha[3*i + j]*R;
+            }
+        }
+        return (yield.transpose()*F0).trace();
+    }
+
+    void DegradeYieldSurface(Set::Scalar eta)
+    {
+        if (std::isnan(eta) || std::isinf(eta)) Util::Abort(INFO, "Nans or Infs in eta. ", eta);
+        if (eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta. ", eta);
+        for (int i=0; i<12; i++)
+        {
+            m_g_alpha[i] = m_g_alpha0[i]/eta;
+            if (hardening)
+            {
+                m_g0 = m_g00/eta; m_gs = m_gs0/eta;
+                m_h0 = m_h00/eta; m_hs = m_hs0/eta;
+            }
+        }
+    }
+
+    Set::Scalar OriginalYieldSurface()
+    {
+        Set::Matrix_3D R_crystal;
+        R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+
+        Set::Matrix_3D yield = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
+        for (int i=0; i<4; i++)
+        {
+            for (int j=0; j<3; j++)
+            {
+                for (int k=0; k<3; k++)
+                {
+                    for (int l=0; l<3; l++) 
+                        R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
+                }
+                yield += m_g_alpha0[3*i + j]*R;
+            }
+        }
+        return yield.norm();
+    }
+
+    Set::Scalar OriginalPlasticEnergy()
+    {
+        Set::Matrix_3D R_crystal;
+        R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
+
+        Set::Matrix_3D yield = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
+        for (int i=0; i<4; i++)
+        {
+            for (int j=0; j<3; j++)
+            {
+                for (int k=0; k<3; k++)
+                {
+                    for (int l=0; l<3; l++)
+                        R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
+                }
+                yield += m_g_alpha0[3*i + j]*R;
             }
         }
         return (yield.transpose()*F0).trace();
@@ -96,7 +154,8 @@ public:
     // h(\bar{\gamma}) = h_s + (h_s - h_0) \sech^2 (\frac{h_0-h_s}{g_s-g_0} \bar{\gamma})
     // \bar{\gamma} = \int_0^t \sum_{\alpha=1}^N |\dot{\gamma}^\alpha| dt
     // qh_{\alpha\beta} = 1 (if \alpha,\beta coplanar), qh (else)
-    void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
+    void Advance(Set::Scalar dt, Set::Matrix /*eps*/, Set::Matrix sig) override
+    //void Advance(const Set::Matrix sigma, const Set::Matrix /*strain*/, const Set::Matrix3 /*epsgrad*/, Set::Scalar dt)
     {
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
@@ -110,20 +169,20 @@ public:
             {
                 gamdot[3*i + j] = 0.0;
                 
-                Set::Scalar strength = g_alpha[3*i + j];
-                tau = (R_crystal*dir[i][j]).dot(sigma*(R_crystal*plane[i]));
+                Set::Scalar strength = m_g_alpha[3*i + j];
+                tau = (R_crystal*dir[i][j]).dot(sig*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
-                Set::Scalar incr_abs = gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
+                Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
 
                 F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
-                gam_bar += dt*std::abs(gamdot[3*i + j]);
+                m_gam_bar += dt*std::abs(gamdot[3*i + j]);
 
-                if(std::isnan(F0.norm()) || std::isnan(gam_bar))
+                if(std::isnan(F0.norm()) || std::isnan(m_gam_bar))
                 {
-                    Util::Message(INFO, "tau = ", tau, ". gamdot [", 3*i+j, "] = ", gamdot[3*i + j], ". gambar = ", gam_bar, ". incr_abs = ", incr_abs);
-                    Util::Message(INFO, "gam0dot[",3*i+j,"] = ",gam0dot[3*i+j], ". strength = ", strength, ". m_exp[",3*i+j,"] = ",m_exp[3*i+j]);
+                    Util::Message(INFO, "tau = ", tau, ". gamdot [", 3*i+j, "] = ", gamdot[3*i + j], ". gambar = ", m_gam_bar, ". incr_abs = ", incr_abs);
+                    Util::Message(INFO, "gam0dot[",3*i+j,"] = ",m_gam0dot[3*i+j], ". strength = ", strength, ". m_exp[",3*i+j,"] = ",m_exp[3*i+j]);
                     Util::Abort(INFO, "Nans detected");
                 }
             }
@@ -131,30 +190,20 @@ public:
 
         if (hardening)
         {
-            Set::Scalar sech_gambar = 1.0/(std::cosh(((h0-hs)/(gs-g0))*gam_bar));
-            Set::Scalar h_gambar = hs + (hs-h0)*sech_gambar*sech_gambar;
+            Set::Scalar sech_gambar = 1.0/(std::cosh(((m_h0-m_hs)/(m_gs-m_g0))*m_gam_bar));
+            Set::Scalar h_gambar = m_hs + (m_hs-m_h0)*sech_gambar*sech_gambar;
 
             for (int i = 0; i < 12; i++)
             {
                 Set::Scalar gdotalpha = 0;
                 for (int j = 0; j < 12; j++)
                 {
-                    Set::Scalar h_ab = ((plane[i/3] == plane[j/3]) ? 1.0 : qh) * h_gambar;
+                    Set::Scalar h_ab = ((plane[i/3] == plane[j/3]) ? 1.0 : m_qh) * h_gambar;
                     gdotalpha += h_ab*std::abs(gamdot[j]);
                 }
-                g_alpha[i] += dt*gdotalpha;
+                m_g_alpha[i] += dt*gdotalpha;
             }
         }
-    }
-
-    void SetPlasticStrains(Set::Matrix &a_state)
-    {
-        F0 = a_state;
-    }
-
-    Set::Matrix GetPlasticState()
-    {
-        return F0;
     }
 
     void SetHardening(bool flag) { hardening = flag; }
@@ -178,10 +227,13 @@ public:
     };
     //std::array<Set::Vector_3D, 12> dir;
     std::array<Set::Scalar, 12> m_exp;
-    std::array<Set::Scalar, 12> gam0dot;
-    std::array<Set::Scalar, 12> g_alpha;
+    std::array<Set::Scalar, 12> m_gam0dot;
+    std::array<Set::Scalar, 12> m_g_alpha;
+    std::array<Set::Scalar, 12> m_g_alpha0;
 
-    Set::Scalar g0, gs, h0, hs, qh, gam_bar;
+    Set::Scalar m_gam_bar;
+    Set::Scalar m_g0, m_gs, m_h0, m_hs, m_qh;
+    Set::Scalar m_g00, m_gs0, m_h00, m_hs0;
 
     static bool hardening;
 
@@ -189,24 +241,27 @@ public:
     static CrystalPlastic Zero()
     {
         CrystalPlastic ret;
+
         ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
         ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
         ret.F0 = Set::Matrix::Zero();
+
         ret.DefineSlipSystem(0.,0.,0.);
         ret.hardening = false;
-        ret.g0 = 0.0;
-        ret.gs = 0.0;
-        ret.h0 = 0.0;
-        ret.hs = 0.0;
-        ret.qh = 0.0;
-        ret.gam_bar = 0.0;
+        
+        ret.m_g0 = 0.0; ret.m_g00 = 0.0;
+        ret.m_gs = 0.0; ret.m_gs0 = 0.0;
+        ret.m_h0 = 0.0; ret.m_h00 = 0.0;
+        ret.m_hs = 0.0; ret.m_hs0 = 0.0;
+        ret.m_qh = 0.0;
+        ret.m_gam_bar = 0.0;
         return ret;
     }
 
     static void Parse(CrystalPlastic & value, IO::ParmParse & pp)
     {
-        CubicDegradable::Parse(value,pp);
+        Cubic::Parse(value,pp);
         
         amrex::Vector<Set::Scalar> input_g_alpha;
         std::array<Set::Scalar,12> f_g_alpha;
@@ -214,15 +269,19 @@ public:
         pp.query("hardening.on", value.hardening);
         if (value.hardening)
         {
-            pp.query("hardening.g0",value.g0);
-            pp.query("hardening.gs",value.gs);
-            pp.query("hardening.h0",value.h0);
-            pp.query("hardening.hs",value.hs);
-            pp.query("hardening.qh",value.qh);
-            value.gam_bar = 0.0;
-            for (int i = 0; i< 12; i++) f_g_alpha[i] = value.g0;
+            pp.query("hardening.g0",value.m_g0);
+            pp.query("hardening.gs",value.m_gs);
+            pp.query("hardening.h0",value.m_h0);
+            pp.query("hardening.hs",value.m_hs);
+            pp.query("hardening.qh",value.m_qh);
+            
+            value.m_g00 = value.m_g0;
+            value.m_gs0 = value.m_gs;
+            value.m_h00 = value.m_h0;
+            value.m_hs0 = value.m_hs;
 
-            // for (int i = 0; i<12; i++) Util::Message(INFO, "g_alpha[",i,"] = ", f_g_alpha[i]);
+            value.m_gam_bar = 0.0;
+            for (int i = 0; i< 12; i++) f_g_alpha[i] = value.m_g0;
         }
         else
         {
@@ -290,9 +349,9 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(C110) X(C120) X(C440) X(g0) X(gs) X(h0) X(hs) X(qh) X(gam_bar) 
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(C110) X(C120) X(C440) X(m_g0) X(m_gs) X(m_h0) X(m_hs) X(m_qh) X(m_gam_bar) 
     #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(m_exp) X(g_alpha) X(gam0dot)
+    #define OP_LOOP_VARS X(m_exp) X(m_g_alpha) X(m_gam0dot) X(m_g_alpha0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
