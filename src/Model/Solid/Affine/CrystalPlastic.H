@@ -236,6 +236,7 @@ public:
     Set::Scalar m_g00, m_gs0, m_h00, m_hs0;
 
     static bool hardening;
+    static const PlasticType pltype = PlasticType::strain;
 
 public:
     static CrystalPlastic Zero()
