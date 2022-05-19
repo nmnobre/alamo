@@ -27,13 +27,13 @@ public:
     void Define(Set::Scalar a_mu, Set::Scalar a_lambda, Set::Matrix a_F0)
     {
         F0 = a_F0;
-        ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
+        Linear::Isotropic::Define(a_mu, a_lambda);
     }
 
-    void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
-    {
-        ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
-    }
+    // void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
+    // {
+    //     ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
+    // }
 
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
@@ -49,25 +49,36 @@ public:
     }
     virtual void Print(std::ostream &out) const override 
     {
-        out << "lambda="<<ddw.Lambda()<<", mu="<<ddw.Mu()<< ", F0=\n" << F0;
+        out << "lambda="<<m_lambda<<", mu="<<m_mu<< ", F0=\n" << F0;
     }
 
     Set::Matrix F0 = Set::Matrix::Zero();
     static const KinematicVariable kinvar = KinematicVariable::gradu;
 
 public:
+    AMREX_FORCE_INLINE
+    static Isotropic Combine(const std::vector<Isotropic> &models, const std::vector<Set::Scalar> &eta)
+    {
+        Isotropic ret = Isotropic::Zero();
+        Set::Scalar etasum = 0.;
+        for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
+        for (unsigned int n = 0 ; n < models.size(); n++)
+        {
+            ret += models[n] * (eta[n] / etasum);
+        }
+        return ret;
+    }
+    
     static Isotropic Zero()
     {
         Isotropic ret;
-        ret.Define(0.,0.);
-        ret.F0 = Set::Matrix::Zero();
+        ret.Define(0.,0.,Set::Matrix::Zero());
         return ret;
     }
     static Isotropic Random()
     {
         Isotropic ret;
-        ret.Define(Util::Random(), Util::Random());
-        ret.F0 = Set::Matrix::Random();
+        ret.Define(Util::Random(), Util::Random(),Set::Matrix::Random());
         return ret;
     }
     static void Parse(Isotropic & value, IO::ParmParse & pp)
@@ -98,7 +109,7 @@ public:
         value.Define(mu,lambda,F0);
     }
     #define OP_CLASS Isotropic
-    #define OP_VARS  X(ddw) X(F0)
+    #define OP_VARS  X(m_mu) X(m_lambda) X(F0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
@@ -147,8 +158,8 @@ inline void Set::Field<Model::Solid::Affine::Isotropic>::Copy(int a_lev, amrex::
             for (int n = 0; n < AMREX_SPACEDIM*AMREX_SPACEDIM; n++)
             {
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                    dst(i,j,k,a_dstcomp + 0) = src(i,j,k).ddw.Lambda();
-                    dst(i,j,k,a_dstcomp + 1) = src(i,j,k).ddw.Mu();
+                    dst(i,j,k,a_dstcomp + 0) = src(i,j,k).m_lambda;
+                    dst(i,j,k,a_dstcomp + 1) = src(i,j,k).m_mu;
                     #if AMREX_SPACEDIM==2
                     dst(i,j,k,a_dstcomp + 2) = src(i,j,k).F0(0,0);
                     dst(i,j,k,a_dstcomp + 3) = src(i,j,k).F0(0,1);

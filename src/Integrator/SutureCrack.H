@@ -25,7 +25,6 @@
 
 #include "Model/Solid/Solid.H"
 #include "Model/Solid/Linear/Isotropic.H"
-#include "Model/Solid/Linear/IsotropicDegradable.H"
 //#include "Model/Solid/Affine/J2PlasticDegradable.H"
 //#include "Model/Solid/Affine/CrystalPlasticDegradable.H"
 
@@ -39,7 +38,7 @@
 namespace Integrator
 {
 //using brittle_fracture_model_type_test = Model::Solid::Linear::Isotropic;
-using suture_fracture_model_type = Model::Solid::Linear::IsotropicDegradable;
+using suture_fracture_model_type = Model::Solid::Linear::Isotropic;
 
 class SutureCrack : public Integrator
 {

@@ -12,7 +12,20 @@
 #@  args = model1.nu=0.3
 #@  args = model1.sigma0=0.2
 #@  args = bc.tension_test.disp = (0,0.25,0.75,1.0:0,0.002,-0.002,0)
-#@ 
+#@  
+#@
+#@  [j2plastic]
+#@  dim = 3
+#@  check-file = reference/j2plastic.dat
+#@  args = timestep = 0.01
+#@  args = alamo.program.mechanics.model=affine.j2plastic
+#@  args = model1.E=210
+#@  args = model1.nu=0.3
+#@  args = model1.yield=0.2
+#@  args = model1.theta=1.0
+#@  args = model1.hardening=50.0
+#@  args = bc.tension_test.disp = (0,0.25,0.75,1.0:0,0.002,-0.002,0)
+#@  
 #@
 #@  [affine-isotropic]
 #@  dim = 3
@@ -21,6 +34,7 @@
 #@  args = model1.F0=0.001 0 0 0 0.001 0 0 0 0.001
 #@  args = model1.E=210 
 #@  args = model1.nu=0.3
+#@  
 #@
 #@  [neo-hookean]
 #@  dim=3
@@ -32,6 +46,7 @@
 #@  args = bc.tension_test.disp=(0,1:0,1)
 #@  args = solver.nriters=10
 #@  ignore = model1.E model1.nu 
+#@  
 #@ 
 
 alamo.program = mechanics

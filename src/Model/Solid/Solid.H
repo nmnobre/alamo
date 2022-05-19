@@ -24,6 +24,7 @@ namespace Solid
 {
 
 enum KinematicVariable{gradu,epsilon,F};
+enum PlasticType{strain, gradient};
 
 template<Set::Sym SYM>
 class Solid

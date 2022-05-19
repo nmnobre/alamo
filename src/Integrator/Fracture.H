@@ -3,7 +3,7 @@
 
 #include "Integrator/Mechanics.H"
 
-#include "Model/Solid/Linear/IsotropicDegradable.H"
+#include "Model/Solid/Linear/Isotropic.H"
 #include "Model/Interface/Crack/Constant.H"
 
 #include "IC/IC.H"
@@ -17,7 +17,7 @@
 
 namespace Integrator
 {
-using brittle_model = Model::Solid::Linear::IsotropicDegradable;
+using brittle_model = Model::Solid::Linear::Isotropic;
 using crack_type = Model::Interface::Crack::Constant;
 
 class Fracture: 
@@ -106,7 +106,7 @@ public:
         else
         {
             value.crack.is_ic= true;
-            for (int i = 0; i<value.crack.ic_type.size(); i++)
+            for (unsigned int i = 0; i<value.crack.ic_type.size(); i++)
             {
                 if(value.crack.ic_type[i] == "notch")
                 {
@@ -184,7 +184,7 @@ public:
                     amrex::Array4<const Set::Scalar> const &eta = material.eta_mf[lev]->array(mfi);
                     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                                                 model(i,j,k) = brittle_model::Zero();
-                                                for (unsigned int n = 0; n < material.num_mat; n++) 
+                                                for (int n = 0; n < material.num_mat; n++) 
                                                     model(i,j,k) += eta(i,j,k,n) * material.models[n];
                                             });
                 }

@@ -23,31 +23,78 @@ public:
 
     void Define(Set::Scalar a_mu, Set::Scalar a_lambda)
     {
-        ddw = Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(a_lambda,a_mu);
+        m_lambda = a_lambda;
+        m_mu = a_mu;
+        m_lambda0 = a_lambda;
+        m_mu0 = a_mu;
     }
 
     Set::Scalar W(const Set::Matrix & gradu) const override
     {
-        return ( 0.5 * gradu.transpose() * (ddw*gradu) ).trace();
+        return ( 0.5 * gradu.transpose() * (DDW(gradu)*gradu) ).trace();
     }
     Set::Matrix DW(const Set::Matrix & gradu) const override
     {
-        return ddw*gradu;
+        return DDW(gradu)*gradu;
     }
     Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic> DDW(const Set::Matrix & /*gradu*/) const override
     {
-        return ddw;
+        return Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic>(m_lambda,m_mu);
     }
     virtual void Print(std::ostream &out) const override 
     {
-        out << ddw;
+        out << "lamda = " << m_lambda <<", mu = " << m_mu << std::endl;
+        out << "lamda0 = " << m_lambda0 <<", mu0 = " << m_mu0 << std::endl;
+    }
+
+    void DegradeModulus(const Set::Scalar eta)
+    {
+        if(std::isnan(eta)) Util::Abort(INFO, "Nans in eta");
+        if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta ", eta);
+        if(std::isnan(m_lambda0) || std::isnan(m_mu0)) 
+            Util::Abort(INFO, "Nans detected"," mu0=", m_mu0, " lambda0=",m_lambda0); 
+
+        m_mu = m_mu0*(1.-eta);
+        m_lambda = m_lambda0*(1.-eta);
+    }
+
+    void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
+    {
+        if(eta.size() == 0) return;
+        else if(eta.size() == 1) DegradeModulus(eta[0]);
+        else if(eta.size() == 2)
+        {
+            if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
+            if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
+            if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
+            m_mu = m_mu0*(1.-eta[0]);
+            m_lambda = m_lambda0*(1.-eta[1]);
+            Isotropic::Define( m_mu, m_lambda );
+        }
+        else
+            return;
     }
 
 public:
     static const KinematicVariable kinvar = KinematicVariable::gradu;
-    Set::Matrix4<AMREX_SPACEDIM,Set::Sym::Isotropic> ddw;
+    Set::Scalar m_lambda = NAN;
+    Set::Scalar m_mu = NAN;
+    Set::Scalar m_lambda0 = NAN;
+    Set::Scalar m_mu0 = NAN;
 
 public:
+    AMREX_FORCE_INLINE
+    static Isotropic Combine(const std::vector<Isotropic> &models, const std::vector<Set::Scalar> &eta)
+    {
+        Isotropic ret = Isotropic::Zero();
+        Set::Scalar etasum = 0.;
+        for (unsigned int n = 0 ; n < models.size(); n++) etasum += eta[n];
+        for (unsigned int n = 0 ; n < models.size(); n++)
+        {
+            ret += models[n] * (eta[n] / etasum);
+        }
+        return ret;
+    }
     static Isotropic Random()
     {
         Isotropic ret;
@@ -93,7 +140,7 @@ public:
     }
 
     #define OP_CLASS Isotropic
-    #define OP_VARS X(ddw)
+    #define OP_VARS X(m_lambda) X(m_mu) X(m_lambda0) X(m_mu0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
