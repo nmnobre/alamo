@@ -38,7 +38,6 @@ public:
     void SetF0(Set::Matrix a_F0) { F0 = a_F0; }
 public:
     KinematicVariable kinvar = KinematicVariable::gradu;
-    PlasticType pltype = PlasticType::strain;
 };
 }
 }

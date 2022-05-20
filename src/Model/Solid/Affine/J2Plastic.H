@@ -120,8 +120,6 @@ public:
     Set::Scalar hardening_modulus;      // hardening modulus
     Set::Scalar hardening_modulus0;      // original hardening modulus
 
-    static const PlasticType pltype = PlasticType::strain;
-
 public:
     static J2Plastic Zero()
     {

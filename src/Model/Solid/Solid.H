@@ -24,7 +24,6 @@ namespace Solid
 {
 
 enum KinematicVariable{gradu,epsilon,F};
-enum PlasticType{strain, gradient};
 
 template<Set::Sym SYM>
 class Solid
@@ -44,9 +43,11 @@ public:
     virtual void Advance(const Set::Matrix &, const Set::Matrix &, const Set::Matrix3 &, const Set::Scalar /*dt*/) {return;}
     virtual void SetHardening(const bool /*flag*/) {return;}
     virtual Set::Matrix GetPlasticState(){ return Set::Matrix::Zero(); }
+    virtual void ComputePlasticStrainRate(Set::Matrix /*sigma*/, Solid<SYM> &/*gradX*/, Solid<SYM> &/*gradY*/, Solid<SYM> &/*gradZ*/, Set::Scalar /*dt*/) {return;}
     
     virtual void Advance(Set::Scalar, Set::Matrix, Set::Matrix) {}
 
+    static const bool gradient_required = false;
 
 public:
 

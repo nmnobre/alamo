@@ -235,6 +235,13 @@ protected:
             amrex::Array4<MODEL>               const &model= (*model_mf[lev]).array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
+                if (model(i,j,k).gradient_required)
+                {
+                    MODEL gradX = (model(i+1,j,k) - model(i-1,j,k))*(0.5/DX[0]);
+                    MODEL gradY = (model(i,j+1,k) - model(i,j-1,k))*(0.5/DX[1]);
+                    MODEL gradZ = (model(i,j,k+1) - model(i,j,k-1))*(0.5/DX[2]);
+                    model(i,j,k).ComputePlasticStrainRate(sig(i,j,k), gradX, gradY, gradZ, dt);
+                }
                 model(i,j,k).Advance(dt,eps(i,j,k),sig(i,j,k));
             });
         }

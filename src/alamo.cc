@@ -14,6 +14,7 @@
 #include "Model/Solid/Affine/J2.H"
 #include "Model/Solid/Affine/J2Plastic.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
+#include "Model/Solid/Affine/StrainGradientCrystalPlastic.H"
 
 #include "Integrator/CahnHilliard.H"
 #include "Integrator/PhaseFieldMicrostructure.H"
@@ -81,6 +82,11 @@ int main (int argc, char* argv[])
         {
             integrator = new Integrator::Mechanics<Model::Solid::Affine::CrystalPlastic>();
             pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::CrystalPlastic>*>(integrator));
+        }
+        else if (model == "affine.sgcp") 
+        {
+            integrator = new Integrator::Mechanics<Model::Solid::Affine::StrainGradientCrystalPlastic>();
+            pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::StrainGradientCrystalPlastic>*>(integrator));
         }
         else
         {
