@@ -8,6 +8,7 @@
 #include "Set/Set.H"
 #include "Model/Solid/Affine/Cubic.H"
 
+#if AMREX_SPACEDIM==3
 /*
     Note: everything is hardcoded for FCC right now. 
     We will deal with templating BCC and HCP later.
@@ -355,4 +356,5 @@ inline void Set::Field<Model::Solid::Affine::StrainGradientCrystalPlastic>::Copy
     }    
 }
 
+#endif
 #endif

@@ -78,6 +78,7 @@ int main (int argc, char* argv[])
             integrator = new Integrator::Mechanics<Model::Solid::Affine::J2Plastic>();
             pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::J2Plastic>*>(integrator));
         }
+        #if AMREX_SPACEDIM==3
         else if (model == "affine.crystalplastic") 
         {
             integrator = new Integrator::Mechanics<Model::Solid::Affine::CrystalPlastic>();
@@ -88,6 +89,7 @@ int main (int argc, char* argv[])
             integrator = new Integrator::Mechanics<Model::Solid::Affine::StrainGradientCrystalPlastic>();
             pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Affine::StrainGradientCrystalPlastic>*>(integrator));
         }
+        #endif
         else
         {
             Util::Abort(INFO,model," is not a valid model");
