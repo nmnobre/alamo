@@ -415,9 +415,6 @@ public:
             dw_mf[lev]->setVal(Set::Matrix::Zero());
         }
         
-        //for (int lev = 0; lev < a_b_mf.size(); ++lev)
-        //m_elastic.GetBC().Init(a_b_mf[lev].get(),m_elastic.Geom(lev),true);
-            
         prepareForSolve(a_u_mf, a_b_mf, a_res_mf, dw_mf, ddw_mf, a_model_mf);
     }
 
@@ -426,21 +423,27 @@ public:
                       Set::Field<Set::Vector> &a_b_mf,
                       Set::Field<T> &a_model_mf)
     {
+        Set::Field<Set::Matrix> dw_mf;
+        Set::Field<Set::Matrix4<AMREX_SPACEDIM,T::sym>> ddw_mf;
         Set::Field<Set::Scalar> res_mf(a_res_mf.size());
-        Set::Field<Set::Scalar> u_mf(a_u_mf.size());
-        Set::Field<Set::Scalar> b_mf(a_b_mf.size());
-        for (int lev = 0; lev < a_res_mf.size(); ++lev)
+        dw_mf.resize(a_u_mf.size());
+        ddw_mf.resize(a_u_mf.size());
+        res_mf.resize(a_u_mf.size());
+        for (int lev = 0; lev < a_u_mf.size(); lev++)
         {
-            res_mf.Define(lev,a_res_mf[lev]->boxArray(), a_res_mf[lev]->DistributionMap(),AMREX_SPACEDIM,2);
-            u_mf  .Define(lev,a_u_mf[lev]->boxArray(),   a_u_mf[lev]->DistributionMap(),  AMREX_SPACEDIM,2);
-            b_mf  .Define(lev,a_b_mf[lev]->boxArray(),   a_b_mf[lev]->DistributionMap(),  AMREX_SPACEDIM,2);
-
-            //a_res_mf.Copy(lev,*res_mf[lev],0,2);
-            res_mf[lev]->setVal(0.0);
-            a_u_mf.Copy(lev,*u_mf[lev],0,2);
-            a_b_mf.Copy(lev,*b_mf[lev],0,2);
+            dw_mf.Define(lev, a_b_mf[lev]->boxArray(),
+                            a_b_mf[lev]->DistributionMap(),
+                            1, a_b_mf[lev]->nGrow());
+            ddw_mf.Define(lev, a_b_mf[lev]->boxArray(),
+                                a_b_mf[lev]->DistributionMap(),
+                                1, a_b_mf[lev]->nGrow());
+            res_mf.Define(lev, a_b_mf[lev]->boxArray(),
+                                a_b_mf[lev]->DistributionMap(),
+                                AMREX_SPACEDIM, a_b_mf[lev]->nGrow());
+            dw_mf[lev]->setVal(Set::Matrix::Zero());
         }
-        compResidual(res_mf,u_mf,b_mf,a_model_mf);
+        
+        prepareForSolve(a_u_mf, a_b_mf, res_mf, dw_mf, ddw_mf, a_model_mf);
 
         for (int lev = 0; lev < a_res_mf.size(); ++lev)
         {
