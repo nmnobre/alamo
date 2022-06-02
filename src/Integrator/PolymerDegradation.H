@@ -26,14 +26,14 @@
 
 
 #include "Operator/Elastic.H"
-#include "Model/Solid/Linear/IsotropicDegradableTanh.H"
-#include "Model/Solid/Linear/IsotropicDegradable.H"
+//#include "Model/Solid/Linear/IsotropicDegradableTanh.H"
+#include "Model/Solid/Linear/Isotropic.H"
 
 
 namespace Integrator
 {
 //using pd_model_type = Model::Solid::Linear::IsotropicDegradableTanh;
-using pd_model_type = Model::Solid::Linear::IsotropicDegradable;
+using pd_model_type = Model::Solid::Linear::Isotropic;
 
 ///
 /// \class PolymerDegradation

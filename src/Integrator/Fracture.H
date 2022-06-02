@@ -28,7 +28,7 @@
 
 #include "Model/Solid/Solid.H"
 #include "Model/Solid/Linear/Isotropic.H"
-#include "Model/Solid/Linear/IsotropicDegradable.H"
+//#include "Model/Solid/Linear/IsotropicDegradable.H"
 
 #include "Model/Interface/Crack/Crack.H"
 #include "Model/Interface/Crack/Constant.H"
@@ -39,10 +39,18 @@
 
 namespace Integrator
 {
-using brittle_fracture_model_type_test = Model::Solid::Linear::IsotropicDegradable;
+using brittle_fracture_model_type_test = Model::Solid::Linear::Isotropic;
 
 class Fracture : public Integrator
 {
+    // Key components
+    // Constructor - Reads the input files, creates variables (crack field)
+    // Initialization - initializes the crack field, etc. 
+    // TimeStepBegin()
+    // Advance()
+    // Integrate()
+    // TImeStepComplete()
+    // TagCellForRefinement()
 
 public:
     Fracture()
@@ -549,6 +557,7 @@ private:
     int number_of_materials = 1;
     int nlevels;
 
+    // Set::Field - field variable - defined in space. 
     struct{
         Set::Field<Set::Scalar> disp_mf;             ///< displacement field
         Set::Field<Set::Scalar> disp_old_mf;        ///< old displacement field

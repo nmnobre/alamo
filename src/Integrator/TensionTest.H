@@ -27,7 +27,7 @@
 #include "Model/Solid/Affine/CrystalPlastic.H"
 #include "Model/Solid/Affine/StrainGradientCrystalPlastic.H"
 #include "Model/Solid/Affine/J2Plastic.H"
-#include "Model/Solid/Affine/J2PlasticDegradable.H"
+//#include "Model/Solid/Affine/J2PlasticDegradable.H"
 
 #include "Operator/Operator.H"
 
