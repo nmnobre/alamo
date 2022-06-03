@@ -172,46 +172,46 @@ public:
         if (m_type == MechanicsBase<brittle_model>::Type::Disable) return;
 
         // if (a_step == 0)
-        // {
-        //     for (int lev = 0; lev <= finest_level; ++lev)
-        //     {
-        //         material.eta_mf[lev]->FillBoundary();
+        {
+            for (int lev = 0; lev <= finest_level; ++lev)
+            {
+                material.eta_mf[lev]->FillBoundary();
 
-        //         for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
-        //         {
-        //             amrex::Box bx = mfi.grownnodaltilebox();
-        //             amrex::Array4<brittle_model> const &model = model_mf[lev]->array(mfi);
-        //             amrex::Array4<const Set::Scalar> const &eta = material.eta_mf[lev]->array(mfi);
-        //             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-        //                                         model(i,j,k) = brittle_model::Zero();
-        //                                         for (int n = 0; n < material.num_mat; n++) 
-        //                                             model(i,j,k) += eta(i,j,k,n) * material.models[n];
-        //                                     });
-        //         }
-        //         Util::RealFillBoundary(*model_mf[lev],geom[lev]);
-        //     }
-        // }
+                for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+                {
+                    amrex::Box bx = mfi.grownnodaltilebox();
+                    amrex::Array4<brittle_model> const &model = model_mf[lev]->array(mfi);
+                    amrex::Array4<const Set::Scalar> const &eta = material.eta_mf[lev]->array(mfi);
+                    amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                                                model(i,j,k) = brittle_model::Zero();
+                                                for (int n = 0; n < material.num_mat; n++) 
+                                                    model(i,j,k) += eta(i,j,k,n) * material.models[n];
+                                            });
+                }
+                Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            }
+        }
 
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            model_mf[lev]->setVal(material.models[0]);
-            // crack.c_mf[lev]->FillBoundary();
-            // for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
-            // {
-            //     amrex::Box bx = mfi.grownnodaltilebox();
-            //     amrex::Array4<brittle_model> const &model = model_mf[lev]->array(mfi);
-            //     amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
-            //     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-            //                                 Set::Scalar _tmp = 0.0;
-            //                                 _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
-            //                                 if (std::isnan(_tmp)) Util::Abort(INFO);
-            //                                 if(_tmp < 0.0) _tmp = 0.;
-            //                                 if(_tmp > 1.0) _tmp = 1.0;
+            // model_mf[lev]->setVal(material.models[0]);
+            crack.c_mf[lev]->FillBoundary();
+            for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+            {
+                amrex::Box bx = mfi.grownnodaltilebox();
+                amrex::Array4<brittle_model> const &model = model_mf[lev]->array(mfi);
+                amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+                                            Set::Scalar _tmp = 0.0;
+                                            _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
+                                            if (std::isnan(_tmp)) Util::Abort(INFO);
+                                            if(_tmp < 0.0) _tmp = crack.scaleModulusMax;
+                                            if(_tmp > 1.0) _tmp = 1.0;
 					
-            //                                 //model(i,j,k).DegradeModulus(1-_tmp);
-            //                             });
-            // }
-            // Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+                                            model(i,j,k).DegradeModulus(1-_tmp);
+                                        });
+            }
+            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
     }
 

@@ -1,14 +1,14 @@
-alamo.program       = crystalplastictensiontest
+alamo.program       = mechanics
 plot_file		    = tests/UniaxialTensionCP/output
 
 # this is not a time integration, so do
 # exactly one timestep and then quit
-timestep		    = 1.e-6
-stop_time		    = 2.e0
+timestep		    = 0.001
+stop_time		    = 1.e0
 
 # amr parameters
-amr.plot_int		    = 100
-amr.max_level		    = 0
+amr.plot_int		    = 10
+amr.max_level		    = 2
 amr.n_cell		    = 16 16 16
 amr.blocking_factor	    = 4
 amr.regrid_int		    = 0
@@ -17,8 +17,8 @@ amr.thermo.plot_int = 1
 amr.thermo.int = 1
 
 # geometry
-geometry.prob_lo	    = -8 -8 -8 
-geometry.prob_hi	    = 8 8 8
+geometry.prob_lo	    = 0 0 0 
+geometry.prob_hi	    = 1 1 1
 geometry.is_periodic	    = 0 0 0
 
 # ellipse configuration
@@ -28,39 +28,89 @@ geometry.is_periodic	    = 0 0 0
 #ic.ellipse.eps = 0.1 # diffuse boundary
 ##ic.Finclusion  = 0.001 0 0 0 0.001 0 0 0 0.001 # eigenstrain
 
+alamo.program.mechanics.model=affine.crystalplastic
+
+ic.type			        = voronoi
+ic.voronoi.number_of_grains	= 5
+
 # elastic moduli - copper
-elastic.model1.C11 = 168.40
-elastic.model1.C12 = 121.40
-elastic.model1.C44 = 75.40
+nmodels = 5
 
-plastic.on = 1
-plastic.hardening = 1
+model1.C11 = 168.40
+model1.C12 = 121.40
+model1.C44 = 75.40
+model1.random = yes
+model1.hardening.on = 1
+model1.hardening.g0 = 0.016
+model1.hardening.gs = 0.0704
+model1.hardening.h0 = 0.132
+model1.hardening.hs = 0.008
+model1.hardening.qh = 1.4
+model1.exp = 10
+model1.gam0dot = 0.001
 
-elastic.model1.hardening.on = 1
-elastic.model1.hardening.g0 = 0.016
-elastic.model1.hardening.gs = 0.0704
-elastic.model1.hardening.h0 = 0.132
-elastic.model1.hardening.hs = 0.008
-elastic.model1.hardening.qh = 1.4
+model2.C11 = 168.40
+model2.C12 = 121.40
+model2.C44 = 75.40
+model2.random = yes
+model2.hardening.on = 1
+model2.hardening.g0 = 0.016
+model2.hardening.gs = 0.0704
+model2.hardening.h0 = 0.132
+model2.hardening.hs = 0.008
+model2.hardening.qh = 1.4
+model2.exp = 10
+model2.gam0dot = 0.001
 
-#elastic.model1.g_alpha = 0.016
-elastic.model1.exp = 10
-elastic.model1.gam0dot = 0.001
+model3.C11 = 168.40
+model3.C12 = 121.40
+model3.C44 = 75.40
+model3.random = yes
+model3.hardening.on = 1
+model3.hardening.g0 = 0.016
+model3.hardening.gs = 0.0704
+model3.hardening.h0 = 0.132
+model3.hardening.hs = 0.008
+model3.hardening.qh = 1.4
+model3.exp = 10
+model3.gam0dot = 0.001
 
+model4.C11 = 168.40
+model4.C12 = 121.40
+model4.C44 = 75.40
+model4.random = yes
+model4.hardening.on = 1
+model4.hardening.g0 = 0.016
+model4.hardening.gs = 0.0704
+model4.hardening.h0 = 0.132
+model4.hardening.hs = 0.008
+model4.hardening.qh = 1.4
+model4.exp = 10
+model4.gam0dot = 0.001
 
-elastic.solver.verbose = 3
-elastic.solver.nriters = 1
-elastic.solver.fixed_iter = 200
-elastic.solver.tol_rel = 1.0e-6
-elastic.solver.tol_abs = 1.0e-6
-elastic.solver.bottom_tol_rel = 1.0e-6
-elastic.solver.bottom_tol_abs = 1.0e-6
-elastic.int = 100
-elastic.solver.bottom_solver=smoother
+model5.C11 = 168.40
+model5.C12 = 121.40
+model5.C44 = 75.40
+model5.random = yes
+model5.hardening.on = 1
+model5.hardening.g0 = 0.016
+model5.hardening.gs = 0.0704
+model5.hardening.h0 = 0.132
+model5.hardening.hs = 0.008
+model5.hardening.qh = 1.4
+model5.exp = 10
+model5.gam0dot = 0.001
+
+interval = 1
+print_model = 1
+print_residual = 1
+
+solver.verbose = 4
+solver.fixed_iter = 200
+solver.nriters = 1
 
 ### UNIAXIAL TENSION ###
 
-elastic.bc.type = tension_test
-elastic.bc.tension_test.type = uniaxial_stress
-elastic.bc.tension_test.disp = 0.01
-
+bc.type = tension_test
+bc.tension_test.type = uniaxial_stress
+bc.tension_test.disp = (0,1.0:0,0.002)
