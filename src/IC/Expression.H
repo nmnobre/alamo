@@ -11,6 +11,8 @@ namespace IC
     {
         public:
         Expression(amrex::Vector<amrex::Geometry> &_geom) : IC(_geom) {Util::Abort(INFO,"To use IC::Expression, you must compile with the JIT option!");}
+        Expression(amrex::Vector<amrex::Geometry> &_geom, IO::ParmParse &pp, std::string name) : IC(_geom)
+        {pp.queryclass(name,*this);}
         void Add(const int &, Set::Field<Set::Scalar> &) {};
         static void Parse(Expression &, IO::ParmParse &) {};
     };
@@ -26,6 +28,8 @@ namespace IC
     {
     public:
         Expression(amrex::Vector<amrex::Geometry> &_geom) : IC(_geom) {}
+        Expression(amrex::Vector<amrex::Geometry> &_geom, IO::ParmParse &pp, std::string name) : IC(_geom) 
+        {pp.queryclass(name,*this);}
 
         void Add(const int &lev, Set::Field<Set::Scalar> &a_field)
         {
@@ -54,6 +58,16 @@ namespace IC
         std::vector<FunctionParserAD> fparser;
 
     public:
+        // This is an extremely general IC that uses JIT fparser to compile an
+        // IC based on a mathematical expression at runtime. Eventually we will
+        // probably replace all ICs with this one. 
+        // 
+        // This can be used with an arbitrary number of components, named `region1`,
+        // `region2`, etc. You do not need to specify a number ahead of time.
+        // Each region should be a string that represents a function in terms of 
+        // x, y, z, and t. 
+        // It can be a boolean expression (returning 1 or 0) or it can return a 
+        // value. 
         static void Parse(Expression &value, IO::ParmParse &pp)
         {
             for (int i = 0; true; i++)
