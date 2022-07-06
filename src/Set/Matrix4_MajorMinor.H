@@ -315,7 +315,7 @@ public:
     Set::Scalar Norm()
     {
         Set::Scalar retsq = 0;
-        for (int i = 0; i < 21; i++) retsq += data[i];
+        for (int i = 0; i < 21; i++) retsq += data[i]*data[i];
         return std::sqrt(retsq);
     }
 

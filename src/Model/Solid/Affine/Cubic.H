@@ -110,7 +110,7 @@ inline void Set::Field<Model::Solid::Affine::Cubic>::Copy(int a_lev, amrex::Mult
             amrex::Array4<Set::Scalar> const & dst = a_dst.array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
-                dst(i,j,k,a_dstcomp + 0) = src(i,j,k).ddw(0,0,0,0);
+                dst(i,j,k,a_dstcomp + 0) = src(i,j,k).C11;
             });
         }
     }    

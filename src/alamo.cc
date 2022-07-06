@@ -11,6 +11,7 @@
 #include "Model/Solid/Affine/Isotropic.H"
 #include "Model/Solid/Elastic/NeoHookean.H"
 #include "Model/Solid/Linear/Laplacian.H"
+#include "Model/Solid/Linear/Cubic.H"
 #include "Model/Solid/Affine/J2.H"
 #include "Model/Solid/Affine/J2Plastic.H"
 #include "Model/Solid/Affine/CrystalPlastic.H"
@@ -52,6 +53,11 @@ int main (int argc, char* argv[])
         {
             integrator = new Integrator::Mechanics<Model::Solid::Linear::Isotropic>();
             pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Linear::Isotropic>*>(integrator));
+        }
+        else if (model == "linear.cubic") 
+        {
+            integrator = new Integrator::Mechanics<Model::Solid::Linear::Cubic>();
+            pp.queryclass(dynamic_cast<Integrator::Mechanics<Model::Solid::Linear::Cubic>*>(integrator));
         }
         else if (model == "affine.isotropic") 
         {

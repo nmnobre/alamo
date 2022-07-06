@@ -1,5 +1,8 @@
 alamo.program = mechanics
-alamo.program.mechanics.model = linear.isotropic
+
+alamo.program.mechanics.model = affine.j2plastic
+#alamo.program.mechanics.model = linear.cubic
+#alamo.program.mechanics.model = linear.isotropic
 
 plot_file		    = tests/PlateHole/output
 
@@ -39,35 +42,54 @@ ic.ellipse.eps = 0.05
 
 # elastic moduli
 nmodels = 2
+
+#model1.C11 = 168.40
+#model1.C12 = 121.40
+#model1.C44 = 75.40
+
+#model2.C11 = 168.40
+#model2.C12 = 121.40
+#model2.C44 = 75.40
+
 model1.E = 1.0 # 0.1 #0.00001
 model1.nu = 0.3
-model1.planestress = 1
+#model1.planestress = 1
 model2.E = 1.0 # 1.0
 model2.nu = 0.3
-model2.planestress = 1
+#model2.planestress = 1
 #model1.lambda = 0
 #model1.mu = 0
 #model2.lambda = 0
 #model2.mu = 0
 
+model1.yield = 0.001
+model1.theta = 1.0
+model1.hardening = 0.25
+
+model2.yield = 0.001
+model2.theta = 1.0
+model2.hardening = 0.25
+
 solver.verbose = 3
 solver.nriters = 1
-solver.fixed_iter = 20
+solver.fixed_iter = 500
 #solver.bottom_solver = smoother
 #solver.omega = 1.25 # Overrelaxation
 #solver.omega = 0.5
 solver.normalize_ddw = 0
 
 print_residual = 1
+print_model = 1
 
 bc.type = tension_test
 #bc.tension_test.type = uniaxial_stress
 #bc.tension_test.disp=0.01
 bc.tension_test.type = uniaxial_stress
-bc.tension_test.disp=0.01
+bc.tension_test.disp=0.2
+#bc.tension_test.disp = (0,0.25,0.75,1.0:0,0.002,-0.002,0)
 
 #max_coarsening_level=3
 
-elasticop.alpha=-0.0
-elasticop.small=0.0
+elasticop.alpha= -0.0
+elasticop.small= 1.e-8
 #print_model = 1

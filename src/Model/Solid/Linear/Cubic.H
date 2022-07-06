@@ -95,7 +95,7 @@ public:
             return;
     }
 
-protected:
+public:
 
     Set::Scalar C11=NAN, C12=NAN, C44=NAN;
     Set::Scalar C110=NAN, C120=NAN, C440=NAN;
