@@ -918,13 +918,13 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 			amrex::Array4<Set::Scalar> const &elasticdf = elasticdf_mf[lev]->array(mfi);
 			amrex::Array4<Set::Scalar> const &strain = strain_mf[lev]->array(mfi);
 			amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-
+				auto sten = Numeric::GetStencil(i,j,k,bx);
 				Set::Matrix gradu;
 				for (int p = 0; p < AMREX_SPACEDIM; p++)
 				{
- 					AMREX_D_TERM(gradu(p,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(disp,i,j,k,p,DX));,
-					 	     gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(disp,i,j,k,p,DX));,
-					 	     gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(disp,i,j,k,p,DX)););
+ 					AMREX_D_TERM(gradu(p,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(disp,i,j,k,p,DX,sten));,
+					 	     gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(disp,i,j,k,p,DX,sten));,
+					 	     gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(disp,i,j,k,p,DX,sten)););
 				}
 
 				for (int n = 0; n < number_of_grains; n++)
