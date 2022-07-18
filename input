@@ -1,6 +1,6 @@
 alamo.program = microstructure
 
-plot_file = output
+plot_file = ./output
 
 timestep = 0.05
 stop_time=40.0
@@ -72,7 +72,7 @@ elastic.model2.C44 = 0.75
 elastic.model2.Phi = -0.16510815
 elastic.model2.F0 = 0 0.167 0 0
 
-ic.type=tabulated_interface
+#ic.type=tabulated_interface
 #ic.xs = 0.0 8.0
 #ic.ys = 0.0 0.0
 
@@ -107,10 +107,10 @@ elastic.bc.type.xhi = neumann neumann
 #elastic.bc.val.xloyhi  = (1,10:0.2,0.5) 0
 #elastic.bc.val.yhi     = (1,10:0.2,0.5) 0
 #disconnection.fixed.on = 0
-#disconnection.fixed.sitex = 4.0
-#disconnection.fixed.sitey = 0.0
-#disconnection.fixed.phases = 1
-#disconnection.fixed.time  = 1.2
+disconnection.fixed.sitex = 4.0
+disconnection.fixed.sitey = 0.0
+disconnection.fixed.phases = 1
+disconnection.fixed.time  = 1.2
 #stop_time=3.0
 #disconnection.box_size=0.02
 
@@ -122,5 +122,5 @@ ic.wave_amplitudes=0.5
 ic.reverse=0
 ic.mollifier=dirac
 elastic.tstart = 1.0
-#amr.plot_dt=1.0
-
+amr.plot_dt=1.0
+plot_file = ./output
