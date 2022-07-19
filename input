@@ -106,21 +106,21 @@ elastic.bc.type.xhi = neumann neumann
 #elastic.bc.val.xhiyhi  = (1,10:0.2,0.5) 0
 #elastic.bc.val.xloyhi  = (1,10:0.2,0.5) 0
 #elastic.bc.val.yhi     = (1,10:0.2,0.5) 0
-#disconnection.fixed.on = 0
+#disconnection.fixed.on =1
 disconnection.fixed.sitex = 4.0
 disconnection.fixed.sitey = 0.0
 disconnection.fixed.phases = 1
-disconnection.fixed.time  = 1.2
+#disconnection.fixed.time  = 1.3
 #stop_time=3.0
 #disconnection.box_size=0.02
 
 ## Sin relaxation
-disconnection.fixed.on = 1
+disconnection.fixed.on = 0
 ic.type=perturbed_interface
 ic.wave_numbers=2
 ic.wave_amplitudes=0.5
 ic.reverse=0
 ic.mollifier=dirac
 elastic.tstart = 1.0
-amr.plot_dt=1.0
+#amr.plot_dt=1.0
 plot_file = ./output

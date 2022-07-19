@@ -713,8 +713,8 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 				  int g1;
 				  int g2;
 					Set::Scalar E0 = 2.0*disconnection.nucleation_energy;
-					for (g1 = 0; g1 <= 2; g1++) {
-					  for (g2 = 0; g2 <= 2; g2++) {
+					for (g1 = 0; g1 < 2; g1++) {
+					  for (g2 = 0; g2 < 2; g2++) {
 					    if (g1 != g2) {
 					      E0 /= disconnection.epsilon + 256.0*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2);
 					    }
@@ -724,7 +724,7 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 					Set::Scalar P = 1.0 - std::pow(1.0 - p,exponent);
 					// P is the probability of disconnection starting there, I think
 
-					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0 || eta(i,j,k,2) < 0 || eta(i,j,k,2) > 1.0 ) P = 0.0;
+					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0 ) P = 0.0; //|| eta(i,j,k,2) < 0 || eta(i,j,k,2) > 1.0 ) P = 0.0;
 
 					Set::Scalar q = 0.0;
 					q = disconnection.unif_dist(disconnection.rand_num_gen);
