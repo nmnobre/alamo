@@ -5,7 +5,7 @@
 #include "Util/Util.H"
 #include "IO/ParmParse.H"
 
-/// \class PerturbedInterface
+/// \class ThreeGrains
 /// \brief Initialize a perturbed interface using Fourier Modes
 ///
 /// \todo Extend this class to allow for 3D perturbations, currently only 2D are allowed
@@ -29,8 +29,11 @@ public:
 	enum Mollifier {Dirac, Gaussian};
 	ThreeGrains (amrex::Vector<amrex::Geometry> &_geom) :
 		IC(_geom)
-	{
-	}
+	{ }
+	ThreeGrains(amrex::Vector<amrex::Geometry> &_geom,IO::ParmParse &pp, std::string name) : IC(_geom)
+    {pp.queryclass(name,*this);}
+    ThreeGrains(amrex::Vector<amrex::Geometry> &_geom,IO::ParmParse &pp) : IC(_geom)
+    {pp.queryclass(*this);}
   
 	void Add(const int &lev, Set::Field<Set::Scalar> &a_field)
 	{
@@ -62,8 +65,8 @@ public:
 				    			 x(1) = geom[lev].ProbLo()[1] + ((amrex::Real)(j) + 0.5) * geom[lev].CellSize()[1];,
 				    			 x(2) = geom[lev].ProbLo()[2] + ((amrex::Real)(k) + 0.5) * geom[lev].CellSize()[2];);
                 }
-                //x(0) = x(0)*2; //testing the change
-
+				
+				
 				Set::Scalar bdry = 0.;
 #if AMREX_SPACEDIM == 2				
 				Set::Scalar s1=NAN, l1=NAN;
@@ -189,6 +192,9 @@ private:
 	std::vector<Set::Scalar> phis;
 	Mollifier mol = Mollifier::Gaussian;
 	Set::Scalar eps;
+	Set::Scalar theta1;
+	Set::Scalar theta2;
+	Set::Scalar theta3;
 	// set theta1, theta2, theta3, r (distance of current point to origin)
 	// set t(1), t(2), t(3) (triple point coordinates)
 	int reverse = 0;
@@ -223,11 +229,14 @@ public:
 		if (value.wave_numbers.size() != value.wave_amplitudes.size())
 			Util::Abort(INFO, "Number of wave numbers and amplitudes must match");
 
-		std::string mollifier;
+		std::string mollifier = "dirac";
 		pp.query("mollifier", mollifier);
 
 		if(mollifier == "dirac")
+		{
 			value.mol = Mollifier::Dirac;
+			if (pp.contains("eps")) Util::Warning(INFO,"eps defined but not needed for dirac mollifier");
+		}
 		else
 		{
 			value.mol = Mollifier::Gaussian;
