@@ -8,6 +8,8 @@
 #include "Operator/Operator.H"
 #include "Model/Solid/Solid.H"
 #include "BC/Operator/Elastic/Elastic.H"
+#include "Numeric/Stencil.H"
+#include "IC/IC.H"
 
 using namespace amrex;
 
@@ -167,6 +169,7 @@ private:
     void averageDownCoeffsSameAmrLevel (int amrlev);
 
     void FillBoundaryCoeff (MultiTab& sigma, const Geometry& geom);
+    void FillBoundaryCoeff (MultiFab& psi, const Geometry& geom);
 
     bool m_testing = false;
     bool m_uniform = false;
@@ -179,39 +182,11 @@ private:
     bool m_model_set = false;
     bool m_bc_set = false;
     
-    Set::Scalar m_alpha = 1.0;
-
 public:
     static void Parse(Elastic<SYM> & value, IO::ParmParse & pp)
     {
-        pp.query("alpha",value.m_alpha);
         pp.query("small",value.m_psi_small);
     }
-
-//    virtual void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-//                        const MultiFab* /*crse_bcdata*/=nullptr) override
-//    {
-//        const int mglev = 0;
-//        const int ncomp = b.nComp();
-//        apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution);
-//        MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 2);
-//        //if (m_final_residual)
-//        //{
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,0,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,1,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,0,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,1,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,0,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,1,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,0,1,2);
-//        //    MultiFab::Multiply(resid,*m_psi_mf[amrlev][0],0,1,1,2);
-//        //}
-//        amrex::Geometry geom = m_geom[amrlev][mglev];
-//        realFillBoundary(resid,geom);
-//    }
-protected:
-    virtual void Fsmooth (int amrlev, int mglev, MultiFab& x,const MultiFab& b) const override;
-
 
 };
 }

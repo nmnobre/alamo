@@ -46,8 +46,10 @@ Elastic<SYM>::define (const Vector<Geometry>& a_geom,
             m_ddw_mf[amrlev][mglev].reset(new MultiTab(amrex::convert(m_grids[amrlev][mglev],
                                             amrex::IntVect::TheNodeVector()),
                                 m_dmap[amrlev][mglev], 1, model_nghost));
-            m_psi_mf[amrlev][mglev].reset(new MultiFab(amrex::convert(m_grids[amrlev][mglev], amrex::IntVect::TheNodeVector()),
+            m_psi_mf[amrlev][mglev].reset(new MultiFab(m_grids[amrlev][mglev],
                                 m_dmap[amrlev][mglev], 1, model_nghost));
+
+            if (!m_psi_set) m_psi_mf[amrlev][mglev]->setVal(1.0);
         }
     }
 }
@@ -121,16 +123,11 @@ Elastic<SYM>::SetPsi (int amrlev, const amrex::MultiFab& a_psi_mf)
 {
     BL_PROFILE("Operator::Elastic::SetPsi()");
     amrex::Box domain(m_geom[amrlev][0].Domain());
-    domain.convert(amrex::IntVect::TheNodeVector());
 
-    int nghost = m_ddw_mf[amrlev][0]->nGrow();
-
-    for (MFIter mfi(a_psi_mf, false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(a_psi_mf, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.tilebox();
-        bx.grow(nghost);   // Expand to cover first layer of ghost nodes
-        bx = bx & domain;  // Take intersection of box and the problem domain
-            
+        Box bx = mfi.growntilebox() & domain;
+
         amrex::Array4<Set::Scalar> const& m_psi         = (*(m_psi_mf[amrlev][0])).array(mfi);
         amrex::Array4<const Set::Scalar> const& a_psi = a_psi_mf.array(mfi);
 
@@ -138,6 +135,7 @@ Elastic<SYM>::SetPsi (int amrlev, const amrex::MultiFab& a_psi_mf)
                 m_psi(i,j,k) = a_psi(i,j,k);
             });
     }
+    m_psi_set = true;
 }
 
 template<int SYM>
@@ -153,9 +151,8 @@ Elastic<SYM>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u)
 
     for (MFIter mfi(a_f, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.tilebox();
-        bx.grow(1);        // Expand to cover first layer of ghost nodes
-        bx = bx & domain;  // Take intersection of box and the problem domain
+        Box bx = mfi.validbox().grow(1) & domain;
+        amrex::Box tilebox = mfi.grownnodaltilebox() & bx;
             
         amrex::Array4<MATRIX4> const& DDW                 = (*(m_ddw_mf[amrlev][mglev])).array(mfi);
         amrex::Array4<const amrex::Real> const& U = a_u.array(mfi);
@@ -164,7 +161,7 @@ Elastic<SYM>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u)
 
         const Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
             
-        amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
+        amrex::ParallelFor (tilebox,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
                     
                 Set::Vector f = Set::Vector::Zero();
 
@@ -189,10 +186,12 @@ Elastic<SYM>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u)
                             gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(U,i,j,k,p,DX,sten));,
                             gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(U,i,j,k,p,DX,sten)););
                 }
+
+                Set::Scalar psi_avg = 1.0;
+                if (m_psi_set) psi_avg = (1.0-m_psi_small)*Numeric::Interpolate::CellToNodeAverage(psi,i,j,k,0) + m_psi_small;
                     
                 // Stress tensor computed using the model fab
-                //Set::Matrix sig = DDW(i,j,k)*gradu;
-                Set::Matrix sig = (DDW(i,j,k)*gradu) * (psi(i,j,k) + m_psi_small);
+                Set::Matrix sig = (DDW(i,j,k)*gradu) * psi_avg;
 
                 // Boundary conditions
                 /// \todo Important: we need a way to handle corners and edges.
@@ -238,7 +237,7 @@ Elastic<SYM>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u)
                     //    f_i = C_{ijkl,j} u_{k,l}  +  C_{ijkl}u_{k,lj}
                     //
 
-                    f = (DDW(i,j,k)*gradgradu)*(psi(i,j,k)+m_psi_small);
+                    f = (DDW(i,j,k)*gradgradu) * psi_avg;
 
                     if (!m_uniform)
                     {
@@ -248,14 +247,14 @@ Elastic<SYM>::Fapply (int amrlev, int mglev, MultiFab& a_f, const MultiFab& a_u)
                                      Cgrad3 = (Numeric::Stencil<MATRIX4,0,0,1>::D(DDW,i,j,k,0,DX,sten)));
                         f += (AMREX_D_TERM((Cgrad1*gradu).col(0),
                                          +(Cgrad2*gradu).col(1),
-                                         +(Cgrad3*gradu).col(2)))*(psi(i,j,k)+m_psi_small);
-
-                        Set::Vector gradpsi = Numeric::Gradient(psi,i,j,k,0,DX,sten);
-                        f += (DDW(i,j,k) * gradu) * gradpsi;
-
+                                         +(Cgrad3*gradu).col(2)))*(psi_avg);
                     }
-                    
-                    f += m_alpha * u;
+                    if (m_psi_set)
+                    {
+                        Set::Vector gradpsi = Numeric::CellGradientOnNode(psi,i,j,k,0,DX);
+                        gradpsi *= (1.0-m_psi_small);
+                        f += (DDW(i,j,k) * gradu) * gradpsi;
+                    }
                 }
                 AMREX_D_TERM(F(i,j,k,0) = f[0];, F(i,j,k,1) = f[1];, F(i,j,k,2) = f[2];);
             });
@@ -276,28 +275,24 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
     
     for (MFIter mfi(a_diag, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.validbox();
-        bx.grow(1);        // Expand to cover first layer of ghost nodes
-        bx = bx & domain;  // Take intersection of box and the problem domain
+        Box bx = mfi.validbox().grow(1) & domain;
+        amrex::Box tilebox = mfi.grownnodaltilebox() & bx;
 
         amrex::Array4<MATRIX4> const& DDW         = (*(m_ddw_mf[amrlev][mglev])).array(mfi);
         amrex::Array4<Set::Scalar> const& diag    = a_diag.array(mfi);
-        //amrex::Array4<Set::Scalar> const& psi    = m_psi_mf[amrlev][mglev]->array(mfi);
+        amrex::Array4<Set::Scalar> const& psi    = m_psi_mf[amrlev][mglev]->array(mfi);
 
         const Dim3 lo= amrex::lbound(domain), hi = amrex::ubound(domain);
             
-        amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
+        amrex::ParallelFor (tilebox,[=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
                 Set::Vector f = Set::Vector::Zero();
 
                 bool    AMREX_D_DECL(xmin = (i == lo.x), ymin = (j==lo.y), zmin = (k==lo.z)),
                         AMREX_D_DECL(xmax = (i == hi.x), ymax = (j==hi.y), zmax = (k==hi.z));
 
-                std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
-                    = Numeric::GetStencil(i,j,k,domain);
-
-
-                
+                Set::Scalar psi_avg = 1.0;
+                if (m_psi_set) psi_avg = (1.0-m_psi_small)*Numeric::Interpolate::CellToNodeAverage(psi,i,j,k,0) + m_psi_small;
 
                 Set::Matrix gradu; // gradu(i,j) = u_{i,j)
                 Set::Matrix3 gradgradu; // gradgradu[k](l,j) = u_{k,lj}
@@ -328,12 +323,11 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
                                 gradgradu(q,2,2) = (p==q ? -2.0 : 0.0)/DX[2]/DX[2]);
                     }
 
-                    Set::Matrix sig = DDW(i,j,k)*gradu;
-                    if (m_normalize_ddw) sig /= DDW(i,j,k).Norm();
 
                     amrex::IntVect m(AMREX_D_DECL(i,j,k));
                     if (AMREX_D_TERM(xmax || xmin, || ymax || ymin, || zmax || zmin)) 
                     {
+                        Set::Matrix sig = DDW(i,j,k)*gradu*psi_avg;
                         Set::Vector u = Set::Vector::Zero();
                         u(p) = 1.0;
                         f = (*m_bc)(u,gradu,sig,i,j,k,domain);
@@ -341,198 +335,20 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
                     }
                     else
                     {
-                        Set::Matrix4<AMREX_SPACEDIM,SYM>
-                        AMREX_D_DECL(Cgrad1 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,1,0,0>::D(DDW,i,j,k,0,DX,sten)),
-                                     Cgrad2 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,0,1,0>::D(DDW,i,j,k,0,DX,sten)),
-                                     Cgrad3 = (Numeric::Stencil<Set::Matrix4<AMREX_SPACEDIM,SYM>,0,0,1>::D(DDW,i,j,k,0,DX,sten)));
-
-                        Set::Vector f = DDW(i,j,k)*gradgradu;
-                        if (m_normalize_ddw) f /= DDW(i,j,k).Norm();
-                        if (!m_uniform)
-                        {
-                            f += AMREX_D_TERM((Cgrad1*gradu).col(0),
-                                             +(Cgrad2*gradu).col(1),
-                                             +(Cgrad3*gradu).col(2));
-                        }
-
+                        Set::Vector f = (DDW(i,j,k) * gradgradu) * psi_avg;
                         diag(i,j,k,p) += f(p);
-                        diag(i,j,k,p) += m_alpha;
                     }
+
+                    #ifdef AMREX_DEBUG
                     if (std::isnan(diag(i,j,k,p))) Util::Abort(INFO,"diagonal is nan at (", i, ",", j , ",",k,"), amrlev=",amrlev,", mglev=",mglev);
+                    if (std::isinf(diag(i,j,k,p))) Util::Abort(INFO,"diagonal is inf at (", i, ",", j , ",",k,"), amrlev=",amrlev,", mglev=",mglev);
+                    if (diag(i,j,k,p)==0) Util::Abort(INFO,"diagonal is zero at (", i, ",", j , ",",k,"), amrlev=",amrlev,", mglev=",mglev);
+                    #endif
 
                 }
             });
     }
 }
-
-
-template<int SYM> void
-Elastic<SYM>::Fsmooth (int amrlev, int mglev, MultiFab& x_mf,const MultiFab& b_mf) const
-{
-    Operator::Fsmooth(amrlev,mglev,x_mf,b_mf);
-    //Util::Warning(INFO,"Not using new Fsmooth...");
-    return;
-    Util::Abort(INFO);
-
-    /*
-    BL_PROFILE("Operator::Fsmooth()");
-
-    amrex::Box domain(m_geom[amrlev][mglev].Domain());
-    domain.convert(amrex::IntVect::TheNodeVector());
-
-    int ncomp = b_mf.nComp();
-    int nghost = 2; //b.nGrow();
-    
-
-    amrex::MultiFab Ax_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    amrex::MultiFab Dx_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    amrex::MultiFab Rx_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    
-    if (!m_diagonal_computed) Util::Abort(INFO,"Operator::Diagonal() must be called before using Fsmooth");
-
-    // This is a JACOBI iteration, not Gauss-Seidel.
-    // So we need to do twice the number of iterations to get the same behavior as GS.
-    for (int ctr = 0; ctr < 2; ctr++)
-    {
-        Fapply(amrlev,mglev,Ax_mf,x_mf); // find Ax
-
-        amrex::MultiFab::Copy(Dx_mf,x_mf,0,0,ncomp,nghost); // Dx = x
-        amrex::MultiFab::Multiply(Dx_mf,*m_diag[amrlev][mglev],0,0,ncomp,nghost); // Dx *= diag  (Dx = x*diag)
-
-        amrex::MultiFab::Copy(Rx_mf,Ax_mf,0,0,ncomp,nghost); // Rx = Ax
-        amrex::MultiFab::Subtract(Rx_mf,Dx_mf,0,0,ncomp,nghost); // Rx -= Dx  (Rx = Ax - Dx)
-
-        for (MFIter mfi(x_mf, false); mfi.isValid(); ++mfi)
-        {
-            //Box bx = mfi.grownnodaltilebox() & domain;
-            Box bx = mfi.validbox();
-            bx.grow(2);
-            bx = bx & domain;
-    
-            amrex::Array4<Set::Scalar> const & x  = x_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & b  = b_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & Rx = Rx_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & diag = m_diag[amrlev][mglev]->array(mfi);
-            amrex::Array4<const Set::Scalar> const & psi = m_psi_mf[amrlev][mglev]->array(mfi);
-            
-            const Dim3 lo= amrex::lbound(bx), hi = amrex::ubound(bx);
-                
-            for (int n = 0; n < ncomp; n++)
-            {
-                amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) 
-                {
-
-                    if (AMREX_D_TERM(i==lo.x || i==hi.x, || j==lo.y || j==hi.y, || k==lo.z || k==hi.z))
-                    {
-                        x(i,j,k,n) = 0.0;
-                    }
-                    else
-                    {
-
-                        //Set::Scalar psi_avg = 1;
-                        //    psi(IntVect(m1,m2)) + 
-                        //    0.125 * (psi(IntVect(m1+1,m2)) + psi(IntVect(m1-1,m2)) + psi(IntVect(m1,m2+1)) + psi(IntVect(m1,m2-1))) +
-                        //    0.0625 * (psi(IntVect(m1+1,m2+1)) + psi(IntVect(m1+1,m2-1)) + psi(IntVect(m1-1,m2+1)) + psi(IntVect(m1-1,m2-1)))
-                        //    + 1E-8;
-                        //Util::Message(INFO,amrlev," ",mglev," (", m1 , ",", m2, ") ", psi(IntVect(m1,m2)), " ", psi_avg );
-
-                        x(i,j,k,n) = (1.-m_omega)*x(i,j,k,n) + m_omega*(b(i,j,k,n) - Rx(i,j,k,n))/diag(i,j,k,n);
-                    }
-                });
-            }
-        }
-    }
-    amrex::Geometry geom = m_geom[amrlev][mglev];
-    realFillBoundary(x_mf,geom);
-    nodalSync(amrlev, mglev, x_mf);
-    */
-
-   
-   
-   
-    BL_PROFILE("Operator::Fsmooth()");
-
-    amrex::Box domain(m_geom[amrlev][mglev].Domain());
-    domain.convert(amrex::IntVect::TheNodeVector());
-
-    int ncomp = b_mf.nComp();
-    int nghost = 2; //b.nGrow();
-    
-
-    amrex::MultiFab Ax_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    amrex::MultiFab Dx_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    amrex::MultiFab Rx_mf(x_mf.boxArray(), x_mf.DistributionMap(), ncomp, nghost);
-    
-    if (!m_diagonal_computed) Util::Abort(INFO,"Operator::Diagonal() must be called before using Fsmooth");
-
-    Fapply(amrlev,mglev,Ax_mf,x_mf); // find Ax
-    amrex::MultiFab::Copy(Dx_mf,x_mf,0,0,ncomp,nghost); // Dx = x
-    amrex::MultiFab::Multiply(Dx_mf,*m_diag[amrlev][mglev],0,0,ncomp,nghost); // Dx *= diag  (Dx = x*diag)
-    amrex::MultiFab::Copy(Rx_mf,Ax_mf,0,0,ncomp,nghost); // Rx = Ax
-    amrex::MultiFab::Subtract(Rx_mf,Dx_mf,0,0,ncomp,nghost); // Rx -= Dx  (Rx = Ax - Dx)
-
-    for (int ctr = 0; ctr < 2; ctr++)
-    {
-        for (MFIter mfi(x_mf, false); mfi.isValid(); ++mfi)
-        {
-            Box bx = mfi.validbox();
-            bx.grow(2);
-            bx = bx & domain;
-            //amrex::FArrayBox       &xfab    = x_mf[mfi];
-            //const amrex::FArrayBox &bfab    = b_mf[mfi];
-            //const amrex::FArrayBox &Axfab   = Ax[mfi];
-            //const amrex::FArrayBox &Rxfab   = Rx_mf[mfi];
-            //const amrex::FArrayBox &diagfab = (*m_diag[amrlev][mglev])[mfi];
-
-            amrex::Array4<Set::Scalar> const & x  = x_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & b  = b_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & Rx = Rx_mf.array(mfi);
-            amrex::Array4<const Set::Scalar> const & diag = m_diag[amrlev][mglev]->array(mfi);
-            amrex::Array4<const Set::Scalar> const & psi = m_psi_mf[amrlev][mglev]->array(mfi);
-
-            const Dim3 lo= amrex::lbound(bx), hi = amrex::ubound(bx);
-            const Dim3 domlo= amrex::lbound(domain), domhi = amrex::ubound(domain);
-
-            for (int n = 0; n < ncomp; n++)
-            {
-                amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k) 
-                {
-                    if ((i+j+k+ctr)%2)
-                    {
-                        // do nothing (red black gauss seidel bit)
-                    }
-                    else if (
-                        (AMREX_D_TERM(i == lo.x || i == hi.x, || j == lo.y || j==hi.y, || k == lo.z || k == hi.z))
-                        &&
-                        AMREX_D_TERM(i > domlo.x && i < domhi.x, && j > domlo.y && j<domhi.y, && k > domlo.z && k < domhi.z)
-                        )
-                    {
-                        x(i,j,k,n) = 0.0;
-                    }
-                    else
-                    {
-                        Set::Scalar psi_avg = 1.0;
-                        if (AMREX_D_TERM(i > domlo.x && i < domhi.x, && j > domlo.y && j<domhi.y, && k > domlo.z && k < domhi.z))
-                            psi_avg = 
-                                psi(i,j,k) + 
-                                0.125 * (psi(i+1,j,k) + psi(i-1,j,k) + psi(i,j+1,k) + psi(i,j-1,k)) +
-                                0.0625 * (psi(i+1,j+1,k) + psi(i+1,j-1,k) + psi(i-1,j+1,k) + psi(i-1,j-1,k))
-                                + m_psi_small;
-                        x(i,j,k,n) = (1.-m_omega)*x(i,j,k,n) + m_omega*(b(i,j,k,n) - Rx(i,j,k,n))/diag(i,j,k,n);///psi_avg;
-                    }
-
-                });
-            }
-        }
-    }
-    amrex::Geometry geom = m_geom[amrlev][mglev];
-    realFillBoundary(x_mf,geom);
-    nodalSync(amrlev, mglev, x_mf);
-   
-   
-
-}
-
 
 
 template<int SYM>
@@ -676,7 +492,9 @@ Elastic<SYM>::Stress (int amrlev,
                                         gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(u, i,j,k,p, DX, sten)););
                         }
                      
-                        Set::Matrix sig = (DDW(i,j,k)*gradu)*(psi(i,j,k)+m_psi_small);
+                        Set::Scalar psi_avg = 1.0;
+                        if (m_psi_set) psi_avg = (1.0-m_psi_small)*Numeric::Interpolate::CellToNodeAverage(psi,i,j,k,0) + m_psi_small;
+                        Set::Matrix sig = (DDW(i,j,k)*gradu)*psi_avg;
 
                         if (voigt)
                         {
@@ -690,7 +508,6 @@ Elastic<SYM>::Stress (int amrlev,
                         else
                         {
                             AMREX_D_PICK(sigma(i,j,k,0) = sig(0,0);
-
                                 ,
                                 sigma(i,j,k,0) = sig(0,0); sigma(i,j,k,1) = sig(0,1); 
                                 sigma(i,j,k,2) = sig(1,0); sigma(i,j,k,3) = sig(1,1);
@@ -757,54 +574,6 @@ Elastic<SYM>::Energy (int amrlev,
     }
 }
 
-/*
-template <int SYM>
-void 
-Elastic<SYM>::Energy (int amrlev, amrex::MultiFab& a_energies, const amrex::MultiFab& a_u, std::vector<T> a_models, bool a_homogeneous)
-{
-    BL_PROFILE("Operator::Elastic::Energy()");
-    SetHomogeneous(a_homogeneous);
-
-    if ((unsigned int)a_energies.nComp() != a_models.size())
-    {
-        Util::Abort(INFO,"Number of energy components (",a_energies.nComp(), ") does not equal number of models (",a_models.size(),")");
-    }
-
-    amrex::Box domain(m_geom[amrlev][0].Domain());
-    domain.convert(amrex::IntVect::TheNodeVector());
-
-    const amrex::Real* DX = m_geom[amrlev][0].CellSize();
-
-    for (MFIter mfi(a_u, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        amrex::Array4<amrex::Real> const& energies   = a_energies.array(mfi);
-        //amrex::Array4<amrex::Real> const& u  = a_u.array(mfi);
-        amrex::Array4<const amrex::Real> const& u  = a_u.array(mfi);
-        amrex::ParallelFor (bx,[=] AMREX_GPU_DEVICE(int i, int j, int k)
-        {
-            Set::Matrix gradu;
-            std::array<Numeric::StencilType,AMREX_SPACEDIM> sten
-                        = Numeric::GetStencil(i,j,k,domain);
-            // Fill gradu
-            for (int p = 0; p < AMREX_SPACEDIM; p++)
-            {
-                AMREX_D_TERM(gradu(p,0) = (Numeric::Stencil<Set::Scalar,1,0,0>::D(u, i,j,k,p, DX, sten));,
-                        gradu(p,1) = (Numeric::Stencil<Set::Scalar,0,1,0>::D(u, i,j,k,p, DX, sten));,
-                        gradu(p,2) = (Numeric::Stencil<Set::Scalar,0,0,1>::D(u, i,j,k,p, DX, sten)););
-            }
-              
-            for (unsigned int p = 0; p < a_models.size(); p++)
-            {
-                energies(i,j,k,p) = a_models[p].W(gradu);
-            }
-        });
-    }
-}
-*/
-
-
-
 template<int SYM>
 void
 Elastic<SYM>::averageDownCoeffs ()
@@ -822,6 +591,7 @@ Elastic<SYM>::averageDownCoeffs ()
         {
             if (m_ddw_mf[amrlev][mglev]) {
                 FillBoundaryCoeff(*m_ddw_mf[amrlev][mglev], m_geom[amrlev][mglev]);
+                FillBoundaryCoeff(*m_psi_mf[amrlev][mglev], m_geom[amrlev][mglev]);
             }
         }
     }
@@ -954,9 +724,6 @@ Elastic<SYM>::averageDownCoeffsSameAmrLevel (int amrlev)
         MultiTab& crse = *m_ddw_mf[amrlev][mglev];
         MultiTab& fine = *m_ddw_mf[amrlev][mglev-1];
         
-        MultiFab& crse_psi = *m_psi_mf[amrlev][mglev];
-        MultiFab& fine_psi = *m_psi_mf[amrlev][mglev-1];
-
         amrex::BoxArray crseba = crse.boxArray();
         amrex::BoxArray fineba = fine.boxArray();
         
@@ -965,10 +732,6 @@ Elastic<SYM>::averageDownCoeffsSameAmrLevel (int amrlev)
         MultiTab fine_on_crseba;
         fine_on_crseba.define(newba,crse.DistributionMap(),1,4);
         fine_on_crseba.ParallelCopy(fine,0,0,1,2,4,m_geom[amrlev][mglev].periodicity());
-
-        MultiFab fine_psi_on_crseba;
-        fine_psi_on_crseba.define(newba,crse_psi.DistributionMap(),1,4);
-        fine_psi_on_crseba.ParallelCopy(fine_psi,0,0,1,2,4,m_geom[amrlev][mglev].periodicity());
 
         for (MFIter mfi(crse, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
@@ -1030,10 +793,21 @@ Elastic<SYM>::averageDownCoeffsSameAmrLevel (int amrlev)
         }
         FillBoundaryCoeff(crse,m_geom[amrlev][mglev]);
         
+
+        if (!m_psi_set) continue;
+
+        amrex::Box cdomain_cell(m_geom[amrlev][mglev].Domain());
+        amrex::Box fdomain_cell(m_geom[amrlev][mglev-1].Domain());
+        MultiFab& crse_psi = *m_psi_mf[amrlev][mglev];
+        MultiFab& fine_psi = *m_psi_mf[amrlev][mglev-1];
+        MultiFab fine_psi_on_crseba;
+        fine_psi_on_crseba.define(newba.convert(amrex::IntVect::TheCellVector()),crse_psi.DistributionMap(),1,1);
+        fine_psi_on_crseba.ParallelCopy(fine_psi,0,0,1,1,1,m_geom[amrlev][mglev].periodicity());
+
         for (MFIter mfi(crse_psi, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             Box bx = mfi.tilebox();
-            bx = bx & cdomain;
+            bx = bx & cdomain_cell;
 
             amrex::Array4<const Set::Scalar> const& fdata = fine_psi_on_crseba.array(mfi);
             amrex::Array4<Set::Scalar> const& cdata       = crse_psi.array(mfi);
@@ -1088,6 +862,7 @@ Elastic<SYM>::averageDownCoeffsSameAmrLevel (int amrlev)
                             fdata(i,j,k) / 8.0;
                 });
         }
+        FillBoundaryCoeff(crse_psi,m_geom[amrlev][mglev]);
 
     }
 }
@@ -1105,6 +880,24 @@ Elastic<SYM>::FillBoundaryCoeff (MultiTab& sigma, const Geometry& geom)
         const int ng1 = 1;
         const int ng2 = 2;
         MultiTab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
+        tmpmf.ParallelCopy(mf,0,0,ncomp,ng2,ng1,geom.periodicity());
+        mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
+    }
+}
+
+template<int SYM>
+void
+Elastic<SYM>::FillBoundaryCoeff (MultiFab& psi, const Geometry& geom)
+{
+    BL_PROFILE("Elastic::FillBoundaryCoeff()");
+    for (int i = 0; i < 2; i++)
+    {
+        MultiFab & mf = psi;
+        mf.FillBoundary(geom.periodicity());
+        const int ncomp = mf.nComp();
+        const int ng1 = 1;
+        const int ng2 = 2;
+        MultiFab tmpmf(mf.boxArray(), mf.DistributionMap(), ncomp, ng1);
         tmpmf.ParallelCopy(mf,0,0,ncomp,ng2,ng1,geom.periodicity());
         mf.ParallelCopy   (tmpmf, 0, 0, ncomp, ng1, ng2, geom.periodicity());
     }

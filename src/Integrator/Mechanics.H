@@ -19,6 +19,8 @@
 
 #include "IC/Ellipse.H"
 #include "IC/Voronoi.H"
+#include "IC/Constant.H"
+#include "BC/Constant.H"
 #include "Numeric/Stencil.H"
 
 #include "Model/Solid/Solid.H"
@@ -59,7 +61,6 @@ public:
         pp.query("time_evolving",value.m_time_evolving);
         
         value.RegisterGeneralFab(value.disp_mf, 1, 2, "disp",value.m_time_evolving);
-        value.RegisterGeneralFab(value.ddisp_mf, 1, 2, "ddisp",value.m_time_evolving);
         value.RegisterGeneralFab(value.rhs_mf, 1, 2, "rhs",value.m_time_evolving);
         value.RegisterGeneralFab(value.stress_mf, 1, 2, "stress",value.m_time_evolving);
         value.RegisterGeneralFab(value.strain_mf, 1, 2, "strain",value.m_time_evolving);
@@ -89,8 +90,6 @@ public:
         pp.query("print_model",value.m_print_model);
         if (value.m_print_model) value.RegisterGeneralFab(value.model_mf, 1, 2,"model",value.m_time_evolving);
         else value.RegisterGeneralFab(value.model_mf, 1, 2,value.m_time_evolving);
-        
-        value.RegisterNodalFab(value.psi_mf,1,2,"psi",true);
 
         // Read in IC for RHS
         std::string rhstype;
@@ -139,13 +138,11 @@ protected:
 
         for (int lev=0; lev <= finest_level; ++lev) 
         {
-            //rhs_mf[lev]->setVal(Set::Vector::Zero());
+            rhs_mf[lev]->setVal(Set::Vector::Zero());
             if (ic_rhs) ic_rhs->Initialize(lev,rhs_mf);
         }
 
         UpdateModel(a_step);        
-
-        //if (a_step > 0) bc->setHomogeneous(true);
 
         bc->SetTime(a_time);
         bc->Init(rhs_mf,geom);
@@ -155,7 +152,6 @@ protected:
             info.setMaxCoarseningLevel(m_max_coarsening_level);
         Operator::Elastic<MODEL::sym> elastic_op(Geom(0,finest_level), grids, DistributionMap(0,finest_level), info);
         elastic_op.SetUniform(false);
-        //elastic_op.SetUniform(true);
         elastic_op.SetHomogeneous(false);
         elastic_op.SetBC(bc);
         IO::ParmParse pp("elasticop");
@@ -164,28 +160,10 @@ protected:
         Set::Scalar tol_rel = 1E-8, tol_abs = 1E-8;
 
         solver.Define(elastic_op);
-        solver.setPsi(psi_mf);
-        //if (a_step == 0) 
+        if (psi_on) solver.setPsi(psi_mf);
         solver.solve(disp_mf,rhs_mf,model_mf,tol_rel,tol_abs);
-        //else solver.solve(ddisp_mf,rhs_mf,model_mf,tol_rel,tol_abs);
-        //if (m_print_residual) solver.compResidual(res_mf,disp_mf,rhs_mf,model_mf);
         if (m_print_residual) solver.compLinearSolverResidual(res_mf,disp_mf,rhs_mf);
         solver.Clear();
-
-        //for (int lev = 0; lev <= disp_mf.finest_level; lev++)
-        //{
-        //    for (MFIter mfi(*disp_mf[lev], false); mfi.isValid(); ++mfi)
-        //    {
-        //        amrex::Box bx = mfi.grownnodaltilebox();
-        //        amrex::Array4<Set::Vector> const &disp  = disp_mf[lev]->array(mfi);
-        //        amrex::Array4<Set::Vector> const &ddisp  = ddisp_mf[lev]->array(mfi);
-        //        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-        //            disp(i,j,k) += ddisp(i,j,k);
-        //        });
-        //    }
-        //    Util::RealFillBoundary(*disp_mf[lev],geom[lev]);
-        //    //disp_mf[lev]->ParallelAdd(*ddisp_mf[lev]);
-        //}
 
         for (int lev = 0; lev <= disp_mf.finest_level; lev++)
         {
@@ -367,11 +345,12 @@ protected:
 protected:
     Set::Field<MODEL> model_mf;
     Set::Field<Set::Scalar> psi_mf;
+    bool psi_on = false;
 
     int m_interval = 0;
     Type m_type = Type::Static;
 
-    Set::Field<Set::Vector> disp_mf, ddisp_mf;
+    Set::Field<Set::Vector> disp_mf;
     Set::Field<Set::Vector> rhs_mf;
     Set::Field<Set::Vector> res_mf;
     Set::Field<Set::Matrix> stress_mf;
@@ -429,12 +408,28 @@ class Mechanics : virtual public MechanicsBase<MODEL>
         // Refinement threshold for strain gradient
         pp.query("ref_threshold",value.m_elastic_ref_threshold);
 
+
         // Read in IC for eta
-        std::string type;
-        pp.query("ic.type",type); // Read IC type for the eta field
-        Util::Message(INFO,type);
-        if (type=="ellipse") value.ic_eta = new IC::Ellipse(value.geom,pp,"ic.ellipse");
-        if (type=="voronoi") value.ic_eta = new IC::Voronoi(value.geom,pp,"ic.voronoi");
+        {
+            std::string type;
+            pp.query("ic.type",type); // Read IC type for the eta field
+            if (type=="ellipse") value.ic_eta = new IC::Ellipse(value.geom,pp,"ic.ellipse");
+            if (type=="voronoi") value.ic_eta = new IC::Voronoi(value.geom,pp,"ic.voronoi");
+        }
+
+        // Read in IC for psi
+        if (pp.contains("psi.ic.type"))
+        {
+            std::string type;
+            pp.query("psi.ic.type",type); // Read IC type for the eta field
+            if (type=="ellipse") value.ic_psi = new IC::Ellipse(value.geom,pp,"psi.ic.ellipse");
+            else if (type=="constant") value.ic_psi = new IC::Constant(value.geom,pp,"psi.ic.constant");
+            else Util::Abort(INFO,"Invalid value for psi.ic.type: ",type);
+            
+            value.bc_psi = new BC::Nothing();
+            value.RegisterNewFab(value.psi_mf,value.bc_psi,1,2,"psi",true);
+            value.psi_on = true;
+        }
     }
 
     void Initialize(int lev) override
@@ -443,13 +438,15 @@ class Mechanics : virtual public MechanicsBase<MODEL>
         eta_mf[lev]->setVal(0.0);
         if (models.size() > 1 && ic_eta) ic_eta->Initialize(lev, eta_mf);
         else eta_mf[lev]->setVal(1.0);
+
+        if (psi_on) ic_psi->Initialize(lev,psi_mf);
     }
 
     virtual void UpdateModel(int a_step) override
     {
         if (m_type == MechanicsBase<MODEL>::Type::Disable) return;
 
-        //if (a_step > 0) return;
+        if (a_step > 0) return;
         
         for (int lev = 0; lev <= finest_level; ++lev)
         {
@@ -466,55 +463,17 @@ class Mechanics : virtual public MechanicsBase<MODEL>
                 amrex::Box bx = mfi.grownnodaltilebox();
 
                 amrex::Array4<MODEL> const &model = model_mf[lev]->array(mfi);
-                amrex::Array4<Set::Scalar> const &psi = psi_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const &eta = eta_mf[lev]->array(mfi);
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                                             model(i,j,k) = MODEL::Zero();
                                             for (unsigned int n = 0; n < models.size(); n++) 
                                                 model(i,j,k) += eta(i,j,k,n) * models[n];
-                                            //psi(i,j,k) = 1.0;//eta(i,j,k,1);
-                                            psi(i,j,k) = eta(i,j,k,1);
                                         });
             }
+
             Util::RealFillBoundary(*model_mf[lev],geom[lev]);
         }
-        
-
-        //
-        // New stuff - diffuse free boundary
-        //
-        if (false)
-        for (int lev = 0; lev <= disp_mf.finest_level; lev++)
-        {
-            amrex::Box domain = geom[lev].Domain();
-            domain.convert(amrex::IntVect::TheNodeVector());
-
-            const amrex::Real* DX = geom[lev].CellSize();
-            for (MFIter mfi(*disp_mf[lev], false); mfi.isValid(); ++mfi)
-            {
-                amrex::Box bx = mfi.nodaltilebox();
-                bx.grow(2);
-                domain.grow(-1);
-                bx = bx & domain;
-
-                amrex::Array4<Set::Vector>       const &b  = rhs_mf[lev]->array(mfi);
-                amrex::Array4<Set::Matrix>       const &stress  = stress_mf[lev]->array(mfi);
-                amrex::Array4<Set::Scalar>       const &eta  = eta_mf[lev]->array(mfi);
-
-                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-                {
-                    auto sten = Numeric::GetStencil(i,j,k,bx);
-                    Set::Vector gradeta = Numeric::Gradient(eta,i,j,k,1,DX,sten);
-                    b(i,j,k) = -stress(i,j,k) * gradeta;// / (eta(i,j,k) + 1E-8);
-                    //Util::Message(INFO,b(i,j,k));
-                });
-            }
-            Util::RealFillBoundary(*rhs_mf[lev],geom[lev]);
-        }   
-
-        
-        
     }
 
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, Set::Scalar a_time, int a_ngrow) override
@@ -538,6 +497,19 @@ class Mechanics : virtual public MechanicsBase<MODEL>
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
             });
+            if (psi_on)
+            {
+                amrex::Array4<Set::Scalar> const &psi = psi_mf[lev]->array(mfi);
+                amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
+                {
+                    auto sten = Numeric::GetStencil(i,j,k,bx);
+                    {
+                        Set::Vector gradpsi = Numeric::Gradient(psi, i, j, k, 0, DX.data(),sten);
+                        if (gradpsi.lpNorm<2>() * DXnorm > m_eta_ref_threshold)
+                            tags(i, j, k) = amrex::TagBox::SET;
+                    }
+                });
+            }            
         }
     }
 
@@ -547,16 +519,15 @@ class Mechanics : virtual public MechanicsBase<MODEL>
     Set::Scalar m_eta_ref_threshold = 0.01;
     std::vector<MODEL> models;
     IC::IC *ic_eta = nullptr;
+    IC::IC *ic_psi = nullptr;
+    BC::BC<Set::Scalar> *bc_psi = nullptr;
 
     using MechanicsBase<MODEL>::m_type;
     using MechanicsBase<MODEL>::finest_level;
     using MechanicsBase<MODEL>::geom;
     using MechanicsBase<MODEL>::model_mf;
     using MechanicsBase<MODEL>::psi_mf;
-
-    using MechanicsBase<MODEL>::disp_mf;
-    using MechanicsBase<MODEL>::stress_mf;
-    using MechanicsBase<MODEL>::rhs_mf;
+    using MechanicsBase<MODEL>::psi_on;
 };
 
 
