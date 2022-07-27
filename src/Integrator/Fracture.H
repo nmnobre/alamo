@@ -229,7 +229,7 @@ public:
                 amrex::Array4<Set::Scalar> const &psi = psi_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                                            
+
                                             psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
                                                                     crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
                                                                     crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
@@ -314,7 +314,6 @@ public:
     {
         // advance for crack field
         crack.c_old_mf[a_lev]->FillBoundary();
-
         std::swap (crack.c_old_mf[a_lev], crack.c_mf[a_lev]);
 
         const Set::Scalar* DX = geom[a_lev].CellSize();

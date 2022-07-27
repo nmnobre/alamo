@@ -170,6 +170,7 @@ inline int Set::Field<Model::Solid::Affine::J2Plastic>::NComp() const
 template<>
 inline std::string Set::Field<Model::Solid::Affine::J2Plastic>::Name(int i) const 
 {
+
     if (i==0) return name + ".epsp_xx";
     if (i==1) return name + ".epsp_xy";
     if (i==2) return name + AMREX_D_PICK("",".epsp_yx",".epsp_xz");
