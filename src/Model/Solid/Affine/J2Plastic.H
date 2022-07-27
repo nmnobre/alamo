@@ -23,9 +23,9 @@ public:
     {
         theta = a_theta;
         yield_strength = a_yield;
-        yield_strength0 = a_yield;
+        // yield_strength0 = a_yield;
         hardening_modulus = a_hardening;
-        hardening_modulus0 = a_hardening;
+        // hardening_modulus0 = a_hardening;
     }
 
     void DegradeYieldSurface(const Set::Scalar eta)
@@ -33,8 +33,8 @@ public:
         if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);
         if(std::isnan(eta)) Util::Abort(INFO, "Nans in eta");
         if(std::isinf(eta)) Util::Abort(INFO, "Infs in eta");
-        yield_strength = yield_strength0*(1. - eta);
-        hardening_modulus = hardening_modulus0*(1.-eta);
+        // yield_strength = yield_strength0*(1. - eta);
+        // hardening_modulus = hardening_modulus0*(1.-eta);
     }
 
     void DegradeYieldSurface(const amrex::Vector<Set::Scalar> &eta)
@@ -45,16 +45,16 @@ public:
             if(std::isnan(eta[0])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0) Util::Abort(INFO,"Invalid value of eta",eta[0]);
-            yield_strength = yield_strength0*(1. - eta[0]);
-            hardening_modulus = hardening_modulus0*(1.-eta[0]);
+            // yield_strength = yield_strength0*(1. - eta[0]);
+            // hardening_modulus = hardening_modulus0*(1.-eta[0]);
         }
         else if (eta.size() == 2)
         {
             if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            yield_strength = yield_strength0*(1. - eta[0]);
-            hardening_modulus = hardening_modulus0*(1.-eta[1]);
+            // yield_strength = yield_strength0*(1. - eta[0]);
+            // hardening_modulus = hardening_modulus0*(1.-eta[1]);
         }
         else return;
     }
@@ -66,7 +66,8 @@ public:
     
     Set::Scalar OriginalYieldSurface()
     {
-        return yield_strength0 + F0.norm()*hardening_modulus0;
+        YieldSurface();
+        // return yield_strength0 + F0.norm()*hardening_modulus0;
     }
 
     Set::Scalar PlasticEnergy()
@@ -76,7 +77,8 @@ public:
 
     Set::Scalar OriginalPlasticEnergy()
     {
-        return (yield_strength0*F0.norm() + 0.5*hardening_modulus0*F0.norm()*F0.norm());
+        PlasticEnergy();
+        // return (yield_strength0*F0.norm() + 0.5*hardening_modulus0*F0.norm()*F0.norm());
     }
     
     void Advance(Set::Scalar /*dt*/, Set::Matrix eps, Set::Matrix /*sig*/) override
@@ -116,9 +118,9 @@ public:
     Set::Scalar alpha = 0.0;
     Set::Scalar theta;                  // isotropic and kinematic hardening parameter
     Set::Scalar yield_strength;          // yield strength
-    Set::Scalar yield_strength0;          // original yield strength
+    // Set::Scalar yield_strength0;          // original yield strength
     Set::Scalar hardening_modulus;      // hardening modulus
-    Set::Scalar hardening_modulus0;      // original hardening modulus
+    // Set::Scalar hardening_modulus0;      // original hardening modulus
 
 public:
     static J2Plastic Zero()
@@ -150,7 +152,7 @@ public:
         value.DefineSlipSystem(yield, hardening, theta_tmp);
     }
     #define OP_CLASS J2Plastic
-    #define OP_VARS X(m_lambda) X(m_mu) X(m_lambda0) X(m_mu0) X(F0) X(beta) X(theta) X(yield_strength) X(hardening_modulus) X(yield_strength0) X(hardening_modulus0) X(strain_prev) X(alpha)
+    #define OP_VARS X(m_lambda) X(m_mu) X(F0) X(beta) X(theta) X(yield_strength) X(hardening_modulus) X(strain_prev) X(alpha) //X(m_lambda0) X(m_mu0)  X(yield_strength0) X(hardening_modulus0) 
     #include "Model/Solid/InClassOperators.H"
 
 };

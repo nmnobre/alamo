@@ -55,19 +55,19 @@ public:
     virtual void Print(std::ostream &out) const //override 
     {
         out << "C11=" << C11 << ", C12=" << C12 << ", C44=" << C44 << " R=" << q.toRotationMatrix() << std::endl;
-        out << "C110=" << C110 << ", C120=" << C120 << ", C440=" << C440 << std::endl;
+        // out << "C110=" << C110 << ", C120=" << C120 << ", C440=" << C440 << std::endl;
     }
 
     void DegradeModulus(const Set::Scalar eta)
     {
         if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta", eta);
-        if(std::isnan(C110)) Util::Abort(INFO, "Nans in C110");
-        if(std::isnan(C120)) Util::Abort(INFO, "Nans in C120");
-        if(std::isnan(C440)) Util::Abort(INFO, "Nans in C440");
+        // if(std::isnan(C110)) Util::Abort(INFO, "Nans in C110");
+        // if(std::isnan(C120)) Util::Abort(INFO, "Nans in C120");
+        // if(std::isnan(C440)) Util::Abort(INFO, "Nans in C440");
 
-        C11 = C110*(1.-eta);
-        C12 = C120*(1.-eta);
-        C44 = C440*(1.-eta);
+        // C11 = C110*(1.-eta);
+        // C12 = C120*(1.-eta);
+        // C44 = C440*(1.-eta);
     }
     void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
     {
@@ -78,18 +78,18 @@ public:
             if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            C11 = C110*(1.-eta[0]);
-            C12 = C120*(1.-eta[1]);
-            C44 = C440*(1.-eta[1]);
+            // C11 = C110*(1.-eta[0]);
+            // C12 = C120*(1.-eta[1]);
+            // C44 = C440*(1.-eta[1]);
         }
         else if (eta.size() == 3)
         {
             if(std::isnan(eta[0]) || std::isnan(eta[1]) || std::isnan(eta[2])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1]) || std::isnan(eta[2])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0 || eta[2] < 0.0 || eta[2] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            C11 = C110*(1.-eta[0]);
-            C12 = C120*(1.-eta[1]);
-            C44 = C440*(1.-eta[2]);
+            // C11 = C110*(1.-eta[0]);
+            // C12 = C120*(1.-eta[1]);
+            // C44 = C440*(1.-eta[2]);
         }
         else
             return;
@@ -98,7 +98,7 @@ public:
 public:
 
     Set::Scalar C11=NAN, C12=NAN, C44=NAN;
-    Set::Scalar C110=NAN, C120=NAN, C440=NAN;
+    //Set::Scalar C110=NAN, C120=NAN, C440=NAN;
     Eigen::Quaterniond q;    
 
 public:
@@ -125,7 +125,7 @@ public:
     {
         Cubic ret;
         ret.C11 = C11; ret.C12 = C12; ret.C44 = C44;
-        ret.C110 = C11; ret.C120 = C12; ret.C440 = C44;
+        // ret.C110 = C11; ret.C120 = C12; ret.C440 = C44;
         ret.q = Eigen::Quaterniond::UnitRandom();
         return ret;
     }
@@ -136,9 +136,9 @@ public:
         ret.C11 = 0.0;
         ret.C12 = 0.0;
         ret.C44 = 0.0;
-        ret.C110 = 0.0;
-        ret.C120 = 0.0;
-        ret.C440 = 0.0;
+        // ret.C110 = 0.0;
+        // ret.C120 = 0.0;
+        // ret.C440 = 0.0;
         return ret;
     }
 
@@ -148,9 +148,9 @@ public:
         pp.query("C11",value.C11);
         pp.query("C12",value.C12);
         pp.query("C44",value.C44);
-        value.C110 = value.C11;
-        value.C120 = value.C12;
-        value.C440 = value.C44;
+        // value.C110 = value.C11;
+        // value.C120 = value.C12;
+        // value.C440 = value.C44;
 
         Set::Scalar phi1 = 0.0, Phi = 0.0, phi2 = 0.0;
         pp.query("phi1",phi1);
@@ -185,7 +185,7 @@ public:
     }    
 
     #define OP_CLASS Cubic
-    #define OP_VARS X(C11) X(C12) X(C44) X(C110) X(C120) X(C440) X(q.coeffs())
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) /*X(C110) X(C120) X(C440)*/ 
     #include "Model/Solid/InClassOperators.H"
     
     

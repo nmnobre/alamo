@@ -233,7 +233,7 @@ public:
         StrainGradientCrystalPlastic ret;
         ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
-        ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
+        // ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
         ret.F0 = Set::Matrix::Zero();
         //ret.DefineSlipSystem(0.,0.,0.);
         ret.DefineSlipGradientSystem();
@@ -299,11 +299,11 @@ public:
                                     a_c0, a_w1, a_w2, a_h, a_q1, a_q2, a_rho_s0, a_rho_g0, a_F0, a_T, f_gam0dot);
 
         Util::Message(INFO, "modulus = ", value.C11, " ", value.C12, " ", value.C44);
-        Util::Message(INFO, "modulus = ", value.C110, " ", value.C120, " ", value.C440);
+        //Util::Message(INFO, "modulus = ", value.C110, " ", value.C120, " ", value.C440);
     }
 
     #define OP_CLASS StrainGradientCrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(C110) X(C120) X(C440) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_rho_s0) X(m_rho_g0) X(m_F0) X(m_T)
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_rho_s0) X(m_rho_g0) X(m_F0) X(m_T) //X(C110) X(C120) X(C440) 
     #define OP_LOOP_NUM 12
     #define OP_LOOP_VARS X(m_gam0dot) X(gam) X(gamdot) X(rho_se) X(rho_ss) X(rho_gen) X(rho_gsm) X(rho_get)
     #include "Model/Solid/InClassOperators.H"

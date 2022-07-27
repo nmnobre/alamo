@@ -25,8 +25,8 @@ public:
     {
         m_lambda = a_lambda;
         m_mu = a_mu;
-        m_lambda0 = a_lambda;
-        m_mu0 = a_mu;
+        // m_lambda0 = a_lambda;
+        // m_mu0 = a_mu;
     }
 
     Set::Scalar W(const Set::Matrix & gradu) const override
@@ -44,18 +44,18 @@ public:
     virtual void Print(std::ostream &out) const override 
     {
         out << "lamda = " << m_lambda <<", mu = " << m_mu << std::endl;
-        out << "lamda0 = " << m_lambda0 <<", mu0 = " << m_mu0 << std::endl;
+        // out << "lamda0 = " << m_lambda0 <<", mu0 = " << m_mu0 << std::endl;
     }
 
     void DegradeModulus(const Set::Scalar eta)
     {
         if(std::isnan(eta)) Util::Abort(INFO, "Nans in eta");
         if(eta < 0.0 || eta > 1.0) Util::Abort(INFO, "Invalid value of eta ", eta);
-        if(std::isnan(m_lambda0) || std::isnan(m_mu0)) 
-            Util::Abort(INFO, "Nans detected"," mu0=", m_mu0, " lambda0=",m_lambda0); 
+        // if(std::isnan(m_lambda0) || std::isnan(m_mu0)) 
+        //     Util::Abort(INFO, "Nans detected"," mu0=", m_mu0, " lambda0=",m_lambda0); 
 
-        m_mu = m_mu0*(1.-eta);
-        m_lambda = m_lambda0*(1.-eta);
+        // m_mu = m_mu0*(1.-eta);
+        // m_lambda = m_lambda0*(1.-eta);
     }
 
     void DegradeModulus(const amrex::Vector<Set::Scalar> &eta)
@@ -67,9 +67,9 @@ public:
             if(std::isnan(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Nans in eta");
             if(std::isinf(eta[0]) || std::isnan(eta[1])) Util::Abort(INFO,"Infs in eta");
             if(eta[0] < 0.0 || eta[0] > 1.0 || eta[1] < 0.0 || eta[1] > 1.0) Util::Abort(INFO,"Invalid value of eta");
-            m_mu = m_mu0*(1.-eta[0]);
-            m_lambda = m_lambda0*(1.-eta[1]);
-            Isotropic::Define( m_mu, m_lambda );
+            // m_mu = m_mu0*(1.-eta[0]);
+            // m_lambda = m_lambda0*(1.-eta[1]);
+            // Isotropic::Define( m_mu, m_lambda );
         }
         else
             return;
@@ -79,8 +79,8 @@ public:
     static const KinematicVariable kinvar = KinematicVariable::gradu;
     Set::Scalar m_lambda = NAN;
     Set::Scalar m_mu = NAN;
-    Set::Scalar m_lambda0 = NAN;
-    Set::Scalar m_mu0 = NAN;
+    // Set::Scalar m_lambda0 = NAN;
+    // Set::Scalar m_mu0 = NAN;
 
 public:
     AMREX_FORCE_INLINE
@@ -140,7 +140,7 @@ public:
     }
 
     #define OP_CLASS Isotropic
-    #define OP_VARS X(m_lambda) X(m_mu) X(m_lambda0) X(m_mu0)
+    #define OP_VARS X(m_lambda) X(m_mu) //X(m_lambda0) X(m_mu0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"

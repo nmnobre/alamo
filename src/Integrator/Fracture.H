@@ -230,8 +230,10 @@ public:
                 amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
                                             
-                                            Set::Scalar c_avg = Numeric::Interpolate::NodeToCellAverage(c,i,j,k,0);
-                                            psi(i,j,k,0) = crack.cracktype[0].g_phi(c_avg);
+                                            psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
+                                                                    crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
+                                                                    crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
+                                                                    crack.cracktype[0].g_phi(c(i+1,j+1,k,0)));
                                             // Set::Scalar _tmp = 0.0;
                                             // _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
                                             // if (std::isnan(_tmp)) Util::Abort(INFO);
@@ -311,6 +313,8 @@ public:
     void Advance(int a_lev, amrex::Real a_time, amrex::Real a_dt)
     {
         // advance for crack field
+        crack.c_old_mf[a_lev]->FillBoundary();
+
         std::swap (crack.c_old_mf[a_lev], crack.c_mf[a_lev]);
 
         const Set::Scalar* DX = geom[a_lev].CellSize();
@@ -334,14 +338,14 @@ public:
                 #endif
 
                 // First we are taking care of zero gradient BC
-                if      (i == lo.x && j == lo.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i+1,j+1,k) - 0.5*c(i+2,j+2,k));
-                else if (i == lo.x && j == hi.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i+1,j-1,k) - 0.5*c(i+2,j-2,k));
-                else if (i == hi.x && j == lo.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i-1,j+1,k) - 0.5*c(i-2,j+2,k));
-                else if (i == hi.x && j == hi.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i-1,j-1,k) - 0.5*c(i-2,j-2,k));
-                else if (i == lo.x) c(i,j,k) = (2.0/3.0)*(2.0*c(i+1,j,k) - 0.5*c(i+2,j,k));
-                else if (j == lo.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j+1,k) - 0.5*c(i,j+2,k));
-                else if (i == hi.x) c(i,j,k) = (2.0/3.0)*(2.0*c(i-1,j,k) - 0.5*c(i-2,j,k));
-                else if (j == hi.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j-1,k) - 0.5*c(i,j-2,k));
+                if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0); //(2.0/3.0)*(2.0*c(i+1,j+1,k) - 0.5*c(i+2,j+2,k));
+                else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0); //(2.0/3.0)*(2.0*c(i+1,j-1,k) - 0.5*c(i+2,j-2,k));
+                else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0); //(2.0/3.0)*(2.0*c(i-1,j+1,k) - 0.5*c(i-2,j+2,k));
+                else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0); //(2.0/3.0)*(2.0*c(i-1,j-1,k) - 0.5*c(i-2,j-2,k));
+                else if (i == lo.x) c(i,j,k) = c(i+1,j,k,0); //(2.0/3.0)*(2.0*c(i+1,j,k) - 0.5*c(i+2,j,k));
+                else if (j == lo.y) c(i,j,k) = c(i,j+1,k,0); //(2.0/3.0)*(2.0*c(i,j+1,k) - 0.5*c(i,j+2,k));
+                else if (i == hi.x) c(i,j,k) = c(i-1,j,k,0); //(2.0/3.0)*(2.0*c(i-1,j,k) - 0.5*c(i-2,j,k));
+                else if (j == hi.y) c(i,j,k) = c(i,j-1,k,0); //(2.0/3.0)*(2.0*c(i,j-1,k) - 0.5*c(i,j-2,k));
 
                 // Next, we are doing crack evolution
                 else
@@ -392,7 +396,9 @@ public:
                 }
             });
         }
-        Util::RealFillBoundary(*crack.c_mf[a_lev],geom[a_lev]);
+        crack.c_mf[a_lev]->FillBoundary();
+
+        //Util::RealFillBoundary(*crack.c_mf[a_lev],geom[a_lev]);
 
         // advance for mechanics field
         MechanicsBase<brittle_model>::Advance(a_lev,a_time,a_dt);
