@@ -33,6 +33,8 @@ public:
 
         // Material field related parsing
         pp.query("material.refinement_threshold", value.material.m_eta_ref_threshold);
+
+        // Let's figure out if we are doing multi-material simulations.
         std::string mat_ic_type;
         pp.query("material.ic.type", mat_ic_type);
         if(mat_ic_type == "laminate")
@@ -68,18 +70,22 @@ public:
             value.material.ic = tmpic;
             value.material.is_ic = true;
         }
+        // This is the simplest case - homogeneous material
         else
         {
             value.material.num_mat = 1;
             value.material.is_ic = false;
         }
 
+        // Let's query material properties for different materials in the system
         for (int i = 0; i<value.material.num_mat; i++)
         {
             std::string name = "material.model" + std::to_string(i+1);
             std::string name_type = "material.model" + std::to_string(i+1) + ".type";
             std::string mat_model_type;
             pp.query(name_type.c_str(),mat_model_type);
+            
+            // For now we only have isotropic implemented. 
             if(mat_model_type == "isotropic")
             {
                 brittle_model tmp_model;
@@ -91,16 +97,19 @@ public:
         }
         Util::Assert(INFO,TEST(value.material.models.size() > 0));
 
+        // This is the fab that stores the material field. 
+        // For a simple, single material simulation, this will be a uniform field with value 1 everywhere
         value.RegisterNodalFab(value.material.eta_mf, value.material.num_mat, 2, "eta", true);
 
         // Crack related parsing
-        pp.query("crack.modulus_scaling_max", value.crack.scaleModulusMax);
+        //pp.query("crack.modulus_scaling_max", value.crack.scaleModulusMax);
         pp.query("crack.refinement_threshold",value.crack.refinement_threshold);
         pp.query("crack.df.tol_rel",value.crack.tol_rel);
         pp.query("crack.df.tol_abs",value.crack.tol_abs);
         pp.query("crack.df.mult_Gc", value.crack.mult_Gc);
         pp.query("crack.df.el_mult", value.crack.el_mult);
 
+        // Let's figure out if there is an initial crack or void
         pp.queryarr("crack.ic.type",value.crack.ic_type);
         if(value.crack.ic_type.size() == 0) value.crack.is_ic = false;
         else
@@ -131,12 +140,19 @@ public:
         value.RegisterNodalFab(value.crack.energy_pristine_old_mf, 1, 2, "energy_pristine_old", false);
         value.RegisterIntegratedVariable(&(value.crack.driving_force_norm),"driving_force_norm");
 
+        // By default the psi variable will be on for fracture simulations
+        value.psi_on = true;
+        value.bc_psi = new BC::Nothing();
+        value.RegisterNewFab(value.psi_mf,value.bc_psi,1,2,"psi",true);
+
+        // This is needed for the specific crack model we are implementing
         for (int i = 0; i<value.material.num_mat; i++)
         {
             std::string name = "crack.model" + std::to_string(i+1);
             std::string name_type = "crack.model" + std::to_string(i+1) + ".type";
             std::string mat_model_type;
             pp.query(name_type.c_str(),mat_model_type);
+            // For now we only have a crack of constant Gc implemented
             if(mat_model_type == "constant")
             {
                 crack_type tmp_model;
@@ -155,14 +171,22 @@ public:
 
         crack.c_mf[lev]->setVal(1.0);
         crack.c_old_mf[lev]->setVal(1.0);
+
+        // For now, we are setting psi field to 1. This prevents nans.
+        // We will modify the psi field later.
+        psi_mf[lev]->setVal(1.0);
+
         if(crack.is_ic)
         {
             for (int i=0; i < crack.ic.size(); i++)
             {
+                // This initializes the crack field.
                 crack.ic[i]->Add(lev,crack.c_mf);
                 crack.ic[i]->Add(lev,crack.c_old_mf);
             }
         }
+
+        // This initializes the material field
         if (material.is_ic) material.ic->Initialize(lev,material.eta_mf);
         else material.eta_mf[lev]->setVal(1.0);
     }
@@ -171,7 +195,9 @@ public:
     {
         if (m_type == MechanicsBase<brittle_model>::Type::Disable) return;
 
-        // if (a_step == 0)
+        // This sets the model field for the very first time step
+        // We should not be resetting model field everytime.
+        if (a_step == 0)
         {
             for (int lev = 0; lev <= finest_level; ++lev)
             {
@@ -192,26 +218,30 @@ public:
             }
         }
 
+        // This is where we perform "degradation"
+        // Essentially we will set the psi field based on the c^2 value.
         for (int lev = 0; lev <= finest_level; ++lev)
         {
-            // model_mf[lev]->setVal(material.models[0]);
             crack.c_mf[lev]->FillBoundary();
-            for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
+            for (MFIter mfi(*psi_mf[lev], false); mfi.isValid(); ++mfi)
             {
-                amrex::Box bx = mfi.grownnodaltilebox();
-                amrex::Array4<brittle_model> const &model = model_mf[lev]->array(mfi);
+                amrex::Box bx = mfi.growntilebox();
+                amrex::Array4<Set::Scalar> const &psi = psi_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-                                            Set::Scalar _tmp = 0.0;
-                                            _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
-                                            if (std::isnan(_tmp)) Util::Abort(INFO);
-                                            if(_tmp < 0.0) _tmp = crack.scaleModulusMax;
-                                            if(_tmp > 1.0) _tmp = 1.0;
+                                            
+                                            Set::Scalar c_avg = Numeric::Interpolate::NodeToCellAverage(c,i,j,k,0);
+                                            psi(i,j,k,0) = crack.cracktype[0].g_phi(c_avg);
+                                            // Set::Scalar _tmp = 0.0;
+                                            // _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
+                                            // if (std::isnan(_tmp)) Util::Abort(INFO);
+                                            // if(_tmp < 0.0) _tmp = crack.scaleModulusMax;
+                                            // if(_tmp > 1.0) _tmp = 1.0;
 					
-                                            model(i,j,k).DegradeModulus(1-_tmp);
+                                            // model(i,j,k).DegradeModulus(1-_tmp);
                                         });
             }
-            Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+            psi_mf[lev]->FillBoundary();
         }
     }
 
@@ -223,12 +253,14 @@ public:
             elastic_do_solve_now = true;
         if (crack.driving_force_norm < crack.tol_abs)
            elastic_do_solve_now = true;
+        
+        // This means that the crack field has not converged.
         if (!elastic_do_solve_now) return;
 
         // Doing an elastic solve
         MechanicsBase<brittle_model>::TimeStepBegin(a_time,a_step);
 
-        // Computing pristine energy
+        // Computing pristine energy based on eigen value decomposition
         for (int lev = 0; lev <= disp_mf.finest_level; lev++)
         {
             std::swap(crack.energy_pristine_mf[lev],crack.energy_pristine_old_mf[lev]);
@@ -246,23 +278,26 @@ public:
                 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
                 {
+                    // Perform eigenvalue decomposition of strain
                     Set::Matrix eps = strain(i,j,k);
                     Eigen::SelfAdjointEigenSolver<Set::Matrix> eigensolver(eps);
                     Set::Vector eValues = eigensolver.eigenvalues();
                     Set::Matrix eVectors = eigensolver.eigenvectors();
 
-                    Set::Matrix epsp = Set::Matrix::Zero();
-                    Set::Matrix epsn = Set::Matrix::Zero();
+                    // Reconstruct positive and negative counterparts of strain
+                    Set::Matrix eps_p = Set::Matrix::Zero();
+                    Set::Matrix eps_n = Set::Matrix::Zero();
 
                     for (int n = 0; n<AMREX_SPACEDIM; n++)
                     {
-                        if(eValues(n) > 0.0) epsp += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
-                        else epsn += epsp += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
+                        if(eValues(n) > 0.0) eps_p += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
+                        else eps_n += eValues(n)*(eVectors.col(n)*eVectors.col(n).transpose());
                     }
 
                     for (int n = 0; n < material.num_mat; n++)
-                        energy(i,j,k) += eta(i,j,k,n)*material.models[n].W(epsp);
+                        energy(i,j,k) += eta(i,j,k,n)*material.models[n].W(eps_p);
                     
+                    // Only update energy if it is increasing.
                     if (energy(i,j,k) < energy_old(i,j,k)) energy(i,j,k) = energy_old(i,j,k);
                 });
             }
@@ -458,11 +493,14 @@ protected:
     } material;
 
     bool elastic_do_solve_now = true;
+    BC::BC<Set::Scalar> *bc_psi = nullptr;
 
     using MechanicsBase<brittle_model>::m_type;
     using MechanicsBase<brittle_model>::finest_level;
     using MechanicsBase<brittle_model>::geom;
     using MechanicsBase<brittle_model>::model_mf;
+    using MechanicsBase<brittle_model>::psi_mf;
+    using MechanicsBase<brittle_model>::psi_on;
 };
 }
 
