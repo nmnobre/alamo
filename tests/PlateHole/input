@@ -95,3 +95,4 @@ bc.tension_test.disp = (0,0.25:0,0.2)
 
 elasticop.small=1E-16
 
+#elastic_ref_threshold = 1E-4
