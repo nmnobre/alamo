@@ -61,7 +61,7 @@ public:
 
     Set::Scalar YieldSurface()
     {
-        return yield_strength + F0.norm()*hardening_modulus;
+        return yield_strength + alpha*hardening_modulus;
     }
     
     Set::Scalar OriginalYieldSurface()
@@ -72,7 +72,7 @@ public:
 
     Set::Scalar PlasticEnergy()
     {
-        return (yield_strength*F0.norm() + 0.5*hardening_modulus*F0.norm()*F0.norm());
+        return (yield_strength*alpha + 0.5*hardening_modulus*alpha*alpha);
     }
 
     Set::Scalar OriginalPlasticEnergy()

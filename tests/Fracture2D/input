@@ -35,9 +35,9 @@ crack.model1.constant.wtype = 4c3
 crack.model1.constant.threshold = 0.0
 
 crack.ic.type = notch
-crack.ic.notch.center = -0.01 0.0
+crack.ic.notch.center = 0.0 0.0 #-0.01 0.0
 crack.ic.notch.orientation = 1.0 0.0
-crack.ic.notch.thickness = 3.e-4
+crack.ic.notch.thickness = 3.5e-4
 crack.ic.notch.length = 2.e-3
 crack.ic.notch.eps = 4.e-5
 crack.ic.notch.mollifier = erf
@@ -68,9 +68,9 @@ bc.constant.type.xhiylo = disp disp
 bc.constant.type.yhi = disp disp
 bc.constant.type.xloyhi = disp disp
 bc.constant.type.xhiyhi = disp disp
-bc.constant.val.yhi = 0.0 1.e-4
-bc.constant.val.xloyhi = 0.0 1.e-4
-bc.constant.val.xhiyhi = 0.0 1.e-4
+bc.constant.val.yhi = 1.e-4 0.0 #0.0 1.e-4
+bc.constant.val.xloyhi = 1.e-4 0.0 #0.0 1.e-4
+bc.constant.val.xhiyhi = 1.e-4 0.0 #0.0 1.e-4
 
 #solver.bottom_solver = smoother
 #solver.verbose = 4
