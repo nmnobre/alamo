@@ -1,7 +1,7 @@
 #ifndef INTEGRATOR_FRACTURE_H
 #define INTEGRATOR_FRACTURE_H
 
-#include "Integrator/Mechanics.H"
+#include "Integrator/Base/Mechanics.H"
 
 #include "Model/Solid/Linear/Isotropic.H"
 #include "Model/Interface/Crack/Constant.H"
@@ -21,15 +21,15 @@ using brittle_model = Model::Solid::Linear::Isotropic;
 using crack_type = Model::Interface::Crack::Constant;
 
 class Fracture: 
-    virtual public MechanicsBase<brittle_model>
+    virtual public Base::Mechanics<brittle_model>
 {
 
 public:
-    Fracture(): MechanicsBase<brittle_model>(){}
+    Fracture(): Base::Mechanics<brittle_model>(){}
 
     static void Parse(Fracture &value, IO::ParmParse &pp)
     {
-        MechanicsBase<brittle_model>::Parse(value,pp);
+        Base::Mechanics<brittle_model>::Parse(value,pp);
 
         // Material field related parsing
         pp.query("material.refinement_threshold", value.material.m_eta_ref_threshold);
@@ -167,7 +167,7 @@ public:
 
     void Initialize(int lev) override
     {
-        MechanicsBase<brittle_model>::Initialize(lev);
+        Base::Mechanics<brittle_model>::Initialize(lev);
 
         crack.c_mf[lev]->setVal(1.0);
         crack.c_old_mf[lev]->setVal(1.0);
@@ -193,7 +193,7 @@ public:
 
     virtual void UpdateModel(int a_step) override
     {
-        if (m_type == MechanicsBase<brittle_model>::Type::Disable) return;
+        if (m_type == Base::Mechanics<brittle_model>::Type::Disable) return;
 
         // This sets the model field for the very first time step
         // We should not be resetting model field everytime.
@@ -260,7 +260,7 @@ public:
         if (!elastic_do_solve_now) return;
 
         // Doing an elastic solve
-        MechanicsBase<brittle_model>::TimeStepBegin(a_time,a_step);
+        Base::Mechanics<brittle_model>::TimeStepBegin(a_time,a_step);
 
         // Computing pristine energy based on eigen value decomposition
         for (int lev = 0; lev <= disp_mf.finest_level; lev++)
@@ -400,12 +400,12 @@ public:
         //Util::RealFillBoundary(*crack.c_mf[a_lev],geom[a_lev]);
 
         // advance for mechanics field
-        MechanicsBase<brittle_model>::Advance(a_lev,a_time,a_dt);
+        Base::Mechanics<brittle_model>::Advance(a_lev,a_time,a_dt);
     }
 
     void TagCellsForRefinement(int lev, amrex::TagBoxArray &a_tags, Set::Scalar a_time, int a_ngrow) override
     {
-        MechanicsBase<brittle_model>::TagCellsForRefinement(lev,a_tags,a_time,a_ngrow);
+        Base::Mechanics<brittle_model>::TagCellsForRefinement(lev,a_tags,a_time,a_ngrow);
 
         Set::Vector DX(geom[lev].CellSize());
         Set::Scalar DXnorm = DX.lpNorm<2>();
@@ -452,7 +452,7 @@ public:
             crack.driving_force_norm += df(i,j,k,4)*DV;
         });
 
-        MechanicsBase<brittle_model>::Integrate(amrlev,time,step,mfi,a_box);
+        Base::Mechanics<brittle_model>::Integrate(amrlev,time,step,mfi,a_box);
     }
 
     void TimeStepComplete(Set::Scalar /*time*/, int /* iter*/)
@@ -500,12 +500,12 @@ protected:
     bool elastic_do_solve_now = true;
     BC::BC<Set::Scalar> *bc_psi = nullptr;
 
-    using MechanicsBase<brittle_model>::m_type;
-    using MechanicsBase<brittle_model>::finest_level;
-    using MechanicsBase<brittle_model>::geom;
-    using MechanicsBase<brittle_model>::model_mf;
-    using MechanicsBase<brittle_model>::psi_mf;
-    using MechanicsBase<brittle_model>::psi_on;
+    using Base::Mechanics<brittle_model>::m_type;
+    using Base::Mechanics<brittle_model>::finest_level;
+    using Base::Mechanics<brittle_model>::geom;
+    using Base::Mechanics<brittle_model>::model_mf;
+    using Base::Mechanics<brittle_model>::psi_mf;
+    using Base::Mechanics<brittle_model>::psi_on;
 };
 }
 
