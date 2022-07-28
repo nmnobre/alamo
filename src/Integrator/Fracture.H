@@ -133,9 +133,9 @@ public:
                     Util::Abort(INFO, "This IC hasn't been implemented yet");
             }
         }
-        value.RegisterNodalFab(value.crack.c_mf, 1, 2, "crack", true);
-        value.RegisterNodalFab(value.crack.c_old_mf, 1, 2, "crack_old", true);
-        value.RegisterNodalFab(value.crack.driving_force_mf, 5, 2, "driving_force", true);
+        // value.RegisterNodalFab(value.crack.c_mf, 1, 2, "crack", true);
+        // value.RegisterNodalFab(value.crack.c_old_mf, 1, 2, "crack_old", true);
+        // value.RegisterNodalFab(value.crack.driving_force_mf, 5, 2, "driving_force", true);
         value.RegisterNodalFab(value.crack.energy_pristine_mf, 1, 2, "energy_pristine", true);
         value.RegisterNodalFab(value.crack.energy_pristine_old_mf, 1, 2, "energy_pristine_old", false);
         value.RegisterIntegratedVariable(&(value.crack.driving_force_norm),"driving_force_norm");
@@ -144,6 +144,9 @@ public:
         value.psi_on = true;
         value.bc_psi = new BC::Nothing();
         value.RegisterNewFab(value.psi_mf,value.bc_psi,1,2,"psi",true);
+        value.RegisterNewFab(value.crack.c_mf,value.bc_psi, 1, 2, "crack", true);
+        value.RegisterNewFab(value.crack.c_old_mf,value.bc_psi, 1, 2, "crack_old", true);
+        value.RegisterNewFab(value.crack.driving_force_mf,value.bc_psi, 5, 2, "driving_force", true);
 
         // This is needed for the specific crack model we are implementing
         for (int i = 0; i<value.material.num_mat; i++)
@@ -230,17 +233,11 @@ public:
                 amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
-                                            psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
-                                                                    crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
-                                                                    crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
-                                                                    crack.cracktype[0].g_phi(c(i+1,j+1,k,0)));
-                                            // Set::Scalar _tmp = 0.0;
-                                            // _tmp = crack.cracktype[0].g_phi(c(i,j,k,0),0) + crack.scaleModulusMax;
-                                            // if (std::isnan(_tmp)) Util::Abort(INFO);
-                                            // if(_tmp < 0.0) _tmp = crack.scaleModulusMax;
-                                            // if(_tmp > 1.0) _tmp = 1.0;
-					
-                                            // model(i,j,k).DegradeModulus(1-_tmp);
+                                            psi(i,j,k,0) = crack.cracktype[0].g_phi(c(i,j,k,0));
+                                            // psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
+                                            //                         crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
+                                            //                         crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
+                                            //                         crack.cracktype[0].g_phi(c(i+1,j+1,k,0)));
                                         });
             }
             psi_mf[lev]->FillBoundary();
@@ -323,7 +320,7 @@ public:
 
         for (amrex::MFIter mfi(*crack.c_mf[a_lev], true); mfi.isValid(); ++mfi)
         {
-            const amrex::Box& bx = mfi.nodaltilebox();
+            const amrex::Box& bx = mfi.tilebox();
             amrex::Array4<const Set::Scalar> const& c_old = crack.c_old_mf[a_lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& energy = crack.energy_pristine_mf[a_lev]->array(mfi);
             amrex::Array4<const Set::Scalar> const& eta = material.eta_mf[a_lev]->array(mfi);
@@ -337,14 +334,22 @@ public:
                 #endif
 
                 // First we are taking care of zero gradient BC
-                if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0); //(2.0/3.0)*(2.0*c(i+1,j+1,k) - 0.5*c(i+2,j+2,k));
-                else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0); //(2.0/3.0)*(2.0*c(i+1,j-1,k) - 0.5*c(i+2,j-2,k));
-                else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0); //(2.0/3.0)*(2.0*c(i-1,j+1,k) - 0.5*c(i-2,j+2,k));
-                else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0); //(2.0/3.0)*(2.0*c(i-1,j-1,k) - 0.5*c(i-2,j-2,k));
-                else if (i == lo.x) c(i,j,k) = c(i+1,j,k,0); //(2.0/3.0)*(2.0*c(i+1,j,k) - 0.5*c(i+2,j,k));
-                else if (j == lo.y) c(i,j,k) = c(i,j+1,k,0); //(2.0/3.0)*(2.0*c(i,j+1,k) - 0.5*c(i,j+2,k));
-                else if (i == hi.x) c(i,j,k) = c(i-1,j,k,0); //(2.0/3.0)*(2.0*c(i-1,j,k) - 0.5*c(i-2,j,k));
-                else if (j == hi.y) c(i,j,k) = c(i,j-1,k,0); //(2.0/3.0)*(2.0*c(i,j-1,k) - 0.5*c(i,j-2,k));
+                if      (i == lo.x && j == lo.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i+1,j+1,k) - 0.5*c(i+2,j+2,k));
+                else if (i == lo.x && j == hi.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i+1,j-1,k) - 0.5*c(i+2,j-2,k));
+                else if (i == hi.x && j == lo.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i-1,j+1,k) - 0.5*c(i-2,j+2,k));
+                else if (i == hi.x && j == hi.y) c(i,j,k,0) = (2.0/3.0)*(2.0*c(i-1,j-1,k) - 0.5*c(i-2,j-2,k));
+                else if (i == lo.x) c(i,j,k) = (2.0/3.0)*(2.0*c(i+1,j,k) - 0.5*c(i+2,j,k));
+                else if (j == lo.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j+1,k) - 0.5*c(i,j+2,k));
+                else if (i == hi.x) c(i,j,k) = (2.0/3.0)*(2.0*c(i-1,j,k) - 0.5*c(i-2,j,k));
+                else if (j == hi.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j-1,k) - 0.5*c(i,j-2,k));
+                // if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0);
+                // else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0);
+                // else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0);
+                // else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0);
+                // else if (i == lo.x) c(i,j,k) = c(i+1,j,k,0);
+                // else if (j == lo.y) c(i,j,k) = c(i,j+1,k,0);
+                // else if (i == hi.x) c(i,j,k) = c(i-1,j,k,0);
+                // else if (j == hi.y) c(i,j,k) = c(i,j-1,k,0);
 
                 // Next, we are doing crack evolution
                 else
@@ -355,11 +360,10 @@ public:
                         Numeric::Stencil<Set::Scalar, 2, 2, 0>::D(c_old,i,j,k,0,DX) * 2.0 +
                         Numeric::Stencil<Set::Scalar, 0, 4, 0>::D(c_old,i,j,k,0,DX);
                     
-                    df(i,j,k,0) = crack.cracktype[0].Dg_phi(c_old(i,j,k),0.0)*energy(i,j,k)*crack.el_mult;
+                    Set::Scalar en_cell = Numeric::Interpolate::NodeToCellAverage(energy,i,j,k,0);
+                    df(i,j,k,0) = crack.cracktype[0].Dg_phi(c_old(i,j,k),0.0)*en_cell*crack.el_mult;
                     rhs += df(i,j,k,0);
 
-                    // std::array<Numeric::StencilType,AMREX_SPACEDIM> stencil = 
-                    //     {AMREX_D_DECL(Numeric::StencilType::Central,Numeric::StencilType::Central,Numeric::StencilType::Central)};
                     Set::Scalar laplacian = Numeric::Laplacian(c_old,i,j,k,0,DX);
 
                     Set::Scalar Gc = 0.0;
@@ -397,9 +401,6 @@ public:
         }
         crack.c_mf[a_lev]->FillBoundary();
 
-        //Util::RealFillBoundary(*crack.c_mf[a_lev],geom[a_lev]);
-
-        // advance for mechanics field
         Base::Mechanics<brittle_model>::Advance(a_lev,a_time,a_dt);
     }
 
@@ -426,7 +427,7 @@ public:
         }
         for (amrex::MFIter mfi(*material.eta_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            amrex::Box bx = mfi.nodaltilebox();
+            amrex::Box bx = mfi.tilebox();
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
