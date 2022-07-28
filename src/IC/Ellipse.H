@@ -65,12 +65,9 @@ public:
                         // if (field(i,j,k,m+1) > 1.) field(i,j,k,m+1) = 1.;
                         // value += field(i,j,k,m+1);
                     }
-                    field (i,j,k,invert) = 1.0 - value;
-                    field (i,j,k,1-invert) = value;
-                    if (field(i,j,k,invert) < 0.) field(i,j,k,invert) = 0.;
-                    if (field(i,j,k,invert) > 1.) field(i,j,k,invert) = 1.;
-                    if (field(i,j,k,1-invert) < 0.) field(i,j,k,1-invert) = 0.;
-                    if (field(i,j,k,1-invert) > 1.) field(i,j,k,1-invert) = 1.;
+                    if (invert) field(i,j,k,0) = 1.0 - value;
+                    else field(i,j,k,0) = value;
+                    if (ncomp > 1) field(i,j,k,1) = 1.0 - field(i,j,k,0);
                 }
                 
             });
@@ -135,10 +132,10 @@ public:
             value.A.resize(0);
             value.eps.resize(0);
 
-            pp.queryarr("center", x0);
+            pp.queryarr("x0", x0);
             
             if(x0.size() != value.number_of_inclusions*AMREX_SPACEDIM)
-                Util::Abort(INFO, "Need centers for all the inclusions");
+                Util::Abort(INFO, "Need centers for all the inclusions, received ",x0.size()," values but need ", value.number_of_inclusions*AMREX_SPACEDIM);
             for (int i = 0; i < x0.size(); i+= AMREX_SPACEDIM)
                 value.center.push_back(Set::Vector(AMREX_D_DECL(x0[i],x0[i+1],x0[i+2])));
 
@@ -173,10 +170,10 @@ public:
                     }
                 }
             }
-            else if (pp.contains("radius"))
+            else if (pp.contains("a"))
             {
                 amrex::Vector<Set::Scalar> _r;
-                pp.queryarr("radius", _r);
+                pp.queryarr("a", _r);
 
                 if(_r.size() != value.number_of_inclusions*AMREX_SPACEDIM && _r.size() != AMREX_SPACEDIM)
                     Util::Abort(INFO, "Invalid value of radius for ellipse initialization");
