@@ -48,8 +48,9 @@ geometry.is_periodic	    = 0 0 0
 
 # ellipse configuration
 psi.ic.type        = ellipse
-psi.ic.ellipse.a   = 1.0 1.0 1.0  # ellipse radius
-psi.ic.ellipse.x0  = 0.0 0 0 # location of ellipse center
+psi.ic.ellipse.number_of_inclusions  = 4
+psi.ic.ellipse.a   = 1 1 1 1 1 1 1 1   # ellipse radius
+psi.ic.ellipse.x0  = -6 1 -2 -1 2 1 6 -1 # location of ellipse center
 psi.ic.ellipse.eps = 0.2
 psi.ic.ellipse.invert = 1
 
