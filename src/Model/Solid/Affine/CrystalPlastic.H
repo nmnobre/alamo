@@ -8,7 +8,6 @@
 #include "Set/Set.H"
 #include "Model/Solid/Affine/Cubic.H"
 
-#if AMREX_SPACEDIM==3
 /*
     Note: everything is hardcoded for FCC right now. 
     We will deal with templating BCC and HCP later.
@@ -76,7 +75,7 @@ public:
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
 
-        Set::Matrix_3D yield = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
+        Set::Matrix_3D yield_3D = Set::Matrix_3D::Zero(), R = Set::Matrix_3D::Zero();
         for (int i=0; i<4; i++)
         {
             for (int j=0; j<3; j++)
@@ -86,9 +85,10 @@ public:
                     for (int l=0; l<3; l++)
                         R(k,l) = (R_crystal*plane[i])(k)*(R_crystal*dir[i][j])(l);
                 }
-                yield += m_g_alpha[3*i + j]*R;
+                yield_3D += m_g_alpha[3*i + j]*R;
             }
         }
+        Set::Matrix yield = yield_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
         return (yield.transpose()*F0).trace();
     }
 
@@ -159,6 +159,9 @@ public:
     // qh_{\alpha\beta} = 1 (if \alpha,\beta coplanar), qh (else)
     void Advance(Set::Scalar dt, Set::Matrix /*eps*/, Set::Matrix sig) override
     {
+        Set::Matrix_3D sig_3D = Set::Matrix_3D::Zero();
+        sig_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM)) = sig;
+    
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
 
@@ -172,13 +175,14 @@ public:
                 gamdot[3*i + j] = 0.0;
                 
                 Set::Scalar strength = m_g_alpha[3*i + j];
-                tau = (R_crystal*dir[i][j]).dot(sig*(R_crystal*plane[i]));
+                tau = (R_crystal*dir[i][j]).dot(sig_3D*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
                 Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
-
-                F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                
+                Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
                 m_gam_bar += dt*std::abs(gamdot[3*i + j]);
 
                 if(std::isnan(F0.norm()) || std::isnan(m_gam_bar))
@@ -405,5 +409,5 @@ inline void Set::Field<Model::Solid::Affine::CrystalPlastic>::Copy(int a_lev, am
     }    
 }
 
-#endif
+
 #endif

@@ -8,7 +8,6 @@
 #include "Set/Set.H"
 #include "Model/Solid/Affine/Cubic.H"
 
-#if AMREX_SPACEDIM==3
 /*
     Note: everything is hardcoded for FCC right now. 
     We will deal with templating BCC and HCP later.
@@ -68,7 +67,7 @@ public:
         }
     }
 
-    void ComputePlasticStrainRate(  Set::Matrix sigma, 
+    void ComputePlasticStrainRate(  Set::Matrix sig, 
                                     StrainGradientCrystalPlastic gradX,
                                     StrainGradientCrystalPlastic gradY,
                                     StrainGradientCrystalPlastic gradZ,
@@ -77,6 +76,9 @@ public:
         // gradX, gradY, and gradZ are the model gradient in the x, y, and z directions
         // This means that gradX.gamdotalpha[i] is the gradient of gamma_dot in the x direction for the i^{th} slip system.
         // Along the same lines gradY.gamalpha[i] is the gradient of gamma in the y direction for the i^{th} slip system.
+
+        Set::Matrix_3D sig_3D = Set::Matrix_3D::Zero();
+        sig_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM)) = sig;
 
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
@@ -108,21 +110,21 @@ public:
                 Set::Scalar anisotropic_rho = 0.0;
                 for (int k=0; k<12; k++) anisotropic_rho += (m_w1 + (k == alpha ? 1.0 : 0.0)*(1.0-m_w2))*m_h*(rho_se[k] + rho_ss[k] + std::abs(rho_gen[k]) + std::abs(rho_get[k]) + std::abs(rho_gsm[k]));
                 
-                Set::Vector t_alpha = (dir_rot[alpha]).cross(plane_rot[i]);
+                Set::Vector_3D t_alpha = (dir_rot[alpha]).cross(plane_rot[i]);
 
                 Set::Scalar rho_se_dot = ((m_Ke/m_b)*std::sqrt(anisotropic_rho) - m_de*rho_se[alpha]/m_b)*std::abs(gamdot[alpha]);
 
                 Set::Scalar rho_ss_dot = (((2.0*m_Ke) - (Set::Constant::Pi*m_ds*m_ds*rho_ss[alpha]*0.25))*(1.0/m_b)*std::sqrt(anisotropic_rho) - m_ds*rho_ss[alpha]/m_b)*std::abs(gamdot[alpha]);
 
-                Set::Vector_3D curlTerm = Set::Vector::Zero();
+                Set::Vector_3D curlTerm = Set::Vector_3D::Zero();
 
-                Set::Vector gamdotgradalpha(gradX.gamdot[alpha],gradY.gamdot[alpha],gradZ.gamdot[alpha]);
+                Set::Vector_3D gamdotgradalpha(gradX.gamdot[alpha],gradY.gamdot[alpha],gradZ.gamdot[alpha]);
                 for (int bi=0; bi<4; bi++)
                 {
                     for (int bj=0; bj<3; bj++)
                     {
                         int beta = 3*bi + bj;
-                        Set::Vector gamgradbeta(gradX.gam[beta],gradY.gam[beta],gradZ.gam[beta]);
+                        Set::Vector_3D gamgradbeta(gradX.gam[beta],gradY.gam[beta],gradZ.gam[beta]);
                         
                         Set::Vector_3D temp1 = (gamdotgradalpha*gam[beta] + gamdot[alpha]*gamgradbeta);
                         curlTerm += temp1.cross(dir_rot[beta])*((plane_rot[i]).dot(plane_rot[bi]));
@@ -149,7 +151,7 @@ public:
             for (int j=0; j<3; j++)
             {
                 int alpha = 3*i+j;
-                Set::Scalar tau = (dir_rot[alpha]).dot(sigma*(plane_rot[i]));
+                Set::Scalar tau = (dir_rot[alpha]).dot(sig_3D*(plane_rot[i]));
                 Set::Scalar tau_prime = m_tau0 + m_mu*m_b*m_c0*std::sqrt(total_rho);
 
                 Set::Scalar anisotropic_rho = 0.0;
@@ -178,7 +180,8 @@ public:
         {
             for (int j=0; j<3; j++)
             {
-                F0 += dt * gamdot[3*i + j] * ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
+                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
                 gam[3*i + j] += dt*gamdot[3*i + j];
             }
         }
@@ -356,5 +359,4 @@ inline void Set::Field<Model::Solid::Affine::StrainGradientCrystalPlastic>::Copy
     }    
 }
 
-#endif
 #endif
