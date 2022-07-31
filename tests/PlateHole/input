@@ -16,10 +16,10 @@
 
 alamo.program = mechanics
 
-alamo.program.mechanics.model = affine.j2plastic
+#alamo.program.mechanics.model = affine.j2plastic
 #alamo.program.mechanics.model = linear.cubic
 #alamo.program.mechanics.model = linear.isotropic
-#alamo.program.mechanics.model = affine.crystalplastic
+alamo.program.mechanics.model = affine.crystalplastic
 
 plot_file		    = tests/PlateHole/output
 
@@ -48,32 +48,31 @@ geometry.is_periodic	    = 0 0 0
 
 # ellipse configuration
 psi.ic.type        = ellipse
-psi.ic.ellipse.number_of_inclusions  = 4
-psi.ic.ellipse.a   = 1 1 1 1 1 1 1 1   # ellipse radius
-psi.ic.ellipse.x0  = -6 1 -2 -1 2 1 6 -1 # location of ellipse center
+psi.ic.ellipse.a   = 1.0 1.0 1.0  # ellipse radius
+psi.ic.ellipse.x0  = 0.0 0 0 # location of ellipse center
 psi.ic.ellipse.eps = 0.2
 psi.ic.ellipse.invert = 1
 
 # elastic moduli
 nmodels = 1
-model1.E = 2.10
-model1.nu = 0.3
+#model1.E = 2.10
+#model1.nu = 0.3
 #model1.planestress = 1
-model1.yield = 0.002
-model1.theta = 1.0
-model1.hardening = 0.5
+#model1.yield = 0.002
+#model1.theta = 1.0
+#model1.hardening = 0.5
 
-# model1.C11 = 1.6840
-# model1.C12 = 1.2140
-# model1.C44 = 0.7540
-# model1.hardening.on = 1
-# model1.hardening.g0 = 0.00016 #0.016
-# model1.hardening.gs = 0.000704 #0.0704
-# model1.hardening.h0 = 0.00132 #0.132
-# model1.hardening.hs = 0.00008 #0.008
-# model1.hardening.qh = 1.4
-# model1.exp = 10.0
-# model1.gam0dot = 0.001
+model1.C11 = 1.6840
+model1.C12 = 1.2140
+model1.C44 = 0.7540
+model1.hardening.on = 1
+model1.hardening.g0 = 0.00016 #0.016
+model1.hardening.gs = 0.000704 #0.0704
+model1.hardening.h0 = 0.00132 #0.132
+model1.hardening.hs = 0.00008 #0.008
+model1.hardening.qh = 1.4
+model1.exp = 10.0
+model1.gam0dot = 0.001
 
 
 solver.verbose = 4

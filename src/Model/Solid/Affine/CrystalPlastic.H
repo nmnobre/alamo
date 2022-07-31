@@ -88,7 +88,7 @@ public:
                 yield_3D += m_g_alpha[3*i + j]*R;
             }
         }
-        Set::Matrix yield = yield_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
+        Set::Matrix yield = yield_3D(Eigen::seq(0,AMREX_SPACEDIM-1),Eigen::seq(0,AMREX_SPACEDIM-1));
         return (yield.transpose()*F0).trace();
     }
 
@@ -160,7 +160,7 @@ public:
     void Advance(Set::Scalar dt, Set::Matrix /*eps*/, Set::Matrix sig) override
     {
         Set::Matrix_3D sig_3D = Set::Matrix_3D::Zero();
-        sig_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM)) = sig;
+        sig_3D(Eigen::seq(0,AMREX_SPACEDIM-1),Eigen::seq(0,AMREX_SPACEDIM-1)) = sig;
     
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
@@ -182,10 +182,10 @@ public:
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
                 
                 Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
-                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
+                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM-1),Eigen::seq(0,AMREX_SPACEDIM-1));
                 m_gam_bar += dt*std::abs(gamdot[3*i + j]);
 
-                if(std::isnan(F0.norm()) || std::isnan(m_gam_bar))
+                if(F0.norm() > 1.e9 || std::isnan(F0.norm()) || std::isnan(m_gam_bar))
                 {
                     Util::Message(INFO, "tau = ", tau, ". gamdot [", 3*i+j, "] = ", gamdot[3*i + j], ". gambar = ", m_gam_bar, ". incr_abs = ", incr_abs);
                     Util::Message(INFO, "gam0dot[",3*i+j,"] = ",m_gam0dot[3*i+j], ". strength = ", strength, ". m_exp[",3*i+j,"] = ",m_exp[3*i+j]);
