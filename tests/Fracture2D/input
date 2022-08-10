@@ -4,7 +4,7 @@ type = static
 plot_file     = tests/Fracture2D/output
 
 timestep = 1e-4
-stop_time = 1.0
+stop_time = 1.0e1
 
 amr.plot_int = 10
 amr.max_level = 6
@@ -27,10 +27,10 @@ crack.df.tol_abs = 0.0
 crack.df.el_mult = 1.e11
 
 crack.model1.type = constant
-crack.model1.constant.G_c = 1.e4 #2.7e3
-crack.model1.constant.zeta = 2.e-5
+crack.model1.constant.G_c = 2.7e3 #2.7e3
+crack.model1.constant.zeta = 7.5e-6
 crack.model1.constant.mobility = 1.0e-5
-crack.model1.constant.gtype = 3c2 #square
+crack.model1.constant.gtype = square
 crack.model1.constant.wtype = square
 crack.model1.constant.threshold = 0.0
 

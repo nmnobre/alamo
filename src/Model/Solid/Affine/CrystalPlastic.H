@@ -235,7 +235,7 @@ public:
     static std::array<Set::Scalar, 12> m_exp;
     static std::array<Set::Scalar, 12> m_gam0dot;
     static std::array<Set::Scalar, 12> m_g_alpha;
-    static Set::Scalar m_gam_bar;
+    Set::Scalar m_gam_bar=NAN;
     static Set::Scalar m_g0, m_gs, m_h0, m_hs, m_qh;
 
     static bool hardening;
@@ -257,7 +257,7 @@ public:
         // ret.m_h0 = 0.0; //ret.m_h00 = 0.0;
         // ret.m_hs = 0.0; //ret.m_hs0 = 0.0;
         // ret.m_qh = 0.0;
-        // ret.m_gam_bar = 0.0;
+        ret.m_gam_bar = 0.0;
         return ret;
     }
 
@@ -266,7 +266,6 @@ public:
         Cubic::Parse(value,pp);
         
         amrex::Vector<Set::Scalar> input_g_alpha;
-        std::array<Set::Scalar,12> f_g_alpha;
         
         pp.query("hardening.on", value.hardening);
         if (value.hardening)
@@ -278,7 +277,7 @@ public:
             pp.query("hardening.qh",value.m_qh);
             
             value.m_gam_bar = 0.0;
-            for (int i = 0; i< 12; i++) f_g_alpha[i] = value.m_g0;
+            for (int i = 0; i< 12; i++) value.m_g_alpha[i] = value.m_g0;
         }
         else
         {
@@ -288,21 +287,20 @@ public:
                 if(input_g_alpha.size() == 1)
                 {
                     for (int i = 0; i< 12; i++) 
-                        f_g_alpha[i] = input_g_alpha[0];
+                        value.m_g_alpha[i] = input_g_alpha[0];
                 }
                 else if(input_g_alpha.size() <= 0 || input_g_alpha.size() != 12) Util::Abort(INFO, "Invalid number of values in g_alpha");
                 else
                 {
                     for (int i = 0; i< 12; i++) 
-                        f_g_alpha[i] = input_g_alpha[i];
+                        value.m_g_alpha[i] = input_g_alpha[i];
                 }
             }
             else
-                for (int i = 0; i< 12; i++) f_g_alpha[i] = 0.016;
+                for (int i = 0; i< 12; i++) value.m_g_alpha[i] = 0.016;
         }
 
         amrex::Vector<Set::Scalar> input_exp;
-        std::array<Set::Scalar, 12> f_g_exp;
         
         if(pp.contains("exp"))
         {
@@ -310,43 +308,43 @@ public:
             if(input_exp.size() == 1)
             {
                 for (int i = 0; i< 12; i++) 
-                    f_g_exp[i] = input_exp[0];
+                    value.m_exp[i] = input_exp[0];
             }
             else if(input_exp.size() <= 0 || input_exp.size() != 12) Util::Abort(INFO, "Invalid number of values in exp");
             else
             {
                 for (int i = 0; i< 12; i++) 
-                    f_g_exp[i] = input_exp[i];
+                    value.m_exp[i] = input_exp[i];
             }
         }
         else
-            for (int i = 0; i< 12; i++) f_g_exp[i] = 10.0;
+            for (int i = 0; i< 12; i++) value.m_exp[i] = 10.0;
 
         amrex::Vector<Set::Scalar> input_gam0dot;
-        std::array<Set::Scalar,12> f_gam0dot;
+        
         if(pp.contains("gam0dot"))
         {
             pp.queryarr("gam0dot",input_gam0dot);
             if(input_gam0dot.size() == 1)
             {
                 for (int i = 0; i< 12; i++) 
-                    f_gam0dot[i] = input_gam0dot[0];
+                    value.m_gam0dot[i] = input_gam0dot[0];
             }
             else if(input_gam0dot.size() <= 0 || input_gam0dot.size() != 12) Util::Abort(INFO, "Invalid number of values in gam0dot");
             else
             {
                 for (int i = 0; i< 12; i++) 
-                    f_gam0dot[i] = input_gam0dot[i];
+                    value.m_gam0dot[i] = input_gam0dot[i];
             }
         }
         else
-            for (int i = 0; i< 12; i++) f_gam0dot[i] = 0.001;
+            for (int i = 0; i< 12; i++) value.m_gam0dot[i] = 0.001;
 
-        value.DefineSlipSystem(f_g_alpha,f_g_exp,f_gam0dot);
+        //value.DefineSlipSystem(f_g_alpha,f_g_exp,f_gam0dot);
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) //X(m_g0) X(m_gs) X(m_h0) X(m_hs) X(m_qh) X(m_gam_bar) // X(C110) X(C120) X(C440)
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(m_gam_bar) //X(m_g0) X(m_gs) X(m_h0) X(m_hs) X(m_qh)  // X(C110) X(C120) X(C440)
     //#define OP_LOOP_NUM 12
     //#define OP_LOOP_VARS X(m_exp) X(m_g_alpha) X(m_gam0dot) // X(m_g_alpha0)
     #include "Model/Solid/InClassOperators.H"
@@ -357,7 +355,6 @@ bool CrystalPlastic::hardening = false;
 std::array<Set::Scalar, 12> CrystalPlastic::m_exp;
 std::array<Set::Scalar, 12> CrystalPlastic::m_gam0dot;
 std::array<Set::Scalar, 12> CrystalPlastic::m_g_alpha;
-Set::Scalar CrystalPlastic::m_gam_bar=NAN;
 Set::Scalar CrystalPlastic::m_g0=NAN, CrystalPlastic::m_gs=NAN, CrystalPlastic::m_h0=NAN, CrystalPlastic::m_hs=NAN, CrystalPlastic::m_qh=NAN;
 
 }
