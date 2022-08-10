@@ -49,6 +49,7 @@ public:
         g_map["square"] = Model::Interface::Crack::Crack::GType::GSQUARE;
         g_map["multiwell"] = Model::Interface::Crack::Crack::GType::GMULTIWELL;
         g_map["4c3"] = Model::Interface::Crack::Crack::GType::GPHI4C3;
+        g_map["3c2"] = Model::Interface::Crack::Crack::GType::GPHI3C2;
         g_map["squarep"] = Model::Interface::Crack::Crack::GType::GSQUAREP;
         g_map["squarepexp"] = Model::Interface::Crack::Crack::GType::GSQUAREPM;
         g_map["cubicm"] = Model::Interface::Crack::Crack::GType::GCUBICM;

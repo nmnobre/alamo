@@ -27,10 +27,10 @@ crack.df.tol_abs = 0.0
 crack.df.el_mult = 1.e11
 
 crack.model1.type = constant
-crack.model1.constant.G_c = 2.7e3 #2.7e3
-crack.model1.constant.zeta = 1.e-5
+crack.model1.constant.G_c = 1.e4 #2.7e3
+crack.model1.constant.zeta = 2.e-5
 crack.model1.constant.mobility = 1.0e-5
-crack.model1.constant.gtype = square
+crack.model1.constant.gtype = 3c2 #square
 crack.model1.constant.wtype = square
 crack.model1.constant.threshold = 0.0
 
@@ -41,6 +41,11 @@ crack.ic.notch.thickness = 3.e-4
 crack.ic.notch.length = 2.e-3
 crack.ic.notch.eps = 4.e-5
 crack.ic.notch.mollifier = erf
+
+crack.bc.type.xhi = NEUMANN
+crack.bc.type.xlo = NEUMANN
+crack.bc.type.yhi = NEUMANN
+crack.bc.type.ylo = NEUMANN
 
 material.model1.type = isotropic
 material.model1.isotropic.lambda = 121.15e-2
@@ -69,9 +74,9 @@ bc.constant.type.xhiylo = disp disp
 bc.constant.type.yhi = disp disp
 bc.constant.type.xloyhi = disp disp
 bc.constant.type.xhiyhi = disp disp
-bc.constant.val.yhi = 0.0 1.e-4
-bc.constant.val.xloyhi = 0.0 1.e-4
-bc.constant.val.xhiyhi = 0.0 1.e-4
+bc.constant.val.yhi = 0.0 8.e-5
+bc.constant.val.xloyhi = 0.0 8.e-5
+bc.constant.val.xhiyhi = 0.0 8.e-5
 
 #solver.bottom_solver = smoother
 #solver.verbose = 4

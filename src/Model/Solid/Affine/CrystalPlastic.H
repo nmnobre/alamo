@@ -178,7 +178,7 @@ public:
                 tau = (R_crystal*dir[i][j]).dot(sig_3D*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
-                Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
+                Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(std::min(fabs(tau/strength),1.0), m_exp[3*i + j]);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
                 
                 Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
@@ -231,15 +231,12 @@ public:
         Set::Vector_3D(0,-1,1).normalized(), Set::Vector_3D(-1,0,-1).normalized(), Set::Vector_3D(1,1,0).normalized(),
         Set::Vector_3D(0,1,1).normalized(), Set::Vector_3D(1,0,-1).normalized(), Set::Vector_3D(-1,-1,0).normalized()
     };
-    //std::array<Set::Vector_3D, 12> dir;
-    std::array<Set::Scalar, 12> m_exp;
-    std::array<Set::Scalar, 12> m_gam0dot;
-    std::array<Set::Scalar, 12> m_g_alpha;
-    // std::array<Set::Scalar, 12> m_g_alpha0;
 
-    Set::Scalar m_gam_bar;
-    Set::Scalar m_g0, m_gs, m_h0, m_hs, m_qh;
-    // Set::Scalar m_g00, m_gs0, m_h00, m_hs0;
+    static std::array<Set::Scalar, 12> m_exp;
+    static std::array<Set::Scalar, 12> m_gam0dot;
+    static std::array<Set::Scalar, 12> m_g_alpha;
+    static Set::Scalar m_gam_bar;
+    static Set::Scalar m_g0, m_gs, m_h0, m_hs, m_qh;
 
     static bool hardening;
 
@@ -250,18 +247,17 @@ public:
 
         ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
-        // ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
         ret.F0 = Set::Matrix::Zero();
 
-        ret.DefineSlipSystem(0.,0.,0.);
-        ret.hardening = false;
+        // ret.DefineSlipSystem(0.,0.,0.);
+        // ret.hardening = false;
         
-        ret.m_g0 = 0.0; //ret.m_g00 = 0.0;
-        ret.m_gs = 0.0; //ret.m_gs0 = 0.0;
-        ret.m_h0 = 0.0; //ret.m_h00 = 0.0;
-        ret.m_hs = 0.0; //ret.m_hs0 = 0.0;
-        ret.m_qh = 0.0;
-        ret.m_gam_bar = 0.0;
+        // ret.m_g0 = 0.0; //ret.m_g00 = 0.0;
+        // ret.m_gs = 0.0; //ret.m_gs0 = 0.0;
+        // ret.m_h0 = 0.0; //ret.m_h00 = 0.0;
+        // ret.m_hs = 0.0; //ret.m_hs0 = 0.0;
+        // ret.m_qh = 0.0;
+        // ret.m_gam_bar = 0.0;
         return ret;
     }
 
@@ -281,11 +277,6 @@ public:
             pp.query("hardening.hs",value.m_hs);
             pp.query("hardening.qh",value.m_qh);
             
-            // value.m_g00 = value.m_g0;
-            // value.m_gs0 = value.m_gs;
-            // value.m_h00 = value.m_h0;
-            // value.m_hs0 = value.m_hs;
-
             value.m_gam_bar = 0.0;
             for (int i = 0; i< 12; i++) f_g_alpha[i] = value.m_g0;
         }
@@ -355,14 +346,19 @@ public:
     }
 
     #define OP_CLASS CrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(m_g0) X(m_gs) X(m_h0) X(m_hs) X(m_qh) X(m_gam_bar) // X(C110) X(C120) X(C440)
-    #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(m_exp) X(m_g_alpha) X(m_gam0dot) // X(m_g_alpha0)
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) //X(m_g0) X(m_gs) X(m_h0) X(m_hs) X(m_qh) X(m_gam_bar) // X(C110) X(C120) X(C440)
+    //#define OP_LOOP_NUM 12
+    //#define OP_LOOP_VARS X(m_exp) X(m_g_alpha) X(m_gam0dot) // X(m_g_alpha0)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
 
 bool CrystalPlastic::hardening = false;
+std::array<Set::Scalar, 12> CrystalPlastic::m_exp;
+std::array<Set::Scalar, 12> CrystalPlastic::m_gam0dot;
+std::array<Set::Scalar, 12> CrystalPlastic::m_g_alpha;
+Set::Scalar CrystalPlastic::m_gam_bar=NAN;
+Set::Scalar CrystalPlastic::m_g0=NAN, CrystalPlastic::m_gs=NAN, CrystalPlastic::m_h0=NAN, CrystalPlastic::m_hs=NAN, CrystalPlastic::m_qh=NAN;
 
 }
 }

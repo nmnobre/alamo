@@ -16,7 +16,7 @@ namespace Crack
 class Crack
 {
     public:
-    enum GType {GSQUARE, GMULTIWELL, GPHI4C3, GCUBICM, GSQUAREP, GSQUAREPM};
+    enum GType {GSQUARE, GMULTIWELL, GPHI4C3, GPHI3C2, GCUBICM, GSQUAREP, GSQUAREPM};
     enum WType {WSQUARE, WMULTIWELL, WMULTIWELL2, WPHI4C3};
     
     Crack() {};
@@ -42,6 +42,7 @@ class Crack
             case GSQUARE:        return c*c;
             case GMULTIWELL:     return (2.-c)*(2.-c)*c*c;
             case GPHI4C3:         return 4.*c*c*c - 3.*c*c*c*c;
+            case GPHI3C2:       return 3*c*c - 2*c*c*c;
             case GSQUAREP:        return std::pow(c,2.*p);
             case GSQUAREPM:        return std::pow(c,2.*(std::pow(p,m_d_exponent)));
             case GCUBICM:        return m_d_exponent*(c*c*c - c*c) + 3.*c*c - 2.*c*c*c;
@@ -70,6 +71,7 @@ class Crack
             case GSQUARE:        return 2.*c;
             case GMULTIWELL:     return 4.*c*c*c - 12.*c*c + 8.*c;
             case GPHI4C3:         return 12.*(1.-c)*c*c;
+            case GPHI3C2:       return 6*c - 6*c*c;
             case GSQUAREP:        return 2.*p*std::pow(c,2*p -1.);
             case GSQUAREPM:        return 2.*std::pow(p,m_d_exponent)*(std::pow(c, 2*std::pow(p,m_d_exponent)-1));
             case GCUBICM:        return m_d_exponent*(3.*c*c - 2.*c) + 6.*c - 6.*c*c;

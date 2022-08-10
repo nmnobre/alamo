@@ -148,11 +148,14 @@ public:
         
         // By default the psi variable will be on for fracture simulations
         value.psi_on = true;
-        value.bc_psi = new BC::Nothing();
+        value.bc_psi = new BC::Constant(1,pp,"crack.bc");
         value.RegisterNewFab(value.psi_mf,value.bc_psi,1,2,"psi",true);
         value.RegisterNewFab(value.crack.c_mf,value.bc_psi, 1, 2, "crack", true);
         value.RegisterNewFab(value.crack.c_old_mf,value.bc_psi, 1, 2, "crack_old", true);
-        value.RegisterNewFab(value.crack.driving_force_mf,value.bc_psi, 5, 2, "driving_force", true);
+
+        BC::BC<Set::Scalar> *bc_df = nullptr;
+        bc_df = new BC::Constant(5,pp,"crack.bc");
+        value.RegisterNewFab(value.crack.driving_force_mf,bc_df, 5, 2, "driving_force", true);
 
         // This is needed for the specific crack model we are implementing
         for (int i = 0; i<value.material.num_mat; i++)
@@ -348,17 +351,17 @@ public:
                 // else if (j == lo.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j+1,k) - 0.5*c(i,j+2,k));
                 // else if (i == hi.x) c(i,j,k) = (2.0/3.0)*(2.0*c(i-1,j,k) - 0.5*c(i-2,j,k));
                 // else if (j == hi.y) c(i,j,k) = (2.0/3.0)*(2.0*c(i,j-1,k) - 0.5*c(i,j-2,k));
-                if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0);
-                else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0);
-                else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0);
-                else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0);
-                else if (i == lo.x) c(i,j,k) = c(i+1,j,k,0);
-                else if (j == lo.y) c(i,j,k) = c(i,j+1,k,0);
-                else if (i == hi.x) c(i,j,k) = c(i-1,j,k,0);
-                else if (j == hi.y) c(i,j,k) = c(i,j-1,k,0);
+                // if      (i == lo.x && j == lo.y) c(i,j,k,0) = c(i+1,j+1,k,0);
+                // else if (i == lo.x && j == hi.y) c(i,j,k,0) = c(i+1,j-1,k,0);
+                // else if (i == hi.x && j == lo.y) c(i,j,k,0) = c(i-1,j+1,k,0);
+                // else if (i == hi.x && j == hi.y) c(i,j,k,0) = c(i-1,j-1,k,0);
+                // else if (i == lo.x) c(i,j,k) = c(i+1,j,k,0);
+                // else if (j == lo.y) c(i,j,k) = c(i,j+1,k,0);
+                // else if (i == hi.x) c(i,j,k) = c(i-1,j,k,0);
+                // else if (j == hi.y) c(i,j,k) = c(i,j-1,k,0);
 
                 // Next, we are doing crack evolution
-                else
+                // else
                 {
                     Set::Scalar rhs = 0.0;
                     Set::Scalar bilap = 
