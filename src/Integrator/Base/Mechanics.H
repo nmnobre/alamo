@@ -107,10 +107,8 @@ protected:
         BL_PROFILE("Integrator::Base::Mechanics::Initialize");
         if (m_type == Mechanics<MODEL>::Type::Disable) return;
 
-        Util::Message(INFO, "We are here");
         disp_mf[lev]->setVal(Set::Vector::Zero());
-        Util::Message(INFO, "And now we are here");
-
+        
         if (ic_rhs) ic_rhs->Initialize(lev,rhs_mf);
         else rhs_mf[lev]->setVal(Set::Vector::Zero());
     }

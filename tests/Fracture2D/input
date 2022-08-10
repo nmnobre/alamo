@@ -19,7 +19,7 @@ geometry.prob_lo = -0.01 -0.01
 geometry.prob_hi = 0.01 0.01
 geometry.is_periodic = 0 0
 
-//crack.modulus_scaling_max = 1.e-4
+#crack.modulus_scaling_max = 1.e-4
 crack.refinement_threshold = 0.01
 
 crack.df.tol_rel = 0.01
@@ -27,7 +27,7 @@ crack.df.tol_abs = 0.0
 crack.df.el_mult = 1.e11
 
 crack.model1.type = constant
-crack.model1.constant.G_c = 2.5e4 #2.7e3
+crack.model1.constant.G_c = 2.7e3 #2.7e3
 crack.model1.constant.zeta = 1.e-5
 crack.model1.constant.mobility = 1.0e-5
 crack.model1.constant.gtype = square
@@ -51,6 +51,7 @@ material.refinement_threshold = 1.e-1
 interval = 1
 print_model = 1
 print_residual = 1
+#zero_out_displacement = 1
 
 elasticop.small=1E-16
 solver.verbose = 3
