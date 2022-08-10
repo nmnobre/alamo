@@ -122,6 +122,7 @@ protected:
 
         for (int lev=0; lev <= finest_level; ++lev) 
         {
+            disp_mf[lev]->setVal(Set::Vector::Zero());
             rhs_mf[lev]->setVal(Set::Vector::Zero());
             if (ic_rhs) ic_rhs->Initialize(lev,rhs_mf);
         }
@@ -241,7 +242,7 @@ protected:
 
         for (amrex::MFIter mfi(*disp_mf[lev], false); mfi.isValid(); ++mfi)
         {
-            amrex::Box bx = mfi.validbox().grow(2) & domain;
+            amrex::Box bx = mfi.validbox().grow(1) & domain;
             amrex::Array4<Set::Matrix>         const &eps  = (*strain_mf[lev]).array(mfi);
             amrex::Array4<Set::Matrix>         const &sig  = (*stress_mf[lev]).array(mfi);
             amrex::Array4<MODEL>               const &model= (*model_mf[lev]).array(mfi);
