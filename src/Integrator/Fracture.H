@@ -133,9 +133,9 @@ public:
                     Util::Abort(INFO, "This IC hasn't been implemented yet");
             }
         }
-        // value.RegisterNodalFab(value.crack.c_mf, 1, 2, "crack", true);
-        // value.RegisterNodalFab(value.crack.c_old_mf, 1, 2, "crack_old", true);
-        // value.RegisterNodalFab(value.crack.driving_force_mf, 5, 2, "driving_force", true);
+        value.RegisterNodalFab(value.crack.c_mf, 1, 2, "crack", true);
+        value.RegisterNodalFab(value.crack.c_old_mf, 1, 2, "crack_old", true);
+        value.RegisterNodalFab(value.crack.driving_force_mf, 5, 2, "driving_force", true);
         value.RegisterNodalFab(value.crack.energy_pristine_mf, 1, 2, "energy_pristine", true);
         value.RegisterNodalFab(value.crack.energy_pristine_old_mf, 1, 2, "energy_pristine_old", false);
         value.RegisterIntegratedVariable(&(value.crack.driving_force_norm),"driving_force_norm");
@@ -144,9 +144,9 @@ public:
         value.psi_on = true;
         value.bc_psi = new BC::Nothing();
         value.RegisterNewFab(value.psi_mf,value.bc_psi,1,2,"psi",true);
-        value.RegisterNewFab(value.crack.c_mf,value.bc_psi, 1, 2, "crack", true);
-        value.RegisterNewFab(value.crack.c_old_mf,value.bc_psi, 1, 2, "crack_old", true);
-        value.RegisterNewFab(value.crack.driving_force_mf,value.bc_psi, 5, 2, "driving_force", true);
+        // value.RegisterNewFab(value.crack.c_mf,value.bc_psi, 1, 2, "crack", true);
+        // value.RegisterNewFab(value.crack.c_old_mf,value.bc_psi, 1, 2, "crack_old", true);
+        // value.RegisterNewFab(value.crack.driving_force_mf,value.bc_psi, 5, 2, "driving_force", true);
 
         // This is needed for the specific crack model we are implementing
         for (int i = 0; i<value.material.num_mat; i++)
@@ -233,11 +233,11 @@ public:
                 amrex::Array4<const Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
 
-                                            psi(i,j,k,0) = crack.cracktype[0].g_phi(c(i,j,k,0));
-                                            // psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
-                                            //                         crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
-                                            //                         crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
-                                            //                         crack.cracktype[0].g_phi(c(i+1,j+1,k,0)));
+                                            // psi(i,j,k,0) = crack.cracktype[0].g_phi(c(i,j,k,0));
+                                            psi(i,j,k,0) = 0.25*(crack.cracktype[0].g_phi(c(i,j,k,0)) + 
+                                                                    crack.cracktype[0].g_phi(c(i+1,j,k,0)) +
+                                                                    crack.cracktype[0].g_phi(c(i,j+1,k,0)) +
+                                                                    crack.cracktype[0].g_phi(c(i+1,j+1,k,0)));
                                         });
             }
             psi_mf[lev]->FillBoundary();
@@ -360,7 +360,7 @@ public:
                         Numeric::Stencil<Set::Scalar, 2, 2, 0>::D(c_old,i,j,k,0,DX) * 2.0 +
                         Numeric::Stencil<Set::Scalar, 0, 4, 0>::D(c_old,i,j,k,0,DX);
                     
-                    Set::Scalar en_cell = Numeric::Interpolate::NodeToCellAverage(energy,i,j,k,0);
+                    Set::Scalar en_cell = energy(i,j,k,0); // Numeric::Interpolate::NodeToCellAverage(energy,i,j,k,0);
                     df(i,j,k,0) = crack.cracktype[0].Dg_phi(c_old(i,j,k),0.0)*en_cell*crack.el_mult;
                     rhs += df(i,j,k,0);
 
@@ -408,6 +408,7 @@ public:
     {
         Base::Mechanics<brittle_model>::TagCellsForRefinement(lev,a_tags,a_time,a_ngrow);
 
+
         Set::Vector DX(geom[lev].CellSize());
         Set::Scalar DXnorm = DX.lpNorm<2>();
         for (amrex::MFIter mfi(*material.eta_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
@@ -415,6 +416,8 @@ public:
             amrex::Box bx = mfi.nodaltilebox();
             amrex::Array4<char> const &tags = a_tags.array(mfi);
             amrex::Array4<Set::Scalar> const &eta = material.eta_mf[lev]->array(mfi);
+            amrex::Array4<Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
+            
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
             {
                 auto sten = Numeric::GetStencil(i,j,k,bx);
@@ -423,16 +426,6 @@ public:
                     if (grad.lpNorm<2>() * DXnorm > material.m_eta_ref_threshold)
                         tags(i, j, k) = amrex::TagBox::SET;
                 }
-            });
-        }
-        for (amrex::MFIter mfi(*material.eta_mf[lev], TilingIfNotGPU()); mfi.isValid(); ++mfi)
-        {
-            amrex::Box bx = mfi.tilebox();
-            amrex::Array4<char> const &tags = a_tags.array(mfi);
-            amrex::Array4<Set::Scalar> const &c = crack.c_mf[lev]->array(mfi);
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
-            {
-                auto sten = Numeric::GetStencil(i,j,k,bx);
                 {
                     Set::Vector grad = Numeric::Gradient(c, i, j, k, 0, DX.data(),sten);
                     if (grad.lpNorm<2>() * DXnorm > crack.refinement_threshold)
