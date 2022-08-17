@@ -313,6 +313,7 @@ Elastic<SYM>::Diagonal (int amrlev, int mglev, MultiFab& a_diag)
 
                         diag(i,j,k,p) += f(p);
                     }
+                    Util::Message(INFO, "diag at (", i, ",", j, ",", k, "), = ", (diag(i,j,k,p)));
                     if (std::isnan(diag(i,j,k,p))) Util::Abort(INFO,"diagonal is nan at (", i, ",", j , ",",k,"), amrlev=",amrlev,", mglev=",mglev);
 
                 }

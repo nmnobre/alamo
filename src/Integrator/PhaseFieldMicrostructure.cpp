@@ -710,21 +710,23 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 				amrex::Array4<amrex::Real> const &eta = (*eta_old_mf[lev]).array(mfi);
 				amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
 				{
-				  int g1;
-				  int g2;
+				    int g1;
+				    int g2;
 					Set::Scalar E0 = 2.0*disconnection.nucleation_energy;
-					for (g1 = 0; g1 < 2; g1++) {
-					  for (g2 = 0; g2 < 2; g2++) {
+					for (g1 = 0; g1 < number_of_grains; g1++) {
+					  for (g2 = 0; g2 < number_of_grains; g2++) {
 					    if (g1 != g2) {
 					      E0 /= disconnection.epsilon + 256.0*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g1)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2)*eta(i,j,k,g2);
 					    }
 					  }
 					}
-				        Set::Scalar p = std::exp(-E0/(disconnection.K_b*disconnection.temp));
+				    Set::Scalar p = std::exp(-E0/(disconnection.K_b*disconnection.temp));
 					Set::Scalar P = 1.0 - std::pow(1.0 - p,exponent);
 					// P is the probability of disconnection starting there, I think
 
-					if (eta(i,j,k,0) < 0 || eta(i,j,k,0) > 1.0 || eta(i,j,k,1) < 0 || eta(i,j,k,1) > 1.0 ) P = 0.0; //|| eta(i,j,k,2) < 0 || eta(i,j,k,2) > 1.0 ) P = 0.0;
+					for (int n = 0; n < number_of_grains; n++) {
+						if (eta(i,j,k,n) < 0 || eta(i,j,k,n) > 1.0) P = 0.0;
+					}
 
 					Set::Scalar q = 0.0;
 					q = disconnection.unif_dist(disconnection.rand_num_gen);
@@ -869,13 +871,13 @@ void PhaseFieldMicrostructure::TimeStepBegin(amrex::Real time, int iter)
 
 		for (MFIter mfi(*model_mf[lev], false); mfi.isValid(); ++mfi)
 		{
-		        amrex::Box bx = mfi.grownnodaltilebox();//-1,2);
+		    amrex::Box bx = mfi.grownnodaltilebox();//-1,2);
 
 			amrex::Array4<Model::Solid::Composite<model_type,2>> const &model = model_mf[lev]->array(mfi);
 			amrex::Array4<const Set::Scalar> const &eta = eta_new_mf[lev]->array(mfi);
 
 			amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
-				for (int n = 0; n < number_of_grains; n++)
+				for (int n = 0; n < 2; n++) //changed here
 				{
 					model(i,j,k).order = elastic.combine_order;
 					model(i,j,k).m_models[n] = elastic.model[n];

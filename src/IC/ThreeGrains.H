@@ -6,7 +6,7 @@
 #include "IO/ParmParse.H"
 
 /// \class ThreeGrains
-/// \brief Initialize a perturbed interface using Fourier Modes
+/// \brief Initialize a triple junction initial condition
 ///
 /// \todo Extend this class to allow for 3D perturbations, currently only 2D are allowed
 /// \todo Allow for cosine (or complex exponential) expansions rather than just sin.
@@ -72,10 +72,10 @@ public:
 				Set::Scalar s1=NAN, l1=NAN;
 				if (normal==Direction::X) {s1 = x(1); l1 = L2;}
 				if (normal==Direction::Y) {s1 = x(0); l1 = L1;}
-				for (int n = 0; n < wave_numbers.size(); n++)
+				/*for (int n = 0; n < wave_numbers.size(); n++)
 					bdry += wave_amplitudes[n]
 						* ( fabs(std::cos(phis[n]))*std::cos(wave_numbers[n].real()*Set::Constant::Pi*s1 / l1) +
-							fabs(std::sin(phis[n]))*std::sin(wave_numbers[n].imag()*Set::Constant::Pi*s1 / l1));
+							fabs(std::sin(phis[n]))*std::sin(wave_numbers[n].imag()*Set::Constant::Pi*s1 / l1)); */
 #elif AMREX_SPACEDIM == 3				
 				Set::Scalar s1=NAN, s2=NAN, l1=NAN, l2=NAN;
 				if (normal==Direction::X) {s1 = x(1); s2 = x(2); l1 = L2; l2 = L3;}
@@ -186,26 +186,23 @@ public:
 private:
 	enum Direction {X,Y,Z};
 	Direction normal = Direction::Y;
-	Set::Scalar offset = 0.0;
-	amrex::Vector<std::complex<int> > wave_numbers; ///< Store mode amplitudes \f$A_n\f$
-	amrex::Vector<Set::Scalar> wave_amplitudes;
 	std::vector<Set::Scalar> phis;
 	Mollifier mol = Mollifier::Gaussian;
-	Set::Scalar eps;
 	Set::Scalar theta1;
 	Set::Scalar theta2;
 	Set::Scalar theta3;
+	Set::Scalar t1;
+	Set::Scalar t2;
+	Set::Scalar t3;
 	// set theta1, theta2, theta3, r (distance of current point to origin)
 	// set t(1), t(2), t(3) (triple point coordinates)
 	int reverse = 0;
-	// Set::Vector t;
-	Set::Scalar r = 20;
 	
 	
 
 public:
 	static void Parse(ThreeGrains & value, IO::ParmParse & pp)
-    {
+    { /*
 		std::vector<std::string> wave_numbers_str;
 		pp.queryarr("wave_numbers",wave_numbers_str);
 		for (unsigned int i = 0; i<wave_numbers_str.size(); ++i)
@@ -243,8 +240,8 @@ public:
 			pp.query("eps",value.eps);
 			Util::Message(INFO, "eps = ", value.eps);
 		}
+		*/
     }
-
 };
 }
 #endif
