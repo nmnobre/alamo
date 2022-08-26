@@ -1,0 +1,13 @@
+alamo.program = myflame
+timestep = 1
+stop_time = 0
+amr.plot_file = tests/MyFlame/output
+amr.n_cell = 16 16 16
+amr.max_level = 2
+geometry.prob_lo    = 0.0 0.0 0.0
+geometry.prob_hi    = 1.0 1.0 1.0
+
+eta.bc.constant.type.xlo = dirichlet
+eta.bc.constant.type.xhi = dirichlet
+eta.bc.constant.type.ylo = dirichlet
+eta.bc.constant.type.yhi = dirichlet
