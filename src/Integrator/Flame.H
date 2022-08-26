@@ -85,24 +85,29 @@ private:
         Set::Scalar n_htpb = 0.0;
         Set::Scalar r_comb = 0.0;
         Set::Scalar n_comb = 0.0;
+        Set::Scalar L_cor = 0.0;
     } pf;
 
     struct {
         int on = 0;
+        Set::Scalar tstart = 0.01;
         Set::Scalar rho1, rho0;         
         Set::Scalar ka, kh, k0;             
         Set::Scalar cp1, cp0;           
-        Set::Scalar delA, delH;       
+        Set::Scalar delA, delH, delComb;       
     } thermal;
 
     struct {
         Model::Solid::Affine::Isotropic model_ap, model_htpb;
+        Set::Vector traction = Set::Vector::Zero();
     } elastic;
 
 
     // Integrated variables
     Set::Scalar volume = 0.0;
     Set::Scalar area = 0.0;
+
+    BC::BC<Set::Scalar> *bc_psi = nullptr;
 };
 }
 
