@@ -57,24 +57,24 @@ namespace IC
                                        for (unsigned int n = 0; n < X.size(); n++)
                                        {
                                            Set::Scalar d;
-                                           Set::Scalar d1;
+                                           Set::Scalar d1 = INFINITY;
 
                                            d = (x - X[n]).lpNorm<2>();
 
-                                           if (geom[0].isPeriodic(0))
+                                           if (m_periodic && geom[0].isPeriodic(0))
                                            {
                                                d1 = std::min((x - X[n] + size(0) * Set::Vector::Unit(0)).lpNorm<2>(),
                                                              (x - X[n] - size(0) * Set::Vector::Unit(0)).lpNorm<2>());
                                            }
 #if AMREX_SPACEDIM > 1
-                                           if (geom[0].isPeriodic(1))
+                                           if (m_periodic && geom[0].isPeriodic(1))
                                            {
                                                d1 = std::min((x - X[n] + size(1) * Set::Vector::Unit(1)).lpNorm<2>(),
                                                              (x - X[n] - size(1) * Set::Vector::Unit(1)).lpNorm<2>());
                                            }
 #endif
 #if AMREX_SPACEDIM > 2
-                                           if (geom[0].isPeriodic(2))
+                                           if (m_periodic && geom[0].isPeriodic(2))
                                            {
                                                d1 = std::min((x - X[n] + size(2) * Set::Vector::Unit(2)).lpNorm<2>(),
                                                              (x - X[n] - size(2) * Set::Vector::Unit(2)).lpNorm<2>());
@@ -101,6 +101,7 @@ namespace IC
             std::string filename;
             pp.query("eps",value.eps);
             pp.query("filename", filename);
+            pp.query("periodic", value.m_periodic);
             std::ifstream datafile(filename);
             std::string line;
             if (datafile.is_open())
@@ -129,6 +130,7 @@ namespace IC
         std::vector<Set::Vector> X;
         std::vector<Set::Scalar> R;
         Set::Scalar eps;
+        bool m_periodic = false;
     };
 }
 #endif
