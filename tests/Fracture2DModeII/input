@@ -1,10 +1,10 @@
 alamo.program = fracture
 type = static
 
-plot_file     = tests/Fracture2D/output
+plot_file     = tests/Fracture2DModeII/output
 
 timestep = 1.e-4
-stop_time = 1.e2
+stop_time = 1.e3
 
 amr.plot_int = 1000
 amr.max_level = 6
@@ -25,7 +25,7 @@ crack.refinement_threshold = 0.01
 crack.df.tol_rel = 1.e-2
 crack.df.tol_abs = 0.0
 crack.df.el_mult = 1.e11
-crack.beta = 0.0
+crack.beta = 0
 
 crack.model1.type               = constant
 crack.model1.constant.G_c       = 2.7e3
@@ -66,15 +66,29 @@ solver.fixed_iter = 500
 solver.bottom_solver = smoother
 solver.tol_abs = 1E-16
 
-bc.type                 = constant
-bc.constant.type.xlo    = disp trac #disp trac
-bc.constant.type.xhi    = disp trac #disp trac
-bc.constant.type.ylo    = disp disp
+bc.type = constant
+bc.constant.type.xlo = trac disp #disp trac
+bc.constant.type.xhi = trac disp #disp trac
+bc.constant.type.ylo = disp disp
 bc.constant.type.xloylo = disp disp
 bc.constant.type.xhiylo = disp disp
-bc.constant.type.yhi    = disp disp
+bc.constant.type.yhi = disp disp
 bc.constant.type.xloyhi = disp disp
 bc.constant.type.xhiyhi = disp disp
-bc.constant.val.yhi     = 0.0 2.e-5
-bc.constant.val.xloyhi  = 0.0 2.e-5
-bc.constant.val.xhiyhi  = 0.0 2.e-5
+bc.constant.val.yhi = 1.e-5 0.0 #0.0 2.e-5
+bc.constant.val.xloyhi = 1.e-5 0.0 #0.0 2.e-5
+bc.constant.val.xhiyhi = 1.e-5 0.0 #0.0 2.e-5
+
+#solver.bottom_solver = smoother
+#solver.verbose = 4
+#solver.max_iter = 10000
+#solver.max_fmg_iter = 0
+#solver.bottom_max_iter = 1
+#solver.fixed_iter = 1000
+#solver.tol_rel = 1.0e-6
+#solver.tol_abs = 1.0e-6
+#solver.bottom_tol_rel = 1.0e-6
+#solver.bottom_tol_abs = 1.0e-6
+#solver.pre_smooth = 4
+#solver.post_smooth = 4
+#solver.omega = 0.08
