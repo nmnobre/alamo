@@ -277,71 +277,36 @@ Integrator::ClearLevel (int lev)
 //
 //
 
-void // CUSTOM METHOD - CHANGEABLE
-Integrator::RegisterNewFab(Set::Field<Set::Scalar> &new_fab,
-                            BC::BC<Set::Scalar> *new_bc,
-                            int ncomp,
-                            int nghost,
-                            std::string name,
-                            bool writeout)
+
+
+
+
+void
+Integrator::RegisterNewFab(Set::Field<Set::Scalar> &new_fab, BC::BC<Set::Scalar> *new_bc, int ncomp, int nghost, std::string name,bool writeout)
 {
-    BL_PROFILE("Integrator::RegisterNewFab_1");
-    int nlevs_max = maxLevel() + 1;
-    new_fab.resize(nlevs_max); 
-    cell.fab_array.push_back(&new_fab);
-    cell.physbc_array.push_back(new_bc); 
-    cell.ncomp_array.push_back(ncomp);
-    cell.nghost_array.push_back(nghost);
-    cell.name_array.push_back(name);
-    cell.writeout_array.push_back(writeout);
-    cell.number_of_fabs++;
+    Util::Warning(INFO,"RegisterNewFab is depricated. Please replace with AddField");
+    AddField<Set::Scalar,Set::Hypercube::Cell>(new_fab,new_bc,ncomp,nghost,name,writeout,true);
+}
+void
+Integrator::RegisterNewFab(Set::Field<Set::Scalar> &new_fab, int ncomp, std::string name, bool writeout)
+{
+    Util::Warning(INFO,"RegisterNewFab is depricated. Please replace with AddField");
+    AddField<Set::Scalar,Set::Hypercube::Cell>(new_fab,&bcnothing,ncomp,0,name,writeout,true);
+}
+void
+Integrator::RegisterNodalFab(Set::Field<Set::Scalar> &new_fab, BC::BC<Set::Scalar> *new_bc, int ncomp, int nghost, std::string name, bool writeout)
+{
+    Util::Warning(INFO,"RegisterNodalFab is depricated. Please replace with AddField");
+    AddField<Set::Scalar,Set::Hypercube::Node>(new_fab,new_bc,ncomp,nghost,name,writeout,true);
+}
+void
+Integrator::RegisterNodalFab(Set::Field<Set::Scalar> &new_fab, int ncomp, int nghost, std::string name, bool writeout)
+{
+    Util::Warning(INFO,"RegisterNodalFab is depricated. Please replace with AddField");
+    AddField<Set::Scalar,Set::Hypercube::Node>(new_fab,&bcnothing,ncomp,nghost,name,writeout,true);
 }
 
-void // CUSTOM METHOD - CHANGEABLE
-Integrator::RegisterNewFab(Set::Field<Set::Scalar> &new_fab,
-                            int ncomp,
-                            std::string name,
-                            bool writeout)
-{
-    BL_PROFILE("Integrator::RegisterNewFab_2");
-    int nlevs_max = maxLevel() + 1;
-    new_fab.resize(nlevs_max); 
-    cell.fab_array.push_back(&new_fab);
-    cell.physbc_array.push_back(&bcnothing); 
-    cell.ncomp_array.push_back(ncomp);
-    cell.nghost_array.push_back(0);
-    cell.name_array.push_back(name);
-    cell.writeout_array.push_back(writeout);
-    cell.number_of_fabs++;
-}
-void // CUSTOM METHOD - CHANGEABLE
-Integrator::RegisterNodalFab(Set::Field<Set::Scalar> &new_fab,
-                            BC::BC<Set::Scalar> *new_bc,
-                            int ncomp,
-                            int nghost,
-                            std::string name,
-                            bool writeout)
-{
-    BL_PROFILE("Integrator::RegisterNodalFab");
-    int nlevs_max = maxLevel() + 1;
-    new_fab.resize(nlevs_max); 
-    node.fab_array.push_back(&new_fab);
-    node.physbc_array.push_back(new_bc); 
-    node.ncomp_array.push_back(ncomp);
-    node.nghost_array.push_back(nghost);
-    node.name_array.push_back(name);
-    node.writeout_array.push_back(writeout);
-    node.number_of_fabs++;
-}
-void // CUSTOM METHOD - CHANGEABLE
-Integrator::RegisterNodalFab(Set::Field<Set::Scalar> &new_fab,
-                            int ncomp,
-                            int nghost,
-                            std::string name,
-                            bool writeout)
-{
-    RegisterNodalFab(new_fab,&bcnothing,ncomp,nghost,name,writeout);
-}
+
 
 
 void // CUSTOM METHOD - CHANGEABLE
