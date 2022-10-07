@@ -44,10 +44,10 @@ public:
 
         pp.query("time_evolving",value.m_time_evolving);
         
-        value.RegisterGeneralFab(value.disp_mf, 1, 2, "disp",value.m_time_evolving);
-        value.RegisterGeneralFab(value.rhs_mf, 1, 2, "rhs",value.m_time_evolving);
-        value.RegisterGeneralFab(value.stress_mf, 1, 2, "stress",value.m_time_evolving);
-        value.RegisterGeneralFab(value.strain_mf, 1, 2, "strain",value.m_time_evolving);
+        value.AddField<Set::Vector,Set::Hypercube::Node>(value.disp_mf,nullptr,1,2,"disp",true,value.m_time_evolving);
+        value.AddField<Set::Vector,Set::Hypercube::Node>(value.rhs_mf, nullptr, 1, 2, "rhs",true,value.m_time_evolving);
+        value.AddField<Set::Matrix,Set::Hypercube::Node>(value.stress_mf, nullptr, 1, 2, "stress",true,value.m_time_evolving);
+        value.AddField<Set::Matrix,Set::Hypercube::Node>(value.strain_mf, nullptr, 1, 2, "strain",true,value.m_time_evolving);
 
         if (value.m_type == Type::Static)
         {
@@ -56,10 +56,13 @@ public:
         }
         if (value.m_type == Type::Dynamic)
         {
-                value.RegisterGeneralFab(value.vel_mf,1,2,"vel");
-                value.RegisterGeneralFab(value.disp_old_mf,1,2,"dispold");
-                value.RegisterGeneralFab(value.vel_old_mf,1,2,"velold");
-                pp.query("viscous.mu",value.mu);            
+            value.AddField<Set::Vector,Set::Hypercube::Node>
+                (value.vel_mf,nullptr,1,2,"vel",true,true);
+            value.AddField<Set::Vector,Set::Hypercube::Node>
+                (value.disp_old_mf,nullptr,1,2,"dispold",false,true);            
+            value.AddField<Set::Vector,Set::Hypercube::Node>
+                (value.vel_old_mf,nullptr,1,2,"velold",false,true);
+            pp.query("viscous.mu",value.mu);            
         }
 
         std::string bc_type = "constant";

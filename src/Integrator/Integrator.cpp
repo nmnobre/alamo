@@ -203,6 +203,10 @@ Integrator::MakeNewLevelFromCoarse (int lev, amrex::Real time, const amrex::BoxA
     {
         m_basefields[n]->MakeNewLevelFromCoarse(lev,time,cgrids,dm);
     }
+    for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+    {
+        m_basefields_cell[n]->MakeNewLevelFromCoarse(lev,time,cgrids,dm);
+    }
 
     Regrid(lev,time);
 }
@@ -668,13 +672,24 @@ Integrator::MakeNewLevelFromScratch (int lev, amrex::Real t, const amrex::BoxArr
     for (int n = 0 ; n < cell.number_of_fabs; n++)
     {
         cell.physbc_array[n]->define(geom[lev]);
-        cell.physbc_array[n]->FillBoundary(*(*cell.fab_array[n])[lev],0,0,t,0);
+
+        for (amrex::MFIter mfi(*(*cell.fab_array[n])[lev],true); mfi.isValid(); ++mfi)
+        {
+            amrex::BaseFab<Set::Scalar> &patch = (*(*cell.fab_array[n])[lev])[mfi];
+            const amrex::Box& box = mfi.tilebox();
+            cell.physbc_array[n]->FillBoundary(patch,box,0,0,0,t);
+        }
     }
 
     for (int n = 0 ; n < node.number_of_fabs; n++)
     {
         node.physbc_array[n]->define(geom[lev]);
-        node.physbc_array[n]->FillBoundary(*(*node.fab_array[n])[lev],0,0,t,0);
+        for (amrex::MFIter mfi(*(*node.fab_array[n])[lev],true); mfi.isValid(); ++mfi)
+        {
+            amrex::BaseFab<Set::Scalar> &patch = (*(*node.fab_array[n])[lev])[mfi];
+            const amrex::Box& box = mfi.tilebox();
+            node.physbc_array[n]->FillBoundary(patch,box,0,0,0,t);
+        }
     }
 
     for (unsigned int n = 0; n < m_basefields.size(); n++)

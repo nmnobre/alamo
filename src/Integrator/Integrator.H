@@ -407,15 +407,37 @@ inline void Integrator::AddField<Set::Scalar, Set::Hypercube::Node>(Set::Field<S
 }
 
 template<class T, int d>
-inline void Integrator::AddField(Set::Field<T> & new_field, BC::BC<T> */*new_bc*/, int ncomp, int nghost, std::string name, bool writeout, bool evolving)
+inline void Integrator::AddField(Set::Field<T> & new_field, BC::BC<T> *new_bc, int ncomp, int nghost, std::string name, bool writeout, bool evolving)
 {
-    int nlevs_max = maxLevel() + 1;
-    new_field.resize(nlevs_max); 
-    m_basefields.push_back(new Field<T>(new_field, geom, refRatio(),ncomp,nghost));
-    m_basefields.back()->evolving = evolving;
-    m_basefields.back()->writeout = writeout;
-    m_basefields.back()->setName(name);
-    m_basefields.back()->evolving = evolving;
+    if (d == Set::Hypercube::Node)
+    {
+        Util::Assert(INFO,TEST(new_bc == nullptr));
+        int nlevs_max = maxLevel() + 1;
+        new_field.resize(nlevs_max); 
+        m_basefields.push_back(new Field<T>(new_field, geom, refRatio(),ncomp,nghost));
+        m_basefields.back()->evolving = evolving;
+        m_basefields.back()->writeout = writeout;
+        m_basefields.back()->setName(name);
+        m_basefields.back()->evolving = evolving;
+    }
+    else if (d == Set::Hypercube::Cell)
+    {
+        Util::Abort(INFO,"Not implemented yet");
+        Util::Assert(INFO,TEST(new_bc != nullptr));
+
+        int nlevs_max = maxLevel() + 1;
+        new_field.resize(nlevs_max);
+        m_basefields_cell.push_back(new Field<T>(new_field,geom,refRatio(),ncomp,nghost));
+        m_basefields_cell.back()->evolving = evolving;
+        m_basefields_cell.back()->writeout = writeout;
+        m_basefields_cell.back()->setName(name);
+        m_basefields_cell.back()->evolving = evolving;
+        m_basefields_cell.back()->setBC(new_bc);
+    }
+    else
+    {
+        Util::Abort(INFO,"Only node and cell based fields can be added at this time");
+    }
 }
 
 

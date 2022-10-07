@@ -146,8 +146,10 @@ public:
         else Util::Abort(INFO, "No valid initial condition specified");
 
 
-        value.RegisterNewFab(value.eta_new_mf, value.mybc, value.number_of_grains, value.number_of_ghost_cells, "Eta",true);
-        value.RegisterNewFab(value.eta_old_mf, value.mybc, value.number_of_grains, value.number_of_ghost_cells, "Eta old",false);
+        value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.eta_new_mf,value.mybc,value.number_of_grains,
+                                                         value.number_of_ghost_cells,"Eta",true,true);
+        value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.eta_old_mf,value.mybc,value.number_of_grains,
+                                                         value.number_of_ghost_cells,"Eta old",false,true);
 
         value.RegisterIntegratedVariable(&value.volume, "volume");
         value.RegisterIntegratedVariable(&value.area, "area");

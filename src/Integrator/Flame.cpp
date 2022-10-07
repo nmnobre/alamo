@@ -41,8 +41,8 @@ namespace Integrator
             value.bc_eta = new BC::Constant(1);
             pp.queryclass("pf.eta.bc", *static_cast<BC::Constant *>(value.bc_eta)); // See :ref:`BC::Constant`
 
-            value.RegisterNewFab(value.eta_mf, value.bc_eta, 1, 2, "eta", true);
-            value.RegisterNewFab(value.eta_old_mf, value.bc_eta, 1, 2, "eta_old", false);
+            value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.eta_mf,value.bc_eta,1,2,"eta",true,true);
+            value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.eta_old_mf, value.bc_eta, 1, 2, "eta_old", false,true);
         }
 
         {
@@ -69,8 +69,8 @@ namespace Integrator
             if (value.thermal.on)
             {
                 value.bc_temp = new BC::Constant(1,pp,"thermal.bc");
-                value.RegisterNewFab(value.temp_mf, value.bc_temp, 1, 2, "temp", true);
-                value.RegisterNewFab(value.temp_old_mf, value.bc_temp, 1, 2, "temp_old", false);
+                value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.temp_mf, value.bc_temp, 1, 2, "temp", true,true);
+                value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.temp_old_mf, value.bc_temp, 1, 2, "temp_old", false,true);
             }
         }
 
@@ -95,7 +95,7 @@ namespace Integrator
             else if (type == "constant") value.ic_phi = new IC::Constant(value.geom,pp,"phi.ic.constant");
             else Util::Abort(INFO,"Invalid IC type ",type);
             
-            value.RegisterNewFab(value.phi_mf, value.bc_eta, 1, 2, "phi", true);
+            value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.phi_mf, value.bc_eta, 1, 2, "phi", true,true);
         }
 
         value.m_type = Base::Mechanics<model_type>::Type::Disable;

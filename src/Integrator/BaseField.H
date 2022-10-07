@@ -6,6 +6,8 @@
 #include "Util/Util.H"
 #include "Set/Set.H"
 #include "Numeric/Interpolator/NodeBilinear.H"
+#include "Numeric/Interpolator/CellBilinear.H"
+#include "BC/BC.H"
 
 namespace Integrator
 {
@@ -36,6 +38,7 @@ public:
     virtual std::string Name(int) = 0;
     virtual void setName(std::string a_name) = 0;
     bool evolving = true;
+    virtual void setBC(void * a_bc) = 0;
 };
 
 template<class T>
@@ -121,26 +124,43 @@ public:
                     int icomp,
                     int ncomp)
     {
-        EmptyBC physbc;
-
         BL_PROFILE("Integrator::FillCoarsePatch");
         AMREX_ASSERT(lev > 0);
-        amrex::Vector<amrex::FabArray<amrex::BaseFab<T>> *> cmf;
-        cmf.push_back(m_field[lev-1].get());
-        amrex::Vector<amrex::Real> ctime;
-        ctime.push_back(time);
-    
-        //physbc.define(geom[lev]);
-        //amrex::Interpolater* mapper = &amrex::cell_cons_interp;
-        Numeric::Interpolator::NodeBilinear<T> *mapper = new Numeric::Interpolator::NodeBilinear<T>();
 
-        amrex::Vector<amrex::BCRec> bcs(ncomp, physbc.GetBCRec());
-        amrex::InterpFromCoarseLevel(*m_field[lev], time, *cmf[0], 0, icomp, ncomp, 
-                                    m_geom[lev-1], m_geom[lev],
-                                    physbc, 0,
-                                    physbc, 0,
-                                    m_refRatio[lev-1],
-                                    mapper, bcs, 0);
+        if (m_field[lev]->boxArray().ixType() == amrex::IndexType::TheNodeType())
+        {
+            EmptyBC physbc;
+            amrex::Vector<amrex::FabArray<amrex::BaseFab<T>> *> cmf;
+            cmf.push_back(m_field[lev-1].get());
+            amrex::Vector<amrex::Real> ctime;
+            ctime.push_back(time);
+            Numeric::Interpolator::NodeBilinear<T> *mapper = new Numeric::Interpolator::NodeBilinear<T>();
+            amrex::Vector<amrex::BCRec> bcs(ncomp, physbc.GetBCRec());
+            amrex::InterpFromCoarseLevel(*m_field[lev], time, *cmf[0], 0, icomp, ncomp, 
+                                        m_geom[lev-1], m_geom[lev],
+                                        physbc, 0,
+                                        physbc, 0,
+                                        m_refRatio[lev-1],
+                                        mapper, bcs, 0);
+        }
+        else
+        {
+            Util::Abort(INFO,"Not finished yet!!");
+            amrex::Vector<amrex::FabArray<amrex::BaseFab<T>> *> cmf;
+            cmf.push_back(m_field[lev-1].get());
+            amrex::Vector<amrex::Real> ctime;
+            ctime.push_back(time);
+            ////TODO - need to implement CellBilinear !!
+            Numeric::Interpolator::CellBilinear<T> *mapper = new Numeric::Interpolator::CellBilinear<T>();
+            amrex::Vector<amrex::BCRec> bcs(ncomp, m_bc->GetBCRec());
+            amrex::InterpFromCoarseLevel(*m_field[lev], time, *cmf[0], 0, icomp, ncomp, 
+                                        m_geom[lev-1], m_geom[lev],
+                                        *m_bc, 0,
+                                        *m_bc, 0,
+                                        m_refRatio[lev-1],
+                                        mapper, bcs, 0);
+        }
+
     }
 
 
@@ -181,8 +201,8 @@ public:
         else
         {
             Util::Abort(INFO,"Not implemented yet");
-            //m_field[lev].reset(new amrex::FabArray<amrex::BaseFab<T>>(cgrids,dm,m_ncomp,m_nghost));
-            //FillCoarsePatch(lev,time,0,m_ncomp);
+            m_field[lev].reset(new amrex::FabArray<amrex::BaseFab<T>>(cgrids,dm,m_ncomp,m_nghost));
+            FillCoarsePatch(lev,time,0,m_ncomp);
         }
     }
 
@@ -226,6 +246,7 @@ private:
     const amrex::Vector<amrex::Geometry>  &m_geom;
     const amrex::Vector<amrex::IntVect> &m_refRatio;
     const int m_ncomp, m_nghost;
+    BC::BC<T> *m_bc;
     
 public:
     virtual int NComp() override {
@@ -240,6 +261,9 @@ public:
     }
     virtual std::string Name(int i) override {
         return m_field.Name(i);
+    }
+    virtual void setBC(void * a_bc) {
+        m_bc = (BC::BC<T> *)(a_bc);
     }
 };
 

@@ -66,8 +66,8 @@ public:
         value.bc = new BC::Constant(1);
         pp.queryclass("bc.temp",*static_cast<BC::Constant *>(value.bc));
                 
-        value.RegisterNewFab(value.temp_mf,     value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp",true);
-        value.RegisterNewFab(value.temp_old_mf, value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp_old",false);
+        value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.temp_mf,     value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp",true,true);
+        value.AddField<Set::Scalar,Set::Hypercube::Cell>(value.temp_old_mf, value.bc, value.number_of_components, value.number_of_ghost_cells, "Temp_old",false,true);
     }
 
 protected:
