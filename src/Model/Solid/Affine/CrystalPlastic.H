@@ -178,7 +178,8 @@ public:
                 tau = (R_crystal*dir[i][j]).dot(sig_3D*(R_crystal*plane[i]));
                 if(fabs(tau) < fabs(strength)) continue;
 
-                Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(std::min(fabs(tau/strength),1.0), m_exp[3*i + j]);
+                Set::Scalar incr_abs = m_gam0dot[3*i + j]*std::pow(fabs(tau/strength), m_exp[3*i + j]);
+                incr_abs = std::min(incr_abs,1.e4);
                 gamdot[3*i + j] = tau>0 ? +incr_abs : -incr_abs;
                 
                 Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
@@ -266,6 +267,8 @@ public:
         Cubic::Parse(value,pp);
         
         amrex::Vector<Set::Scalar> input_g_alpha;
+
+        value.m_gam_bar = 0.0;
         
         pp.query("hardening.on", value.hardening);
         if (value.hardening)
@@ -276,7 +279,6 @@ public:
             pp.query("hardening.hs",value.m_hs);
             pp.query("hardening.qh",value.m_qh);
             
-            value.m_gam_bar = 0.0;
             for (int i = 0; i< 12; i++) value.m_g_alpha[i] = value.m_g0;
         }
         else

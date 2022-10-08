@@ -1,13 +1,8 @@
 #ifndef MODEL_SOLID_LINEAR_LAPLACIAN_H_
 #define MODEL_SOLID_LINEAR_LAPLACIAN_H_
 
-#include <AMReX.H>
-#include <AMReX_REAL.H>
-#include <eigen3/Eigen/Core>
-
+#include "Model/Solid/Solid.H"
 #include "IO/ParmParse.H"
-#include "Util/Util.H"
-#include "Set/Set.H"
 
 namespace Model
 {
@@ -22,7 +17,7 @@ namespace Linear
 /// \f[ \sigma_{ij} = \alpha\delta_{ik}\delta_{jl}u_{k,l} = \alpha u_{i,j} \f]
 /// \f[ f_{i} = \mathbb{C}_{ijkl}u_{k,jl} = \alpha\delta_{ik}\delta_{jl}u_{k,jl} = \alpha u_{i,jj} \f]
 ///
-class Laplacian : public Model::Solid::Solid<Set::Sym::Diagonal>
+class Laplacian : public Solid<Set::Sym::Diagonal>
 {
 public:
     Laplacian() { Define(); } ;
@@ -60,43 +55,48 @@ public:
         Laplacian ret;
         return ret;
     }
-    AMREX_FORCE_INLINE
-    void operator += (const Laplacian &rhs)
-    {
-        ddw += rhs.ddw;
-    }    
-    AMREX_FORCE_INLINE
-        virtual Laplacian operator * (const Set::Scalar alpha) const
-    {
-        Laplacian ret;
-        ret.ddw = ddw*alpha;
-        return ret;
-    }    
-    friend Laplacian operator * (const Set::Scalar alpha, const Laplacian b);
-    friend Laplacian operator + (const Laplacian a, const Laplacian b);
-    friend Laplacian operator - (const Laplacian a, const Laplacian b);
+    // AMREX_FORCE_INLINE
+    // void operator += (const Laplacian &rhs)
+    // {
+    //     ddw += rhs.ddw;
+    // }    
+    // AMREX_FORCE_INLINE
+    //     virtual Laplacian operator * (const Set::Scalar alpha) const
+    // {
+    //     Laplacian ret;
+    //     ret.ddw = ddw*alpha;
+    //     return ret;
+    // }  
+    #define OP_CLASS Laplacian
+    #define OP_VARS X(ddw) //X(m_lambda) X(m_mu) //X(m_lambda0) X(m_mu0)
+    #include "Model/Solid/InClassOperators.H"
+
+    // friend Laplacian operator * (const Set::Scalar alpha, const Laplacian b);
+    // friend Laplacian operator + (const Laplacian a, const Laplacian b);
+    // friend Laplacian operator - (const Laplacian a, const Laplacian b);
 };
-AMREX_FORCE_INLINE
-Laplacian operator * (const Set::Scalar alpha, const Laplacian b)
-{
-    Laplacian ret;
-    ret.ddw = b.ddw*alpha;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-Laplacian operator + (const Laplacian a, const Laplacian b)
-{
-    Laplacian ret;
-    ret.ddw = a.ddw + b.ddw;
-    return ret;
-}    
-AMREX_FORCE_INLINE
-Laplacian operator - (const Laplacian a, const Laplacian b)
-{
-    Laplacian ret;
-    ret.ddw = a.ddw - b.ddw;
-    return ret;
-}    
+#include "Model/Solid/ExtClassOperators.H"
+// AMREX_FORCE_INLINE
+// Laplacian operator * (const Set::Scalar alpha, const Laplacian b)
+// {
+//     Laplacian ret;
+//     ret.ddw = b.ddw*alpha;
+//     return ret;
+// }    
+// AMREX_FORCE_INLINE
+// Laplacian operator + (const Laplacian a, const Laplacian b)
+// {
+//     Laplacian ret;
+//     ret.ddw = a.ddw + b.ddw;
+//     return ret;
+// }    
+// AMREX_FORCE_INLINE
+// Laplacian operator - (const Laplacian a, const Laplacian b)
+// {
+//     Laplacian ret;
+//     ret.ddw = a.ddw - b.ddw;
+//     return ret;
+// }    
 
 
 }

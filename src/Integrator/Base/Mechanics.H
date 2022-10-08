@@ -169,7 +169,7 @@ protected:
                 amrex::Array4<Set::Matrix>       const &stress  = stress_mf[lev]->array(mfi);
                 amrex::Array4<Set::Matrix>       const &strain  = strain_mf[lev]->array(mfi);
                 amrex::Array4<const Set::Vector> const &disp    = disp_mf[lev]->array(mfi);
-                amrex::Array4<const Set::Scalar> const &psi     = psi_mf[lev]->array(mfi);
+                //amrex::Array4<const Set::Scalar> const &psi     = psi_mf[lev]->array(mfi);
 
                 amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) 
                 {
@@ -244,9 +244,13 @@ protected:
             }
         }
 
+        Util::RealFillBoundary(*stress_mf[lev],geom[lev]);
+        Util::RealFillBoundary(*strain_mf[lev],geom[lev]);
+        Util::RealFillBoundary(*model_mf[lev],geom[lev]);
+
         for (amrex::MFIter mfi(*disp_mf[lev], false); mfi.isValid(); ++mfi)
         {
-            amrex::Box bx = mfi.validbox().grow(1) & domain;
+            amrex::Box bx = mfi.validbox().grow(2) & domain;
             amrex::Array4<Set::Matrix>         const &eps  = (*strain_mf[lev]).array(mfi);
             amrex::Array4<Set::Matrix>         const &sig  = (*stress_mf[lev]).array(mfi);
             amrex::Array4<MODEL>               const &model= (*model_mf[lev]).array(mfi);
@@ -254,15 +258,20 @@ protected:
             {
                 if(model(i,j,k).gradient_required)
                 {
-                    MODEL gradX = (model(i+1,j,k)-model(i-1,j,k))*(0.5/DX[0]);
-                    MODEL gradY = (model(i,j+1,k)-model(i,j-1,k))*(0.5/DX[1]);
-                    MODEL gradZ = (model(i,j,k+1)-model(i,j,k-1))*(0.5/DX[2]);
+                    auto sten = Numeric::GetStencil(i,j,k,bx);
+                    MODEL gradX = Numeric::Stencil<MODEL,1,0,0>::D(model,i,j,k,0,DX,sten);
+                    MODEL gradY = Numeric::Stencil<MODEL,0,1,0>::D(model,i,j,k,0,DX,sten);
+                    MODEL gradZ = Numeric::Stencil<MODEL,0,0,1>::D(model,i,j,k,0,DX,sten);
+
+                    // MODEL gradX = (model(i+1,j,k)-model(i-1,j,k))*(0.5/DX[0]);
+                    // MODEL gradY = (model(i,j+1,k)-model(i,j-1,k))*(0.5/DX[1]);
+                    // MODEL gradZ = (model(i,j,k+1)-model(i,j,k-1))*(0.5/DX[2]);
                     model(i,j,k).ComputePlasticStrainRate(sig(i,j,k),gradX,gradY,gradZ,dt);
                 }
                 model(i,j,k).Advance(dt,eps(i,j,k),sig(i,j,k));
             });
         }
-        
+        Util::RealFillBoundary(*model_mf[lev],geom[lev]);
     }
 
     void Integrate(int amrlev, Set::Scalar /*time*/, int /*step*/,

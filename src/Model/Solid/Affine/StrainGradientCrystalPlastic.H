@@ -28,42 +28,32 @@ public:
 
     void DefineSlipGradientSystem()
     {
-        std::array<Set::Scalar,12> zero_vector;
-        for (int i = 0; i<12; i++) zero_vector[i] = 0.0;
-        DefineSlipGradientSystem(0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,zero_vector);
-    }
-
-    void DefineSlipGradientSystem(Set::Scalar a_Ke, Set::Scalar a_b, Set::Scalar a_de, Set::Scalar a_ds, Set::Scalar a_tau0, Set::Scalar a_mu, 
-                                    Set::Scalar a_c0, Set::Scalar a_w1, Set::Scalar a_w2, Set::Scalar a_h, Set::Scalar a_q1, Set::Scalar a_q2,
-                                    Set::Scalar a_rho_s0, Set::Scalar a_rho_g0, Set::Scalar a_F0, Set::Scalar a_T, std::array<Set::Scalar, 12> &a_gam0dot)
-    {
-        m_Ke = a_Ke;
-        m_b = a_b;
-        m_de = a_de;
-        m_ds = a_ds;
-        m_tau0 = a_tau0;
-        m_mu = a_mu;
-        m_c0 = a_c0;
-        m_w1 = a_w1;
-        m_w2 = a_w2;
-        m_h = a_h;
-        m_q1 = a_q1;
-        m_q2 = a_q2;
-        m_rho_s0 = a_rho_s0;
-        m_rho_g0 = a_rho_g0;
-        m_F0 = a_F0;
-        m_T = a_T;
+        // m_Ke = a_Ke;
+        // m_b = a_b;
+        // m_de = a_de;
+        // m_ds = a_ds;
+        // m_tau0 = a_tau0;
+        // m_mu = a_mu;
+        // m_c0 = a_c0;
+        // m_w1 = a_w1;
+        // m_w2 = a_w2;
+        // m_h = a_h;
+        // m_q1 = a_q1;
+        // m_q2 = a_q2;
+        // m_rho_s0 = a_rho_s0;
+        // m_rho_g0 = a_rho_g0;
+        // m_F0 = a_F0;
+        // m_T = a_T;
 
         for (int i=0; i<12; i++)
         {
-            rho_se[i] = a_rho_s0/24.0;
-            rho_ss[i] = a_rho_s0/24.0;
-            rho_gen[i] = a_rho_g0/36.0;
-            rho_get[i] = a_rho_g0/36.0;
-            rho_gsm[i] = a_rho_g0/36.0;
+            rho_se[i] = m_rho_s0/24.0;
+            rho_ss[i] = m_rho_s0/24.0;
+            rho_gen[i] = m_rho_g0/36.0;
+            rho_get[i] = m_rho_g0/36.0;
+            rho_gsm[i] = m_rho_g0/36.0;
             gam[i] = 0.0; 
             gamdot[i] = 0.0;
-            m_gam0dot[i] = a_gam0dot[i];
         }
     }
 
@@ -78,7 +68,7 @@ public:
         // Along the same lines gradY.gamalpha[i] is the gradient of gamma in the y direction for the i^{th} slip system.
 
         Set::Matrix_3D sig_3D = Set::Matrix_3D::Zero();
-        sig_3D(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM)) = sig;
+        sig_3D(Eigen::seq(0,AMREX_SPACEDIM-1),Eigen::seq(0,AMREX_SPACEDIM-1)) = sig;
 
         Set::Matrix_3D R_crystal;
         R_crystal = Model::Solid::Linear::Cubic::q.normalized().toRotationMatrix();
@@ -163,7 +153,7 @@ public:
                 Set::Scalar temp2 = 1. - temp1;
                 temp2 = temp2 > 0.0 ? std::pow(temp2,m_q2) : 0.0;
                 //if (outflag) Util::Message(INFO,"temp1 = ", temp1,". temp2 = ", temp2);
-                gamdot[alpha] = m_gam0dot[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
+                gamdot[alpha] = m_gam0dot_sgcp[alpha]*std::exp(-m_F0*temp2/(m_T))*(tau>0.0 ? 1.0 : (tau < 0.0 ? -1.0 : 0.0));
             }
         }
         
@@ -181,7 +171,7 @@ public:
             for (int j=0; j<3; j++)
             {
                 Set::Matrix_3D dir_rot = ((R_crystal*dir[i][j]) * (R_crystal*plane[i]).transpose());
-                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM),Eigen::seq(0,AMREX_SPACEDIM));
+                F0 += dt * gamdot[3*i + j] * dir_rot(Eigen::seq(0,AMREX_SPACEDIM-1),Eigen::seq(0,AMREX_SPACEDIM-1));
                 gam[3*i + j] += dt*gamdot[3*i + j];
             }
         }
@@ -210,25 +200,25 @@ public:
 
     std::array<Set::Scalar,12> gam;
     std::array<Set::Scalar,12> gamdot;
-    std::array<Set::Scalar,12> m_gam0dot;
     std::array<Set::Scalar,12> rho_gsm;
     std::array<Set::Scalar,12> rho_get;
     std::array<Set::Scalar,12> rho_gen;
     std::array<Set::Scalar,12> rho_se;
     std::array<Set::Scalar,12> rho_ss;
 
-    Set::Scalar m_Ke;
-    Set::Scalar m_b;
-    Set::Scalar m_de;
-    Set::Scalar m_ds;
-    Set::Scalar m_tau0;
-    Set::Scalar m_mu;
-    Set::Scalar m_c0;
-    Set::Scalar m_rho_s0;
-    Set::Scalar m_rho_g0;
-    Set::Scalar m_w1, m_w2, m_h;
-    Set::Scalar m_q1, m_q2;
-    Set::Scalar m_F0, m_T;
+    static std::array<Set::Scalar,12> m_gam0dot_sgcp;
+    static Set::Scalar m_Ke;
+    static Set::Scalar m_b;
+    static Set::Scalar m_de;
+    static Set::Scalar m_ds;
+    static Set::Scalar m_tau0;
+    static Set::Scalar m_mu;
+    static Set::Scalar m_c0;
+    static Set::Scalar m_rho_s0;
+    static Set::Scalar m_rho_g0;
+    static Set::Scalar m_w1, m_w2, m_h;
+    static Set::Scalar m_q1, m_q2;
+    static Set::Scalar m_F0, m_T;
     
 public:
     static StrainGradientCrystalPlastic Zero()
@@ -236,9 +226,7 @@ public:
         StrainGradientCrystalPlastic ret;
         ret.q.coeffs() *= 0;
         ret.C11 = 0.0; ret.C12 = 0.0; ret.C44 = 0.0;
-        // ret.C110 = 0.0; ret.C120 = 0.0; ret.C440 = 0.0;
         ret.F0 = Set::Matrix::Zero();
-        //ret.DefineSlipSystem(0.,0.,0.);
         ret.DefineSlipGradientSystem();
         return ret;
     }
@@ -247,72 +235,83 @@ public:
     {
         Cubic::Parse(value,pp);
 
-        Set::Scalar a_Ke = 35.0e3;
-        Set::Scalar a_b = 0.248; //nm
-        Set::Scalar a_de = 5.e0;
-        Set::Scalar a_ds = 25.0e0;
-        Set::Scalar a_tau0 = 3.40e-1; //GPa
-        Set::Scalar a_mu = value.C44; //0.2*(3.0*value.C44 + value.C11 - value.C12);
-        Set::Scalar a_c0 = 8.7e-5;
-        Set::Scalar a_w1 = 1.0, a_w2 = 1.0, a_h = 0.084*0.084;
-        Set::Scalar a_q1 = 0.5, a_q2 = 1.25e2;
-        Set::Scalar a_rho_s0 = 6.e12;
-        Set::Scalar a_rho_g0 = 6.e12;
-        Set::Scalar a_F0 = 3.114e4; // divided by kB
-        Set::Scalar a_T = 298.;
+        value.m_Ke = 35.0e3;
+        value.m_b = 0.248; //nm
+        value.m_de = 5.e0;
+        value.m_ds = 25.0e0;
+        value.m_tau0 = 3.40e-1; //GPa
+        value.m_mu = value.C44; //0.2*(3.0*value.C44 + value.C11 - value.C12);
+        value.m_c0 = 8.7e-5;
+        value.m_w1 = 1.0, value.m_w2 = 1.0, value.m_h = 0.084*0.084;
+        value.m_q1 = 0.5, value.m_q2 = 1.25e2;
+        value.m_rho_s0 = 6.e12;
+        value.m_rho_g0 = 6.e12;
+        value.m_F0 = 3.114e4; // divided by kB
+        value.m_T = 298.;
 
-        pp.query("Ke", a_Ke);
-        pp.query("b", a_b);
-        pp.query("de", a_de);
-        pp.query("ds", a_ds);
-        pp.query("tau0", a_tau0);
-        pp.query("mu", a_mu);
-        pp.query("c0", a_c0);
-        pp.query("w1", a_w1);
-        pp.query("w2", a_w2);
-        pp.query("h", a_h);
-        pp.query("q1", a_q1);
-        pp.query("q2", a_q2);
-        pp.query("rho_s0", a_rho_s0);
-        pp.query("rho_g0", a_rho_g0);
-        pp.query("m_F0", a_F0);
-        pp.query("T", a_T);
+        pp.query("Ke", value.m_Ke);
+        pp.query("b", value.m_b);
+        pp.query("de", value.m_de);
+        pp.query("ds", value.m_ds);
+        pp.query("tau0", value.m_tau0);
+        pp.query("mu", value.m_mu);
+        pp.query("c0", value.m_c0);
+        pp.query("w1", value.m_w1);
+        pp.query("w2", value.m_w2);
+        pp.query("h", value.m_h);
+        pp.query("q1", value.m_q1);
+        pp.query("q2", value.m_q2);
+        pp.query("rho_s0", value.m_rho_s0);
+        pp.query("rho_g0", value.m_rho_g0);
+        pp.query("m_F0", value.m_F0);
+        pp.query("T", value.m_T);
 
         amrex::Vector<Set::Scalar> input_gam0dot;
-        std::array<Set::Scalar,12> f_gam0dot;
         if(pp.contains("gam0dot"))
         {
             pp.queryarr("gam0dot",input_gam0dot);
             if(input_gam0dot.size() == 1)
             {
                 for (int i = 0; i< 12; i++) 
-                    f_gam0dot[i] = input_gam0dot[0];
+                    value.m_gam0dot_sgcp[i] = input_gam0dot[0];
             }
             else if(input_gam0dot.size() <= 0 || input_gam0dot.size() != 12) Util::Abort(INFO, "Invalid number of values in gam0dot");
             else
             {
                 for (int i = 0; i< 12; i++) 
-                    f_gam0dot[i] = input_gam0dot[i];
+                    value.m_gam0dot_sgcp[i] = input_gam0dot[i];
             }
         }
         else
-            for (int i = 0; i< 12; i++) f_gam0dot[i] = 0.001;
+            for (int i = 0; i< 12; i++) value.m_gam0dot_sgcp[i] = 0.001;
 
-        value.DefineSlipGradientSystem(a_Ke, a_b, a_de, a_ds, a_tau0, a_mu, 
-                                    a_c0, a_w1, a_w2, a_h, a_q1, a_q2, a_rho_s0, a_rho_g0, a_F0, a_T, f_gam0dot);
+        value.DefineSlipGradientSystem();
 
         Util::Message(INFO, "modulus = ", value.C11, " ", value.C12, " ", value.C44);
         //Util::Message(INFO, "modulus = ", value.C110, " ", value.C120, " ", value.C440);
     }
 
     #define OP_CLASS StrainGradientCrystalPlastic
-    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) X(m_Ke) X(m_b) X(m_de) X(m_ds) X(m_tau0) X(m_mu) X(m_c0) X(m_w1) X(m_w2) X(m_h) X(m_q1) X(m_q2) X(m_rho_s0) X(m_rho_g0) X(m_F0) X(m_T) //X(C110) X(C120) X(C440) 
+    #define OP_VARS X(C11) X(C12) X(C44) X(q.coeffs()) X(F0) 
     #define OP_LOOP_NUM 12
-    #define OP_LOOP_VARS X(m_gam0dot) X(gam) X(gamdot) X(rho_se) X(rho_ss) X(rho_gen) X(rho_gsm) X(rho_get)
+    #define OP_LOOP_VARS X(gam) X(gamdot) X(rho_se) X(rho_ss) X(rho_gen) X(rho_gsm) X(rho_get)
     #include "Model/Solid/InClassOperators.H"
 };
 #include "Model/Solid/ExtClassOperators.H"
 
+Set::Scalar StrainGradientCrystalPlastic::m_Ke;
+Set::Scalar StrainGradientCrystalPlastic::m_b;
+Set::Scalar StrainGradientCrystalPlastic::m_de;
+Set::Scalar StrainGradientCrystalPlastic::m_ds;
+Set::Scalar StrainGradientCrystalPlastic::m_tau0;
+Set::Scalar StrainGradientCrystalPlastic::m_mu;
+Set::Scalar StrainGradientCrystalPlastic::m_c0;
+Set::Scalar StrainGradientCrystalPlastic::m_rho_s0;
+Set::Scalar StrainGradientCrystalPlastic::m_rho_g0;
+Set::Scalar StrainGradientCrystalPlastic::m_w1, StrainGradientCrystalPlastic::m_w2, StrainGradientCrystalPlastic::m_h;
+Set::Scalar StrainGradientCrystalPlastic::m_q1, StrainGradientCrystalPlastic::m_q2;
+Set::Scalar StrainGradientCrystalPlastic::m_F0, StrainGradientCrystalPlastic::m_T;
+std::array<Set::Scalar, 12> StrainGradientCrystalPlastic::m_gam0dot_sgcp;
 
 }
 }

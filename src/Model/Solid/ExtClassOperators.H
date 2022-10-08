@@ -20,27 +20,27 @@ OP_CLASS operator * (const Set::Scalar alpha, const OP_CLASS b)
     return ret;
 }
 
-// AMREX_FORCE_INLINE
-// OP_CLASS operator / (const Set::Scalar alpha, const OP_CLASS b)
-// {
-//     OP_CLASS ret;
-//     #define X(name) \
-//         ret.name = b.name/alpha;
-//         OP_VARS
-//     #undef X
+AMREX_FORCE_INLINE
+OP_CLASS operator / (const Set::Scalar alpha, const OP_CLASS b)
+{
+    OP_CLASS ret;
+    #define X(name) \
+        ret.name = b.name/alpha;
+        OP_VARS
+    #undef X
 
-//     #ifdef OP_LOOP_VARS
-//     for (int i = 0; i < OP_LOOP_NUM; i++)
-//     {
-//         #define X(name)\
-//         ret.name[i] = b.name[i]/alpha;
-//         OP_LOOP_VARS
-//         #undef X
-//     }
-//     #endif
+    #ifdef OP_LOOP_VARS
+    for (int i = 0; i < OP_LOOP_NUM; i++)
+    {
+        #define X(name)\
+        ret.name[i] = b.name[i]/alpha;
+        OP_LOOP_VARS
+        #undef X
+    }
+    #endif
 
-//     return ret;
-// }
+    return ret;
+}
 
 AMREX_FORCE_INLINE
 OP_CLASS operator + (const OP_CLASS a, const OP_CLASS b)
