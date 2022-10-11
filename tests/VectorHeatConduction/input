@@ -4,14 +4,14 @@ alamo.program = vectorheat
 plot_file     = tests/VectorHeatConduction/output
 
 # Simulation length
-timestep = 0.0001
+timestep = 0.00001
 stop_time = 0.1
 
 # AMR parameters
 amr.plot_int = 1
 amr.max_level = 2
 amr.n_cell = 8 8 2
-amr.max_level = 1
+amr.max_level = 2
 amr.n_cell = 32 32 32
 amr.blocking_factor = 1
 amr.regrid_int = 10

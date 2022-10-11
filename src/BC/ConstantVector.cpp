@@ -20,7 +20,7 @@ ConstantVector::FillBoundary (amrex::BaseFab<Set::Vector> &a_in,
 
     amrex::Array4<Set::Vector> const& in = a_in.array();
 
-    for (int n = 0; n < m_ncomp; n++)
+    for (unsigned int n = 0; n < m_ncomp; n++)
     amrex::ParallelFor (box,[=] AMREX_GPU_DEVICE(int i, int j, int k)
     {
         amrex::IntVect glevel;

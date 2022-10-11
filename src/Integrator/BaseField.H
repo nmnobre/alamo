@@ -7,7 +7,6 @@
 #include "Set/Set.H"
 #include "Numeric/Interpolator/NodeBilinear.H"
 #include "Numeric/Interpolator/CellBilinear.H"
-#include "Numeric/Interpolator/AverageDown.H"
 #include "BC/BC.H"
 
 namespace Integrator
@@ -278,7 +277,7 @@ public:
         if (m_gridtype == Set::Hypercube::Node)
             amrex::average_down_nodal(*m_field[lev+1],*m_field[lev],refRatio);
         else if (m_gridtype == Set::Hypercube::Cell)
-            Numeric::Interpolator::average_down(*m_field[lev+1],*m_field[lev],0,m_ncomp,refRatio);
+            amrex::average_down(*m_field[lev+1],*m_field[lev],0,m_ncomp,refRatio);
             //amrex::average_down(*m_field[lev+1],*m_field[lev],0,m_ncomp,refRatio);
         else
             Util::Abort(INFO,"Incorrect grid");
