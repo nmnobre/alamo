@@ -240,6 +240,8 @@ protected:
             cell.fab_array[i]->finest_level = a_finestlevel;
         for (unsigned int i = 0; i < node.fab_array.size(); i++)
             node.fab_array[i]->finest_level = a_finestlevel;
+        for (unsigned int i = 0; i < m_basefields_cell.size(); i++)
+            m_basefields_cell[i]->SetFinestLevel(finest_level);
         for (unsigned int i = 0; i < m_basefields.size(); i++)
             m_basefields[i]->SetFinestLevel(finest_level);
     }
@@ -419,12 +421,11 @@ inline void Integrator::AddField(Set::Field<T> & new_field, BC::BC<T> *new_bc, i
         m_basefields.back()->writeout = writeout;
         m_basefields.back()->setName(name);
         m_basefields.back()->evolving = evolving;
+        m_basefields.back()->m_gridtype = Set::Hypercube::Node;
     }
     else if (d == Set::Hypercube::Cell)
     {
-        Util::Abort(INFO,"Not implemented yet");
         Util::Assert(INFO,TEST(new_bc != nullptr));
-
         int nlevs_max = maxLevel() + 1;
         new_field.resize(nlevs_max);
         m_basefields_cell.push_back(new Field<T>(new_field,geom,refRatio(),ncomp,nghost));
@@ -433,6 +434,7 @@ inline void Integrator::AddField(Set::Field<T> & new_field, BC::BC<T> *new_bc, i
         m_basefields_cell.back()->setName(name);
         m_basefields_cell.back()->evolving = evolving;
         m_basefields_cell.back()->setBC(new_bc);
+        m_basefields_cell.back()->m_gridtype = Set::Hypercube::Cell;
     }
     else
     {

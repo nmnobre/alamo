@@ -22,6 +22,7 @@
 #include "Integrator/Fracture.H"
 #include "Integrator/ThermoElastic.H"
 #include "Integrator/TopOp.H"
+#include "Integrator/VectorHeatConduction.H"
 
 int main (int argc, char* argv[])
 {
@@ -49,6 +50,7 @@ int main (int argc, char* argv[])
     else if (program == "flame")                integrator = new Integrator::Flame(pp);
     else if (program == "topop")                integrator = new Integrator::TopOp<Model::Solid::Linear::Isotropic>(pp);
     else if (program == "heat")                 integrator = new Integrator::HeatConduction(pp);
+    else if (program == "vectorheat")           integrator = new Integrator::VectorHeatConduction(pp);
     else if (program == "thermoelastic")        integrator = new Integrator::ThermoElastic(pp);
     else if (program == "degradation")          integrator = new Integrator::PolymerDegradation();
     else if (program == "fracture")             integrator = new Integrator::Fracture();

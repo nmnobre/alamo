@@ -251,6 +251,10 @@ Integrator::RemakeLevel (int lev,       ///<[in] AMR Level
         std::swap(new_state, *(*node.fab_array[n])[lev]);
     }
 
+    for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+    {
+        m_basefields_cell[n]->RemakeLevel(lev,time,cgrids,dm);
+    }
     for (unsigned int n = 0; n < m_basefields.size(); n++)
     {
         m_basefields[n]->RemakeLevel(lev,time,cgrids,dm);
@@ -390,7 +394,6 @@ Integrator::FillPatch (int lev, amrex::Real time,
                                 physbc, 0,
                                 refRatio(lev-1),
                                 mapper, bcs, 0);
-//      if (destination_mf.contains_nan()) Util::Abort(INFO);
     }
 }
 
@@ -632,6 +635,10 @@ Integrator::Restart(const std::string dirname, bool a_nodal)
             if (!match) Util::Warning(INFO,"Fab ",tmp_name_array[i]," is in the restart file, but there is no fab with that name here.");
         }       
 
+        for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+        {
+            m_basefields_cell[n]->MakeNewLevelFromScratch(lev,t_new[lev],grids[lev],dmap[lev]);
+        }
         for (unsigned int n = 0; n < m_basefields.size(); n++)
         {
             m_basefields[n]->MakeNewLevelFromScratch(lev,t_new[lev],grids[lev],dmap[lev]);
@@ -658,6 +665,10 @@ Integrator::MakeNewLevelFromScratch (int lev, amrex::Real t, const amrex::BoxArr
     {
         (*node.fab_array[n])[lev].reset(new amrex::MultiFab(ngrids, dm, node.ncomp_array[n], node.nghost_array[n]));
         (*node.fab_array[n])[lev]->setVal(0.0);
+    }
+    for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+    {
+        m_basefields_cell[n]->MakeNewLevelFromScratch(lev,t,cgrids,dm);
     }
     for (unsigned int n = 0; n < m_basefields.size(); n++)
     {
@@ -692,6 +703,10 @@ Integrator::MakeNewLevelFromScratch (int lev, amrex::Real t, const amrex::BoxArr
         }
     }
 
+    for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+    {
+        m_basefields_cell[n]->FillBoundary(lev,t);
+    }
     for (unsigned int n = 0; n < m_basefields.size(); n++)
     {
         m_basefields[n]->FillBoundary(lev,t);
@@ -727,8 +742,8 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
     int nlevels = finest_level+1;
     if (max_plot_level >= 0) nlevels = std::min(nlevels,max_plot_level);
 
-    int ccomponents = 0, ncomponents = 0, bfcomponents = 0;
-    amrex::Vector<std::string> cnames, nnames, bfnames;
+    int ccomponents = 0, ncomponents = 0, bfcomponents_cell = 0, bfcomponents = 0;
+    amrex::Vector<std::string> cnames, nnames, bfnames_cell, bfnames;
     for (int i = 0; i < cell.number_of_fabs; i++)
     {
         if (!cell.writeout_array[i]) continue;
@@ -749,6 +764,15 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
         else
             nnames.push_back(node.name_array[i]);
     }
+    for (unsigned int i = 0; i< m_basefields_cell.size(); i++)
+    {
+        if (m_basefields_cell[i]->writeout)
+        {
+            bfcomponents_cell += m_basefields_cell[i]->NComp();
+            for (int j = 0; j < m_basefields_cell[i]->NComp(); j++)
+                bfnames_cell.push_back(m_basefields_cell[i]->Name(j));
+        }
+    }
     for (unsigned int i = 0; i< m_basefields.size(); i++)
     {
         if (m_basefields[i]->writeout)
@@ -761,14 +785,14 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
 
     amrex::Vector<amrex::MultiFab> cplotmf(nlevels), nplotmf(nlevels);
 
-    bool do_cell_plotfile = (ccomponents > 0 || (ncomponents+bfcomponents > 0 && cell.all)) && cell.any;
-    bool do_node_plotfile = (ncomponents+bfcomponents > 0 || (ccomponents > 0 && node.all)) && node.any;
+    bool do_cell_plotfile = (ccomponents+bfcomponents_cell > 0 || (ncomponents+bfcomponents > 0      && cell.all)) && cell.any;
+    bool do_node_plotfile = (ncomponents+bfcomponents > 0      || (ccomponents+bfcomponents_cell > 0 && node.all)) && node.any;
   
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
         if (do_cell_plotfile)
         {
-            int ncomp = ccomponents;
+            int ncomp = ccomponents + bfcomponents_cell;
             if (cell.all) ncomp += ncomponents + bfcomponents;
             cplotmf[ilev].define(grids[ilev], dmap[ilev], ncomp, 0);
 
@@ -780,6 +804,14 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
                 if ((*cell.fab_array[i])[ilev]->contains_inf()) Util::Abort(INFO,cnames[i]," contains inf (i=",i,")");
                 amrex::MultiFab::Copy(cplotmf[ilev], *(*cell.fab_array[i])[ilev], 0, n, cell.ncomp_array[i], 0);
                 n += cell.ncomp_array[i];
+            }
+            for (unsigned int i = 0; i<m_basefields_cell.size(); i++)
+            {
+                if (m_basefields_cell[i]->writeout)
+                {
+                    m_basefields_cell[i]->Copy(ilev, cplotmf[ilev], n, 0);
+                    n += m_basefields_cell[i]->NComp();
+                }
             }
             
             if (cell.all)
@@ -818,7 +850,7 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
             amrex::BoxArray ngrids = grids[ilev];
             ngrids.convert(amrex::IntVect::TheNodeVector());
             int ncomp = ncomponents + bfcomponents;
-            if (node.all) ncomp += ccomponents;
+            if (node.all) ncomp += ccomponents + bfcomponents_cell;
             nplotmf[ilev].define(ngrids, dmap[ilev], ncomp, 0);
             
             int n = 0;
@@ -854,6 +886,23 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
                     Util::AverageCellcenterToNode(nplotmf[ilev],n,*(*cell.fab_array[i])[ilev],0,cell.ncomp_array[i]);
                     n += cell.ncomp_array[i];
                 }
+
+                if (bfcomponents_cell > 0)
+                {
+                    amrex::BoxArray cgrids = grids[ilev];
+                    amrex::MultiFab bfplotmf(cgrids,dmap[ilev],bfcomponents_cell,0);
+                    int ctr = 0;
+                    for (unsigned int i = 0; i < m_basefields_cell.size(); i++)
+                    {
+                        if (m_basefields_cell[i]->writeout)
+                        {
+                            m_basefields_cell[i]->Copy(ilev,bfplotmf,ctr,0);
+                            ctr += m_basefields_cell[i]->NComp();
+                        }
+                    }
+                    Util::AverageCellcenterToNode(nplotmf[ilev],n,bfplotmf,0,bfcomponents_cell);
+                    n+=bfcomponents_cell;
+                }
             }
         }
     }
@@ -864,6 +913,7 @@ Integrator::WritePlotFile (Set::Scalar time, amrex::Vector<int> iter, bool initi
     if (do_cell_plotfile)
     {
         amrex::Vector<std::string> allnames = cnames;
+        allnames.insert(allnames.end(),bfnames_cell.begin(),bfnames_cell.end());
         if (cell.all) {
             allnames.insert(allnames.end(),nnames.begin(),nnames.end());
             allnames.insert(allnames.end(),bfnames.begin(),bfnames.end());
@@ -1070,6 +1120,8 @@ Integrator::TimeStep (int lev, amrex::Real time, int /*iteration*/)
         FillPatch(lev,time,*cell.fab_array[n],*(*cell.fab_array[n])[lev],*cell.physbc_array[n],0);
     for (int n = 0 ; n < node.number_of_fabs ; n++)
         FillPatch(lev,time,*node.fab_array[n],*(*node.fab_array[n])[lev],*node.physbc_array[n],0);
+    for (unsigned int n = 0 ; n < m_basefields_cell.size(); n++)
+        if (m_basefields_cell[n]->evolving) m_basefields_cell[n]->FillPatch(lev,time);
     for (unsigned int n = 0 ; n < m_basefields.size(); n++)
         if (m_basefields[n]->evolving) m_basefields[n]->FillPatch(lev,time);
 
@@ -1096,16 +1148,24 @@ Integrator::TimeStep (int lev, amrex::Real time, int /*iteration*/)
             amrex::average_down(*(*cell.fab_array[n])[lev+1], *(*cell.fab_array[n])[lev],
                                 geom[lev+1], geom[lev],
                                 0, (*cell.fab_array[n])[lev]->nComp(), refRatio(lev));
+            //Numeric::Interpolator::average_down(*(*cell.fab_array[n])[lev+1], *(*cell.fab_array[n])[lev],
+            //                    //geom[lev+1], geom[lev],
+            //                    0, (*cell.fab_array[n])[lev]->nComp(), refRatio(lev));
         }
         for (int n = 0; n < node.number_of_fabs; n++)
         {
             amrex::average_down(*(*node.fab_array[n])[lev+1], *(*node.fab_array[n])[lev],
                                 0, (*node.fab_array[n])[lev]->nComp(), refRatio(lev));
         }
+        for (unsigned int n = 0; n < m_basefields_cell.size(); n++)
+        {
+            if (m_basefields_cell[n]->evolving)
+            m_basefields_cell[n]->AverageDown(lev,refRatio(lev));
+        }
         for (unsigned int n = 0; n < m_basefields.size(); n++)
         {
             if (m_basefields[n]->evolving)
-            m_basefields[n]->AverageDownNodal(lev,refRatio(lev));
+            m_basefields[n]->AverageDown(lev,refRatio(lev));
         }
     
     }

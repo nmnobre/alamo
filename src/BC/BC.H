@@ -10,6 +10,7 @@
 #include <AMReX_Periodicity.H>
 
 #include "Util/Util.H"
+#include "Set/Set.H"
 
 /// \brief Collection of boundary condition (BC) objects
 namespace BC
@@ -52,6 +53,19 @@ public:
         }
     }
 
+//    virtual void FillBoundary (Set::Field<T>& mf,
+//                    int dcomp, int ncomp,
+//                    amrex::Real time, int /*bccomp*/)
+//    {
+//        mf.FillBoundary(m_geom.periodicity());
+//        for (amrex::MFIter mfi(mf,true); mfi.isValid(); ++mfi)
+//        {
+//            const amrex::Box& box = mfi.tilebox();
+//            amrex::BaseFab<T> &in = mf[mfi];
+//            FillBoundary(in, box, mf.nGrow(), dcomp, ncomp, time);
+//        }
+//    }
+
     virtual void FillBoundary (amrex::FabArray<amrex::BaseFab<T>>& mf,
                     int dcomp, int ncomp, amrex::IntVect const & /*nghost*/,
                     amrex::Real time, int bccomp) //override
@@ -68,7 +82,8 @@ public:
 
 
 
-    typename std::enable_if<std::is_same<T,amrex::Real>::value,void>
+    template <class Q = T>
+    typename std::enable_if<std::is_same<Q,amrex::Real>::value>::type
     FillBoundary (amrex::MultiFab& mf,
                     int dcomp, int ncomp,
                     amrex::Real time, int /*bccomp*/)
@@ -81,8 +96,9 @@ public:
             FillBoundary(in, box, mf.nGrow(), dcomp, ncomp, time);
         }
     }
-
-    typename std::enable_if<std::is_same<T,amrex::Real>::value,void>
+    
+    template <class Q = T>
+    typename std::enable_if<std::is_same<Q,amrex::Real>::value>::type
     operator () (amrex::MultiFab& mf,
                  int dcomp, int ncomp, amrex::IntVect const & /*nghost*/,
                  amrex::Real time, int bccomp) 
