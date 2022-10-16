@@ -39,8 +39,9 @@ public:
 
     void Define(std::string filename)
     {
-        std::ifstream input;
-        input.open(filename);
+        std::ifstream input(filename.c_str());
+        if (!input.good()) Util::Abort(INFO,"Invalid file: ",filename);
+        //input.open(filename);
         std::string line;
         std::vector<Set::Scalar> theta, thetasmall, w, dw, ddw;
         while(std::getline(input,line))
@@ -48,7 +49,6 @@ public:
             std::vector<std::string> dat = Util::String::Split(line);
             theta.push_back(std::stof(dat[0]));
             w.push_back(std::stof(dat[1]));
-            Util::Message(INFO,theta[theta.size()-1]," ",w[theta.size()-1]);
         }
         for (unsigned int i = 1; i < theta.size()-1; i++)
         {
@@ -89,6 +89,7 @@ public:
     {
         std::string filename;
         pp.query("filename",filename);
+        Util::Message(INFO,"Defining with ",filename);
         value.Define(filename);
     }
       

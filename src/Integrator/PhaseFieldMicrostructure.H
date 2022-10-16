@@ -34,6 +34,7 @@
 #include "Model/Interface/GB/AbsSin.H"
 #include "Model/Interface/GB/Read.H"
 #include "Model/Interface/GB/SH.H"
+#include "Model/Interface/GB/Combine.H"
 
 #include "Model/Solid/Linear/Cubic.H"
 #include "Model/Solid/Affine/Cubic.H"
@@ -80,9 +81,21 @@ public:
 
         // Elasticity
         pp.query("mechanics.tstart",value.mechanics.tstart);
-        //value.mechanics.model.resize(value.number_of_grains);
+        value.mechanics.model.clear();
+        if (pp.contains("mechanics.model"))
+        {
+            model_type tmp_model;
+            pp.queryclass("mechanics.model",tmp_model);            
+            value.mechanics.model.resize(value.number_of_grains,tmp_model);
+        }
+        for (int i=0; i < value.number_of_grains; i++)
+        {
+            std::string name = "mechanics.model" + std::to_string(i+1);
+            model_type tmp_model;
+            pp.queryclass(std::string(name.data()), tmp_model);
+            value.mechanics.model.push_back(tmp_model);
+        }
 
-        pp.queryclass("mechanics.model",value.mechanics.model);
         value.m_type = Base::Mechanics<model_type>::Disable; // Turn mechanics off by default
         pp.queryclass<Base::Mechanics<model_type>>("mechanics",&value);
         if (value.m_type == Base::Mechanics<model_type>::Type::Static) 
@@ -108,7 +121,7 @@ public:
             if (vals.size() == 1)
                 for (int i = 0; i < value.number_of_grains; i++)
                     value.sdf.val.push_back(Numeric::Interpolator::Linear<Set::Scalar>(vals[0]));
-            else if (vals.size() == value.number_of_grains)
+            else if (vals.size() == (long unsigned int)value.number_of_grains)
                 for (int i = 0; i < value.number_of_grains; i++)
                     value.sdf.val.push_back(Numeric::Interpolator::Linear<Set::Scalar>(vals[i]));
             else
@@ -144,10 +157,16 @@ public:
         // Set the anisotropic GB model
         std::string gb_type = "";
         pp.query("anisotropy.gb_type", gb_type); // Type of GB energy to use
+        Util::Message(INFO,gb_type);
         if      (gb_type == "abssin") value.boundary = new Model::Interface::GB::AbsSin(pp,"anisotropy.abssin");
         else if (gb_type == "sin")    value.boundary = new Model::Interface::GB::Sin(pp,"anisotropy.sin");
         else if (gb_type == "read")   value.boundary = new Model::Interface::GB::Read(pp,"anisotropy.read");
         else if (gb_type == "sh")     value.boundary = new Model::Interface::GB::SH(pp,"anisotropy.sh");
+        else if (gb_type == "comb")   
+        {
+            Util::Message(INFO,gb_type);
+            value.boundary = new Model::Interface::GB::Combine<Model::Interface::GB::Read>(pp,"anisotropy.comb",value.number_of_grains);
+        }
         else if (value.anisotropy.on)       Util::Abort(INFO,"A GB model must be specified");
 
         // Thermal disconnection fluctuations
@@ -185,6 +204,24 @@ public:
             value.disconnection.rand_num_gen.seed(amrex::ParallelDescriptor::MyProc());
         }
 
+        // Shear coupling matrices
+        value.shearcouple.Fgb.resize(value.number_of_grains * value.number_of_grains, Set::Matrix::Zero());
+        for (int i = 0 ; i < value.number_of_grains ; i++)
+        for (int j = 0 ; j < value.number_of_grains ; j++)
+        {
+            std::string name    = "shearcouple.Fgb."+std::to_string(i)+"."+std::to_string(j);
+            std::string namerev = "shearcouple.Fgb."+std::to_string(j)+"."+std::to_string(i);
+            if ( i==j && pp.contains(name.data())) 
+                Util::Abort(INFO,"Cannot specify self FGB ", name);
+            if (pp.contains(name.data()) && pp.contains(namerev.data())) 
+                Util::Abort(INFO,"Cannot specify both ",name," and ",namerev);
+            if (pp.contains(name.data())) 
+            {
+                pp.queryarr(name.data(),value.shearcouple.Fgb[i*value.number_of_grains + j]);
+                value.shearcouple.Fgb[j*value.number_of_grains + i] = - value.shearcouple.Fgb[i*value.number_of_grains + j];
+            }
+        }
+
         // Boundary conditions for Etas
         std::string bc_type = "constant";
         pp.query("bc.eta.type",bc_type);  // Type (constnat)
@@ -205,7 +242,7 @@ public:
 
         value.RegisterNewFab(value.eta_new_mf, value.mybc, value.number_of_grains, value.number_of_ghost_cells, "Eta",true);
         value.RegisterNewFab(value.eta_old_mf, value.mybc, value.number_of_grains, value.number_of_ghost_cells, "Eta old",false);
-        value.RegisterNewFab(value.totaldf_mf, new BC::Nothing(), value.number_of_grains,0, "totaldf",true);
+        //value.RegisterNewFab(value.totaldf_mf, new BC::Nothing(), value.number_of_grains,0, "totaldf",true);
         value.RegisterNewFab(value.disc_mf, new BC::Nothing(), 1, value.number_of_ghost_cells, "disc",true);  // see box
         value.RegisterNodalFab(value.elasticdf_mf,value.number_of_grains,value.number_of_ghost_cells,"elasticdf",true);
 
@@ -214,7 +251,6 @@ public:
         value.RegisterIntegratedVariable(&value.gbenergy, "gbenergy");
         value.RegisterIntegratedVariable(&value.realgbenergy, "realgbenergy");
         value.RegisterIntegratedVariable(&value.regenergy, "regenergy");
-        //value.RegisterIntegratedVariable(&elastic.strainenergy, "strainenergy");
     }
 
     
@@ -232,6 +268,7 @@ protected:
     void Integrate(int amrlev, Set::Scalar time, int step,
                     const amrex::MFIter &mfi, const amrex::Box &box) override;
 
+    void UpdateEigenstrain(int lev);
 
     virtual void UpdateModel(int /*a_step*/);
 
@@ -251,6 +288,7 @@ private:
     Set::Field<Set::Scalar> totaldf_mf;
 
     BC::BC<Set::Scalar> *mybc;
+
 
     //amrex::Real M, mu, gamma, sigma0, l_gb, beta;
     RegularizationType regularization = RegularizationType::K12;
@@ -330,6 +368,10 @@ private:
         } fixed;
     } disconnection;
 
+    struct {
+        int on = 0;
+        std::vector<Set::Matrix> Fgb;
+    } shearcouple;
     Model::Interface::GB::GB *boundary;
 
     IC::IC *ic;
@@ -343,7 +385,7 @@ private:
     struct
     {
         Set::Scalar tstart = 0.0;
-        model_type model;
+        std::vector<model_type> model;
     } mechanics;
     
 
